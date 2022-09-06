@@ -1,0 +1,303 @@
+{
+  "type": "object",
+  "id": "urn:jsonschema:io:openepcis:model:jaxb:AssociationEvent",
+  "required": [
+    "isA",
+    "eventTime",
+    "eventTimeZoneOffset",
+    "action",
+    "parentID"
+  ],
+  "properties": {
+    "isA": {
+      "type": "string"
+    },
+    "eventTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "eventTimeZoneOffset": {
+      "type": "string"
+    },
+    "recordTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "eventID": {
+      "type": "string",
+      "format": "uri"
+    },
+    "errorDeclaration": {
+      "type": "object",
+      "id": "urn:jsonschema:io:openepcis:model:jaxb:ErrorDeclaration",
+      "properties": {
+        "declarationTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "format": "uri"
+        },
+        "correctiveEventIDs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "parentID": {
+      "type": "string"
+    },
+    "childEPCs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "childQuantityList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:io:openepcis:model:core:QuantityList",
+        "properties": {
+          "epcClass": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "uom": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "ADD",
+        "OBSERVE",
+        "DELETE"
+      ]
+    },
+    "bizStep": {
+      "type": "string"
+    },
+    "disposition": {
+      "type": "string"
+    },
+    "readPoint": {
+      "type": "object",
+      "id": "urn:jsonschema:io:openepcis:model:core:ReadPoint",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "bizLocation": {
+      "type": "object",
+      "id": "urn:jsonschema:io:openepcis:model:core:BizLocation",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "bizTransactionList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:io:openepcis:model:core:BizTransactionList",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "bizTransaction": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sourceList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:io:openepcis:model:core:SourceList",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "destinationList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:io:openepcis:model:core:DestinationList",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sensorElementList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "id": "urn:jsonschema:io:openepcis:model:core:SensorElementList",
+        "properties": {
+          "sensorMetadata": {
+            "type": "object",
+            "id": "urn:jsonschema:io:openepcis:model:core:SensorMetadata",
+            "properties": {
+              "time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "deviceID": {
+                "type": "string",
+                "format": "uri"
+              },
+              "deviceMetadata": {
+                "type": "string",
+                "format": "uri"
+              },
+              "rawData": {
+                "type": "string",
+                "format": "uri"
+              },
+              "startTime": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endTime": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "dataProcessingMethod": {
+                "type": "string",
+                "format": "uri"
+              },
+              "bizRules": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "sensorReport": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "id": "urn:jsonschema:io:openepcis:model:core:SensorReport",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "deviceID": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "deviceMetadata": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "rawData": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "dataProcessingMethod": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "time": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "microorganism": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "chemicalSubstance": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "component": {
+                  "type": "string"
+                },
+                "stringValue": {
+                  "type": "string"
+                },
+                "booleanValue": {
+                  "type": "boolean"
+                },
+                "hexBinaryValue": {
+                  "type": "string",
+                  "pattern": "^[A-Fa-f0-9]+$"
+                },
+                "uriValue": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "minValue": {
+                  "type": "number"
+                },
+                "maxValue": {
+                  "type": "number"
+                },
+                "meanValue": {
+                  "type": "number"
+                },
+                "percRank": {
+                  "type": "number"
+                },
+                "percValue": {
+                  "type": "number"
+                },
+                "uom": {
+                  "type": "string"
+                },
+                "sDev": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "persistentDisposition": {
+      "type": "object",
+      "id": "urn:jsonschema:io:openepcis:model:core:PersistentDisposition",
+      "properties": {
+        "set": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unset": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

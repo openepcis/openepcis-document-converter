@@ -1,0 +1,499 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:complexType name="bizLocation">
+        <xsd:sequence>
+            <xsd:element name="id" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="innerUserExtensions" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="entry" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="key" type="xsd:string" minOccurs="0"/>
+                                    <xsd:element name="value" type="xsd:anyType" minOccurs="0"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="userExtensions" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="entry" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="key" type="xsd:string" minOccurs="0"/>
+                                    <xsd:element name="value" type="xsd:anyType" minOccurs="0"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="bizTransactionList">
+        <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+                <xsd:attribute name="type" type="xsd:string"/>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:complexType name="destinationList">
+        <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+                <xsd:attribute name="type" type="xsd:string"/>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:complexType name="persistentDisposition">
+        <xsd:sequence>
+            <xsd:element name="set" type="xsd:string" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+            <xsd:element name="unset" type="xsd:string" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="quantityList">
+        <xsd:sequence>
+            <xsd:element name="epcClass" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="quantity" type="xsd:float" minOccurs="0"/>
+            <xsd:element name="uom" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="readPoint">
+        <xsd:sequence>
+            <xsd:element name="id" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="innerUserExtensions" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="entry" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="key" type="xsd:string" minOccurs="0"/>
+                                    <xsd:element name="value" type="xsd:anyType" minOccurs="0"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="userExtensions" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="entry" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:complexType>
+                                <xsd:sequence>
+                                    <xsd:element name="key" type="xsd:string" minOccurs="0"/>
+                                    <xsd:element name="value" type="xsd:anyType" minOccurs="0"/>
+                                </xsd:sequence>
+                            </xsd:complexType>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="sourceList">
+        <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+                <xsd:attribute name="type" type="xsd:string"/>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+    <xsd:complexType name="AggregationEvent">
+        <xsd:sequence>
+            <xsd:element name="eventTime" type="xsd:dateTime"/>
+            <xsd:element name="recordTime" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="eventTimeZoneOffset" type="xsd:string"/>
+            <xsd:element name="eventID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="errorDeclaration" type="errorDeclaration" minOccurs="0"/>
+            <xsd:element name="baseExtension" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="parentID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="childEPCs">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="epc" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="action" type="action"/>
+            <xsd:element name="bizStep" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="disposition" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="readPoint" type="readPoint" minOccurs="0"/>
+            <xsd:element name="bizLocation" type="bizLocation" minOccurs="0"/>
+            <xsd:element name="bizTransactionList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="bizTransaction" type="bizTransactionList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="childQuantityList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="quantityElement" type="quantityList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sourceList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="source" type="sourceList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="destinationList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="destination" type="destinationList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sensorElementList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sensorElement" type="sensorElementList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="persistentDisposition" type="persistentDisposition" minOccurs="0"/>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="AssociationEvent">
+        <xsd:sequence>
+            <xsd:element name="eventTime" type="xsd:dateTime"/>
+            <xsd:element name="eventTimeZoneOffset" type="xsd:string"/>
+            <xsd:element name="recordTime" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="eventID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="errorDeclaration" type="errorDeclaration" minOccurs="0"/>
+            <xsd:element name="baseExtension" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="parentID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="childEPCs" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="epc" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="childQuantityList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="quantityElement" type="quantityList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="action" type="action"/>
+            <xsd:element name="bizStep" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="disposition" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="readPoint" type="readPoint" minOccurs="0"/>
+            <xsd:element name="bizLocation" type="bizLocation" minOccurs="0"/>
+            <xsd:element name="bizTransactionList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="bizTransaction" type="bizTransactionList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sourceList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="source" type="sourceList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="destinationList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="destination" type="destinationList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sensorElementList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sensorElement" type="sensorElementList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="persistentDisposition" type="persistentDisposition" minOccurs="0"/>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="errorDeclaration">
+        <xsd:sequence>
+            <xsd:element name="declarationTime" type="xsd:dateTime"/>
+            <xsd:element name="reason" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="correctiveEventIDs" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="correctiveEventID" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="mapWrapper">
+        <xsd:sequence>
+            <xsd:any processContents="skip" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ObjectEvent">
+        <xsd:sequence>
+            <xsd:element name="eventTime" type="xsd:dateTime"/>
+            <xsd:element name="recordTime" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="eventTimeZoneOffset" type="xsd:string"/>
+            <xsd:element name="eventID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="errorDeclaration" type="errorDeclaration" minOccurs="0"/>
+            <xsd:element name="baseExtension" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="epcList">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="epc" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="action" type="action"/>
+            <xsd:element name="bizStep" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="disposition" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="readPoint" type="readPoint" minOccurs="0"/>
+            <xsd:element name="bizLocation" type="bizLocation" minOccurs="0"/>
+            <xsd:element name="bizTransactionList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="bizTransaction" type="bizTransactionList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="quantityList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="quantityElement" type="quantityList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sourceList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="source" type="sourceList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="destinationList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="destination" type="destinationList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sensorElementList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sensorElement" type="sensorElementList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="persistentDisposition" type="persistentDisposition" minOccurs="0"/>
+            <xsd:element name="ilmd" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="sensorElementList">
+        <xsd:sequence>
+            <xsd:element name="sensorMetadata" type="sensorMetadata" minOccurs="0"/>
+            <xsd:element name="sensorReport" type="sensorReport" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="sensorMetadata">
+        <xsd:sequence/>
+        <xsd:attribute name="time" type="xsd:dateTime"/>
+        <xsd:attribute name="deviceID" type="xsd:string"/>
+        <xsd:attribute name="deviceMetadata" type="xsd:string"/>
+        <xsd:attribute name="rawData" type="xsd:string"/>
+        <xsd:attribute name="startTime" type="xsd:dateTime"/>
+        <xsd:attribute name="endTime" type="xsd:dateTime"/>
+        <xsd:attribute name="dataProcessingMethod" type="xsd:string"/>
+        <xsd:attribute name="bizRules" type="xsd:string"/>
+        <xsd:anyAttribute processContents="skip" namespace="##other"/>
+    </xsd:complexType>
+    <xsd:complexType name="sensorReport">
+        <xsd:sequence/>
+        <xsd:attribute name="type" type="xsd:string"/>
+        <xsd:attribute name="deviceID" type="xsd:string"/>
+        <xsd:attribute name="deviceMetadata" type="xsd:string"/>
+        <xsd:attribute name="rawData" type="xsd:string"/>
+        <xsd:attribute name="dataProcessingMethod" type="xsd:string"/>
+        <xsd:attribute name="time" type="xsd:dateTime"/>
+        <xsd:attribute name="microorganism" type="xsd:string"/>
+        <xsd:attribute name="chemicalSubstance" type="xsd:string"/>
+        <xsd:attribute name="value" type="xsd:double"/>
+        <xsd:attribute name="component" type="xsd:string"/>
+        <xsd:attribute name="stringValue" type="xsd:string"/>
+        <xsd:attribute name="booleanValue" type="xsd:boolean"/>
+        <xsd:attribute name="hexBinaryValue" type="xsd:string"/>
+        <xsd:attribute name="uriValue" type="xsd:string"/>
+        <xsd:attribute name="sDev" type="xsd:double"/>
+        <xsd:attribute name="minValue" type="xsd:double"/>
+        <xsd:attribute name="maxValue" type="xsd:double"/>
+        <xsd:attribute name="meanValue" type="xsd:double"/>
+        <xsd:attribute name="percRank" type="xsd:double"/>
+        <xsd:attribute name="percValue" type="xsd:double"/>
+        <xsd:attribute name="uom" type="xsd:string"/>
+        <xsd:anyAttribute processContents="skip" namespace="##other"/>
+    </xsd:complexType>
+    <xsd:complexType name="TransactionEvent">
+        <xsd:sequence>
+            <xsd:element name="eventTime" type="xsd:dateTime"/>
+            <xsd:element name="recordTime" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="eventTimeZoneOffset" type="xsd:string"/>
+            <xsd:element name="eventID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="errorDeclaration" type="errorDeclaration" minOccurs="0"/>
+            <xsd:element name="baseExtension" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="bizTransactionList">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="bizTransaction" type="bizTransactionList" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="parentID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="epcList">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="epc" type="xsd:string" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="action" type="action"/>
+            <xsd:element name="bizStep" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="disposition" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="readPoint" type="readPoint" minOccurs="0"/>
+            <xsd:element name="bizLocation" type="bizLocation" minOccurs="0"/>
+            <xsd:element name="quantityList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="quantityElement" type="quantityList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sourceList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="source" type="sourceList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="destinationList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="destination" type="destinationList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sensorElementList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sensorElement" type="sensorElementList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="persistentDisposition" type="persistentDisposition" minOccurs="0"/>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="TransformationEvent">
+        <xsd:sequence>
+            <xsd:element name="eventTime" type="xsd:dateTime"/>
+            <xsd:element name="recordTime" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="eventTimeZoneOffset" type="xsd:string"/>
+            <xsd:element name="eventID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="errorDeclaration" type="errorDeclaration" minOccurs="0"/>
+            <xsd:element name="baseExtension" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="inputEPCList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="epc" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="inputQuantityList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="quantityElement" type="quantityList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="outputEPCList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="epc" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="outputQuantityList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="quantityElement" type="quantityList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="transformationID" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="bizStep" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="disposition" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="readPoint" type="readPoint" minOccurs="0"/>
+            <xsd:element name="bizLocation" type="bizLocation" minOccurs="0"/>
+            <xsd:element name="bizTransactionList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="bizTransaction" type="bizTransactionList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="sourceList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="source" type="sourceList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="destinationList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="destination" type="destinationList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="ilmd" type="mapWrapper" minOccurs="0"/>
+            <xsd:element name="sensorElementList" minOccurs="0">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sensorElement" type="sensorElementList" minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="persistentDisposition" type="persistentDisposition" minOccurs="0"/>
+            <xsd:element name="extension" type="mapWrapper" minOccurs="0"/>
+            <xsd:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="AggregationEvent" type="AggregationEvent"/>
+    <xsd:element name="AssociationEvent" type="AssociationEvent"/>
+    <xsd:element name="ObjectEvent" type="ObjectEvent"/>
+    <xsd:element name="TransactionEvent" type="TransactionEvent"/>
+    <xsd:element name="TransformationEvent" type="TransformationEvent"/>
+    <xsd:simpleType name="action">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="ADD"/>
+            <xsd:enumeration value="OBSERVE"/>
+            <xsd:enumeration value="DELETE"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+</xsd:schema>

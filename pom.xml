@@ -26,10 +26,10 @@
         <version>0.9.1-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
-    <artifactId>epcis-format-converter</artifactId>
-    <name>epcis-format-converter</name>
+    <artifactId>openepcis-document-converter</artifactId>
+    <name>openepcis-document-converter</name>
     <description>This project will convert the EPCIS events in XML format to JSON-LD and vice-versa.</description>
-    <url>https://github.com/openepcis/epcis-format-converter</url>
+    <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <licenses>
         <license>
@@ -54,9 +54,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/openepcis/epcis-format-converter.git</connection>
-        <developerConnection>scm:git:ssh://github.com:openepcis/epcis-format-converter.git</developerConnection>
-        <url>https://github.com/openepcis/epcis-format-converter/tree/main</url>
+        <connection>scm:git:git://github.com/openepcis/openepcis-document-converter.git</connection>
+        <developerConnection>scm:git:ssh://github.com:openepcis/openepcis-document-converter.git</developerConnection>
+        <url>https://github.com/openepcis/openepcis-document-converter/tree/main</url>
     </scm>
 
     <dependencies>
@@ -74,7 +74,7 @@
         <!-- JAXB Annotations Dependencies START -->
         <dependency>
             <groupId>org.eclipse.persistence</groupId>
-            <artifactId>eclipselink</artifactId>
+            <artifactId>org.eclipse.persistence.moxy</artifactId>
         </dependency>
         <!-- JAXB Annotations Dependencies END -->
 

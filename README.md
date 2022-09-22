@@ -20,7 +20,7 @@ Following section provides quick overview of how to convert the EPCIS document f
 
 ### Converting XML to JSON/JSON-LD document
 
-If you have a EPCIS 2.0 XML document which you want to convert to JSON/JSON-LD then provide it as `InputStream` to convert method of [XmlToJsonConverter.class](/blob/main/src/main/java/io/openepcis/epc/formatconverter/XmlToJsonConverter.java):
+If you have a EPCIS 2.0 XML document which you want to convert to JSON/JSON-LD then provide it as `InputStream` to convert method of [XmlToJsonConverter.class](/src/main/java/io/openepcis/epc/formatconverter/XmlToJsonConverter.java):
 ```
     final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
     final EventJSONStreamCollector collector = new EventJSONStreamCollector(jsonOutput);
@@ -31,7 +31,7 @@ If you have a EPCIS 2.0 XML document which you want to convert to JSON/JSON-LD t
 
 ### Converting JSON/JSON-LD to XML document
 
-If you have a EPCIS 2.0 JSON/JSON-LD document which you want to convert to XML then provide it as `InputStream` to convert method of [JsonToXmlConverter.class](/blob/main/src/main/java/io/openepcis/epc/formatconverter/JsonToXmlConverter.java) :
+If you have a EPCIS 2.0 JSON/JSON-LD document which you want to convert to XML then provide it as `InputStream` to convert method of [JsonToXmlConverter.class](/src/main/java/io/openepcis/epc/formatconverter/JsonToXmlConverter.java) :
 ```
     final ByteArrayOutputStream xmlOutput = new ByteArrayOutputStream();
     final EventJSONStreamCollector collector = new EventJSONStreamCollector(xmlOutput);

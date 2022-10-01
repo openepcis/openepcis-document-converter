@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import javax.enterprise.context.RequestScoped;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 
@@ -45,6 +46,7 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
  * Public method that will be called by client during the conversions.
  */
 @Slf4j
+@RequestScoped
 public class JsonToXmlConverter implements EventsConverter {
 
   /**
@@ -60,6 +62,22 @@ public class JsonToXmlConverter implements EventsConverter {
   @Override
   public void convert(InputStream jsonStream, EventHandler eventHandler)
       throws IOException, JAXBException {
+    convert(jsonStream, eventHandler, JAXBContext.newInstance("io.openepcis.model.epcis"));
+  }
+  /**
+   * API method to convert the list of EPCIS events from JSON-LD to XML format
+   *
+   * @param jsonStream Stream of JSON EPCIS events
+   * @param eventHandler Handler to indicate what needs to be performed after conversion of each
+   *     event from JSON to XML? EventValidator for validating each event, EventListCreator for
+   *     creating list of events after converting along with all header information.
+   *     EventValidatorAndListCreator for validating each event and creating XML with header info.
+   * @param jaxbContext
+   * @throws IOException Method throws IOException when error occurred during the conversion.
+   */
+  @Override
+  public void convert(InputStream jsonStream, EventHandler eventHandler, JAXBContext jaxbContext)
+      throws IOException, JAXBException {
 
     // Check if InputStream has some content if not then throw appropriate Exception
     if (jsonStream == null) {
@@ -71,8 +89,7 @@ public class JsonToXmlConverter implements EventsConverter {
     DefaultJsonSchemaNamespaceURIResolver.getInstance().namespaceReset();
 
     // Create a Marshaller instance to convert to XML
-    final Marshaller marshaller =
-        JAXBContext.newInstance("io.openepcis.model.epcis").createMarshaller();
+    final Marshaller marshaller = jaxbContext.createMarshaller();
 
     // Store the information from JSON header for creation of final XML
     final Map<String, String> contextValues = new HashMap<>();

@@ -60,6 +60,24 @@ public class XmlToJsonConverter implements EventsConverter {
   @Override
   public void convert(InputStream xmlStream, EventHandler eventHandler)
       throws IOException, XMLStreamException, JAXBException {
+    convert(xmlStream, eventHandler, JAXBContext.newInstance("io.openepcis.model.epcis"));
+  }
+
+  /**
+   * API method to convert the list of EPCIS events from XML to JSON-LD format
+   *
+   * @param xmlStream Stream of XML EPCIS events
+   * @param eventHandler Handler to indicate what needs to be performed after conversion of each
+   *     event from XML to JSON? EventValidator for validating each event, EventListCreator for
+   *     creating list of events after converting along with all header information.
+   *     EventValidatorAndListCreator for validating each event and creating JSON-LD with header
+   *     info.
+   * @param jaxbContext
+   * @throws IOException Method throws IOException when error occurred during the conversion.
+   */
+  @Override
+  public void convert(InputStream xmlStream, EventHandler eventHandler, JAXBContext jaxbContext)
+      throws IOException, XMLStreamException, JAXBException {
 
     try {
       // Check if InputStream has some content if not then throw appropriate Exception
@@ -91,8 +109,7 @@ public class XmlToJsonConverter implements EventsConverter {
 
       // Create an instance of JAXBContext and Unmarshaller for unmarshalling the classes to
       // respective event
-      final Unmarshaller unmarshaller =
-          JAXBContext.newInstance("io.openepcis.model.epcis").createUnmarshaller();
+      final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 
       // Throw exception if invalid values are found during unmarshalling the XML
       unmarshaller.setEventHandler(

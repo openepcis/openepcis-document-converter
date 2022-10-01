@@ -16,6 +16,7 @@
 package io.openepcis.epc.formatconverter;
 
 import io.openepcis.epc.formatconverter.outputhandler.EventHandler;
+import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,6 +32,9 @@ import javax.xml.stream.XMLStreamException;
  * provided OutputStream type
  */
 public interface EventsConverter {
+  void convert(InputStream inputStream, EventHandler handler, JAXBContext jaxbContext)
+      throws IOException, XMLStreamException, JAXBException;
+
   void convert(InputStream inputStream, EventHandler handler)
       throws IOException, XMLStreamException, JAXBException;
 }

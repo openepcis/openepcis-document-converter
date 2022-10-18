@@ -119,16 +119,20 @@ public class JsonToXmlConverter implements EventsConverter {
       while (!(jsonParser.getText().equals("type") || jsonParser.getText().equals("eventID"))) {
         if (jsonParser.getCurrentName() != null
             && jsonParser.getCurrentName().equalsIgnoreCase("@context")) {
-          // Loop until end of the Array to obtain Context elements
-          while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
 
-            // If element has name then store name and text in Map
-            if (jsonParser.getCurrentName() != null
-                && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
-              // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on
-              // corresponding XSD
-              DefaultJsonSchemaNamespaceURIResolver.getInstance()
-                  .namespacePopulator(jsonParser.getText(), jsonParser.getCurrentName());
+          // Read the context value only if the value is of type array else skip to add only string
+          if (jsonParser.nextToken() == JsonToken.START_ARRAY) {
+            // Loop until end of the Array to obtain Context elements
+            while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+
+              // If element has name then store name and text in Map
+              if (jsonParser.getCurrentName() != null
+                  && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
+                // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on
+                // corresponding XSD
+                DefaultJsonSchemaNamespaceURIResolver.getInstance()
+                    .namespacePopulator(jsonParser.getText(), jsonParser.getCurrentName());
+              }
             }
           }
         }

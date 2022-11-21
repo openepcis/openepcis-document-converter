@@ -1,9 +1,12 @@
 package io.openepcis.convert.version;
 
+import io.openepcis.convert.EPCISVersion;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.smallrye.mutiny.Uni;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 import javax.xml.transform.Transformer;
@@ -12,35 +15,51 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class XmlTransformer {
+public class XmlVersionTransformer {
 
-  private static final TransformerFactory transformerFactory = TransformerFactory.newInstance();
-  private static final Transformer toHigherTransformer;
-  private static final Transformer toLowerTransformer;
+  private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
+  private static final Transformer FROM_1_2_TO_2_0;
+  private static final Transformer FROM_2_0_TO_1_2;
+
+  private ExecutorService executorService;
+
+  public XmlVersionTransformer() {
+    this.executorService = Executors.newWorkStealingPool();
+  }
+
+  public XmlVersionTransformer(final ExecutorService executorService) {
+    this.executorService = executorService;
+  }
 
   static {
     try {
-      toHigherTransformer =
-          transformerFactory.newTransformer(
+      FROM_1_2_TO_2_0 =
+          TRANSFORMER_FACTORY.newTransformer(
               new StreamSource(
-                  XmlTransformer.class
+                  XmlVersionTransformer.class
                       .getClassLoader()
                       .getResourceAsStream("xalan-conversion/convert-1.2-to-2.0.xsl")));
 
-      toLowerTransformer =
-          transformerFactory.newTransformer(
+      FROM_2_0_TO_1_2 =
+          TRANSFORMER_FACTORY.newTransformer(
               new StreamSource(
-                  XmlTransformer.class
+                  XmlVersionTransformer.class
                       .getClassLoader()
                       .getResourceAsStream("xalan-conversion/convert-2.0-to-1.2.xsl")));
     } catch (TransformerConfigurationException e) {
       throw new FormatConverterException(
           "Creation of Transformer instance failed : " + e.getMessage());
     }
+  }
+
+  public static final InputStream convert(
+      final InputStream inputStream, final EPCISVersion from, final EPCISVersion to)
+      throws UnsupportedOperationException {
+    if (from.equals(to)) {
+      return inputStream;
+    }
+    return inputStream;
   }
 
   /**
@@ -57,7 +76,7 @@ public class XmlTransformer {
               public void write(OutputStream outputStream) throws WebApplicationException {
                 final StreamSource inputDocument = new StreamSource(lowerVersionDocument);
                 try {
-                  toHigherTransformer.transform(inputDocument, new StreamResult(outputStream));
+                  FROM_1_2_TO_2_0.transform(inputDocument, new StreamResult(outputStream));
                 } catch (TransformerException e) {
                   throw new FormatConverterException(
                       "Exception occurred during conversion of XML from EPCIS 1.2 to 2.0 : "
@@ -78,7 +97,7 @@ public class XmlTransformer {
         .item(
             outputStream -> {
               try {
-                toLowerTransformer.transform(
+                FROM_2_0_TO_1_2.transform(
                     new StreamSource(higherVersionDocument), new StreamResult(outputStream));
               } catch (TransformerException e) {
                 throw new FormatConverterException(

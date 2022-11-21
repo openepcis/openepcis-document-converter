@@ -1,6 +1,6 @@
 package com.io.openepcis.version;
 
-import io.openepcis.convert.version.XmlTransformer;
+import io.openepcis.convert.version.XmlVersionTransformer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +13,7 @@ public class LowerToHigherTest {
   public void converLowerToHigher() {
     final InputStream xmlStream = getClass().getResourceAsStream("/version/LowerVersionXml.xml");
     final ByteArrayOutputStream output = new ByteArrayOutputStream();
-    XmlTransformer.fromLower(xmlStream)
+    XmlVersionTransformer.fromLower(xmlStream)
         .subscribe()
         .with(
             item -> {

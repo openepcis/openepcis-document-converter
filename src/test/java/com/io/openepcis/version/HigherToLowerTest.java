@@ -1,6 +1,6 @@
 package com.io.openepcis.version;
 
-import io.openepcis.convert.version.XmlTransformer;
+import io.openepcis.convert.version.XmlVersionTransformer;
 import io.smallrye.mutiny.Uni;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,7 +14,7 @@ public class HigherToLowerTest {
   @Test
   public void convertHigherToLower() {
     final InputStream xmlStream = getClass().getResourceAsStream("/version/HigherVersionXml.xml");
-    final Uni<StreamingOutput> lowerVersionXml = XmlTransformer.fromHigher(xmlStream);
+    final Uni<StreamingOutput> lowerVersionXml = XmlVersionTransformer.fromHigher(xmlStream);
     final ByteArrayOutputStream output = new ByteArrayOutputStream();
     lowerVersionXml
         .subscribe()

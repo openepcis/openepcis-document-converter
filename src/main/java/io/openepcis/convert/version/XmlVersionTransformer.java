@@ -53,7 +53,7 @@ public class XmlVersionTransformer {
     }
   }
 
-  public static final InputStream convert(
+  public final InputStream convert(
       final InputStream inputStream, final EPCISVersion from, final EPCISVersion to)
       throws UnsupportedOperationException {
     if (from.equals(to)) {

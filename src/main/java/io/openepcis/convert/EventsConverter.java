@@ -15,6 +15,7 @@
  */
 package io.openepcis.convert;
 
+import io.openepcis.convert.collector.EventHandler;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import java.io.IOException;

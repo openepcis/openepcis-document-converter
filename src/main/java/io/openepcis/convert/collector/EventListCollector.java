@@ -13,7 +13,7 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  */
-package io.openepcis.convert;
+package io.openepcis.convert.collector;
 
 import java.util.List;
 
@@ -21,7 +21,7 @@ import java.util.List;
  * Class that implements the EPCISEventsCollector to collect the converted Events into the List if
  * user has provided List as a type in the Handler
  */
-public class EventListCollector implements EPCISEventsCollector<List<String>> {
+public class EventListCollector implements EpcisEventsCollector<List<String>> {
 
   private final List<String> events;
 

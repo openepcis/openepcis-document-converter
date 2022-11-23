@@ -1,31 +1,51 @@
 package com.io.openepcis.version;
 
-import io.openepcis.convert.version.XmlVersionTransformer;
-import io.smallrye.mutiny.Uni;
-import java.io.ByteArrayOutputStream;
+import io.openepcis.convert.EpcisVersion;
+import io.openepcis.convert.VersionTransformer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import javax.ws.rs.core.StreamingOutput;
+import org.apache.commons.io.IOUtils;
+import org.junit.Before;
 import org.junit.Test;
 
 public class HigherToLowerTest {
 
+  private VersionTransformer versionTransformer;
+  private InputStream inputDocument;
+
+  @Before
+  public void before() {
+    versionTransformer = new VersionTransformer();
+  }
+
   @Test
-  public void convertHigherToLower() {
-    final InputStream xmlStream = getClass().getResourceAsStream("/version/HigherVersionXml.xml");
-    final Uni<StreamingOutput> lowerVersionXml = XmlVersionTransformer.fromHigher(xmlStream);
-    final ByteArrayOutputStream output = new ByteArrayOutputStream();
-    lowerVersionXml
-        .subscribe()
-        .with(
-            item -> {
-              try {
-                item.write(output);
-              } catch (IOException e) {
-                e.printStackTrace();
-              }
-            });
-    System.out.println(output.toString(StandardCharsets.UTF_8));
+  public void convertDirectTest() throws IOException {
+    inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_1.xml");
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputDocument, "application/xml", EpcisVersion.VERSION_2_0, EpcisVersion.VERSION_1_2);
+    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void convertWithScanTest() throws IOException {
+    inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_2.xml");
+    final InputStream convertedDocument =
+        versionTransformer.convert(inputDocument, "application/xml", EpcisVersion.VERSION_1_2);
+    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void convertWithAllInfoTest() throws IOException {
+    inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_3.xml");
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputDocument,
+            "xml",
+            EpcisVersion.VERSION_2_0,
+            "application/xml",
+            EpcisVersion.VERSION_1_2);
+    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
   }
 }

@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.openepcis.convert.EventHandler;
 import io.openepcis.convert.EventsConverter;
+import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
@@ -40,9 +40,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 
 /**
- * Main class for handling the conversion of EPCIS events in JSON-LD format to XML format. It
- * implements the "converter" method from interface "EventsConverter". This is Non-thread safe JSON
- * to XML converter for EPCIS events. Do not share an instance across threads. EventsConverter:
+ * Class for handling the conversion of EPCIS 2.0 events in JSON-LD format to EPCIS 2.0 XML format.
+ * It implements the "converter" method from interface "EventsConverter". This is Non-thread safe
+ * JSON to XML converter for EPCIS events. Do not share an instance across threads. EventsConverter:
  * Public method that will be called by client during the conversions.
  */
 @Slf4j

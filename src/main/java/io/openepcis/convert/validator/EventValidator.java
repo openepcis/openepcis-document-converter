@@ -84,13 +84,10 @@ public class EventValidator implements EPCISEventValidator {
             "Event Does NOT adheres to EPCIS Standard XSD Schema. However, proceeding to next event from EventList ",
             ex);
       }
-    } else if (event instanceof String) {
+    } else if (event instanceof String convertedEvent) {
       // If the event is of String type then its JSON so compare with JSON Schema
 
       try {
-        // Convert the event to String from Object
-        final String convertedEvent = (String) event;
-
         // Get the JSONNode from the Event and what type of event
         final JsonNode parent = new ObjectMapper().readTree(convertedEvent).get("type");
 

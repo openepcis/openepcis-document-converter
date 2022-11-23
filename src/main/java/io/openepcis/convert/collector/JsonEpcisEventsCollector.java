@@ -13,11 +13,10 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  */
-package io.openepcis.convert.xml;
+package io.openepcis.convert.collector;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import io.openepcis.convert.EPCISEventsCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
@@ -32,13 +31,13 @@ import java.util.Map;
  * store event information based on user provided OutputStream type. end : Method to close all the
  * JSON-LD header objects that were created in the start method.
  */
-public class EventJSONStreamCollector implements EPCISEventsCollector<OutputStream> {
+public class JsonEpcisEventsCollector implements EpcisEventsCollector<OutputStream> {
 
   private final OutputStream stream;
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
 
-  public EventJSONStreamCollector(OutputStream stream) {
+  public JsonEpcisEventsCollector(OutputStream stream) {
     this.stream = stream;
     // Create the final JSON-LD with Header and event information
     try {

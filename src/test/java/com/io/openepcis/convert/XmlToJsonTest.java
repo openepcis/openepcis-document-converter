@@ -15,15 +15,20 @@
  */
 package com.io.openepcis.convert;
 
-import io.openepcis.convert.EventHandler;
-import io.openepcis.convert.EventListCollector;
+import io.openepcis.convert.EpcisVersion;
+import io.openepcis.convert.VersionTransformer;
+import io.openepcis.convert.collector.EventHandler;
+import io.openepcis.convert.collector.EventListCollector;
+import io.openepcis.convert.collector.JsonEpcisEventsCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.validator.EventValidator;
-import io.openepcis.convert.xml.EventJSONStreamCollector;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -68,7 +73,7 @@ public class XmlToJsonTest {
   public void xmlToJsonStreamTest() throws Exception {
     final InputStream xmlStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.xml");
     final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
-    final EventJSONStreamCollector collector = new EventJSONStreamCollector(jsonOutput);
+    final JsonEpcisEventsCollector collector = new JsonEpcisEventsCollector(jsonOutput);
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new XmlToJsonConverter().convert(xmlStream, handler);
     Assert.assertTrue(jsonOutput.size() > 0);
@@ -82,10 +87,42 @@ public class XmlToJsonTest {
     final InputStream xmlStream =
         getClass().getResourceAsStream("/convert/InputEpcisSingleEvent.xml");
     final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
-    final EventJSONStreamCollector collector = new EventJSONStreamCollector(jsonOutput);
+    final JsonEpcisEventsCollector collector = new JsonEpcisEventsCollector(jsonOutput);
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new XmlToJsonConverter().convert(xmlStream, handler);
     Assert.assertTrue(jsonOutput.size() > 0);
     System.out.println(jsonOutput.toString());
+  }
+
+  @Test
+  public void jsonConversionTest() throws IOException {
+    final InputStream xmlStream = getClass().getResourceAsStream("/convert/XmlDocument.xml");
+    final InputStream convertedDocument =
+        new VersionTransformer()
+            .convert(
+                xmlStream,
+                "application/xml",
+                EpcisVersion.VERSION_2_0,
+                "application/json",
+                EpcisVersion.VERSION_2_0);
+    System.out.println(
+        "Converted Version Transformer JSON : \n"
+            + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void jsonConversionScanTest() throws IOException {
+    final InputStream xmlStream = getClass().getResourceAsStream("/convert/XmlDocument.xml");
+    final InputStream convertedDocument =
+        new VersionTransformer()
+            .convert(
+                xmlStream,
+                "application/xml",
+                EpcisVersion.VERSION_2_0,
+                "application/json",
+                EpcisVersion.VERSION_2_0);
+    System.out.println(
+        "Converted Version Transformer JSON : \n"
+            + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
   }
 }

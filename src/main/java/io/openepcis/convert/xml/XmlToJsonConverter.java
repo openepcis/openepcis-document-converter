@@ -18,8 +18,8 @@ package io.openepcis.convert.xml;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.openepcis.convert.EventHandler;
 import io.openepcis.convert.EventsConverter;
+import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.*;
 import io.openepcis.model.epcis.modifier.Constants;
@@ -39,7 +39,7 @@ import javax.xml.stream.XMLStreamReader;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Main class for handling the conversion of EPCIS events in XML format to JSON format. It
+ * Class for handling the conversion of EPCIS 2.0 events in XML format to EPCIS 2.0 JSON format. It
  * implements the "converter" method from interface "EventsConverter". This is Non-thread safe XML
  * to JSON converter for EPCIS events. Do not share an instance across threads. EventsConverter:
  * Public method that will be called by client during the conversions.

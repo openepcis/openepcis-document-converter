@@ -26,11 +26,11 @@
         <version>0.9.1-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
+
+    <version>0.9.2-SNAPSHOT</version>
     <artifactId>openepcis-document-converter</artifactId>
     <name>openepcis-document-converter</name>
-    <version>0.9.2-SNAPSHOT</version>
-    <description>This project will convert the EPCIS events in XML format to JSON-LD and vice-versa. Also, convert the EPCIS 1.2 XML document to 2.0 XML document and
-        vice versa.</description>
+    <description>Project to convert EPCIS events in XML format to JSON-LD and vice-versa. Also, convert the EPCIS 1.2 XML document to 2.0 XML document and vice versa.</description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <licenses>
@@ -70,12 +70,12 @@
         <dependency>
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-model-rest</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-model-epcis</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <!-- JAXB Annotations Dependencies START -->
         <dependency>
@@ -117,6 +117,10 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
         </dependency>
     </dependencies>
 </project>

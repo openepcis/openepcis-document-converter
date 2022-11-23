@@ -13,7 +13,7 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  */
-package io.openepcis.convert;
+package io.openepcis.convert.collector;
 
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.validator.EPCISEventValidator;
@@ -23,17 +23,21 @@ import java.util.Map;
  * Class to delegate the incoming request to appropriate class to perform either XSD/Schema
  * validation or create final XML/JSON file after conversion
  */
-public class EventHandler<R> implements EPCISEventValidator, EPCISEventsCollector<R> {
+public class EventHandler<R> implements EPCISEventValidator, EpcisEventsCollector<R> {
 
-  private final EPCISEventValidator validator;
-  private final EPCISEventsCollector<R> collector;
+  private EPCISEventValidator validator;
+  private final EpcisEventsCollector<R> collector;
 
-  public EventHandler(EPCISEventValidator validator, EPCISEventsCollector<R> collector) {
+  public EventHandler(EPCISEventValidator validator, EpcisEventsCollector<R> collector) {
     if (validator == null && collector == null) {
       throw new FormatConverterException(
           "Invalid EventHandler, Both EventCollector and EventValidator cannot be Null");
     }
     this.validator = validator;
+    this.collector = collector;
+  }
+
+  public EventHandler(EpcisEventsCollector<R> collector) {
     this.collector = collector;
   }
 

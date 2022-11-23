@@ -13,9 +13,8 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  */
-package io.openepcis.convert.json;
+package io.openepcis.convert.collector;
 
-import io.openepcis.convert.EPCISEventsCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import java.io.OutputStream;
 import java.io.StringReader;
@@ -32,13 +31,13 @@ import javax.xml.stream.util.EventReaderDelegate;
  * the converted events based on user provided OutputStream type. end : To close all the XML header
  * tags that were created in the start method
  */
-public class EventXMLStreamCollector implements EPCISEventsCollector<OutputStream> {
+public class XmlEpcisEventsCollector implements EpcisEventsCollector<OutputStream> {
 
   private final OutputStream stream;
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
 
-  public EventXMLStreamCollector(OutputStream stream) {
+  public XmlEpcisEventsCollector(OutputStream stream) {
     this.stream = stream;
     try {
       // To write the final xml with all event and header information create XMLEventWriter
@@ -55,10 +54,11 @@ public class EventXMLStreamCollector implements EPCISEventsCollector<OutputStrea
 
   public void collect(Object event) {
     try {
+      final XMLInputFactory factory = XMLInputFactory.newInstance();
+      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
       XMLEventReader xer =
           new EventReaderDelegate(
-              XMLInputFactory.newInstance()
-                  .createXMLEventReader(new StringReader(event.toString()))) {
+              factory.createXMLEventReader(new StringReader(event.toString()))) {
             @Override
             public boolean hasNext() {
               if (!super.hasNext()) return false;
@@ -90,7 +90,7 @@ public class EventXMLStreamCollector implements EPCISEventsCollector<OutputStrea
     try {
       // Start the EPCIS document and add the header elements
       xmlEventWriter.add(events.createStartDocument());
-      xmlEventWriter.add(events.createStartElement(new QName("epcis:Document"), null, null));
+      xmlEventWriter.add(events.createStartElement(new QName("epcis:EPCISDocument"), null, null));
       xmlEventWriter.add(events.createNamespace("epcis", "urn:epcglobal:epcis:xsd:2"));
       xmlEventWriter.add(
           events.createNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
@@ -132,8 +132,9 @@ public class EventXMLStreamCollector implements EPCISEventsCollector<OutputStrea
   @Override
   public void collectSingleEvent(Object event) {
     try {
-      XMLEventReader xer =
-          XMLInputFactory.newInstance().createXMLEventReader(new StringReader(event.toString()));
+      final XMLInputFactory factory = XMLInputFactory.newInstance();
+      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
+      XMLEventReader xer = factory.createXMLEventReader(new StringReader(event.toString()));
       if (xer.peek().isStartDocument()) {
         xer.nextEvent();
         xmlEventWriter.add(xer);

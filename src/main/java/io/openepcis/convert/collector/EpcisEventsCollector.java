@@ -13,7 +13,7 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  */
-package io.openepcis.convert;
+package io.openepcis.convert.collector;
 
 import java.util.Map;
 
@@ -21,7 +21,7 @@ import java.util.Map;
  * Interface to collect each of the converted events into the desired container based on User
  * provided OutputStream/List Type
  */
-public interface EPCISEventsCollector<R> {
+public interface EpcisEventsCollector<R> {
 
   // Method to store the event
   void collect(Object event);

@@ -7,11 +7,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChannelUtil {
 
-  public static final void copy(InputStream inputStream, OutputStream outputStream)
-      throws IOException {
+  public static void copy(InputStream inputStream, OutputStream outputStream) throws IOException {
     final ReadableByteChannel src = Channels.newChannel(inputStream);
     final WritableByteChannel dest = Channels.newChannel(outputStream);
     try {

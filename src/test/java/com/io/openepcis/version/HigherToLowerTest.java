@@ -32,7 +32,8 @@ public class HigherToLowerTest {
   public void convertWithScanTest() throws IOException {
     inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_2.xml");
     final InputStream convertedDocument =
-        versionTransformer.convert(inputDocument, "application/xml", EpcisVersion.VERSION_1_2);
+        versionTransformer.convert(
+            inputDocument, "application/xml", "application/xml", EpcisVersion.VERSION_1_2);
     System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
   }
 

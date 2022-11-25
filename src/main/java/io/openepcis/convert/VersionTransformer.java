@@ -19,16 +19,12 @@ public class VersionTransformer {
   private final XmlVersionTransformer xmlVersionTransformer;
   private final XmlToJsonConverter xmlToJsonConverter;
   private final JsonToXmlConverter jsonToXmlConverter;
-  private final ByteArrayOutputStream byteArrayOutputStream;
-  private final PipedOutputStream pipedOutputStream;
 
   public VersionTransformer() {
     this.executorService = Executors.newWorkStealingPool();
     this.xmlVersionTransformer = new XmlVersionTransformer();
     this.xmlToJsonConverter = new XmlToJsonConverter();
     this.jsonToXmlConverter = new JsonToXmlConverter();
-    this.byteArrayOutputStream = new ByteArrayOutputStream();
-    this.pipedOutputStream = new PipedOutputStream();
   }
 
   /**
@@ -38,14 +34,16 @@ public class VersionTransformer {
    *     InputStream
    * @param fromMediaType MediaType of the input EPCIS document, also format to which the output
    *     document will also be converted i.e. application/xml or application/json
-   * @param toVersion Version to which provided document need to be converted to 1.2/2.0
    * @return returns the converted EPCIS document as InputStream which can be used for further
    *     processing
    * @throws UnsupportedOperationException if user is trying to convert different version other than
    *     specified then throw the error
    */
   public final InputStream convert(
-      final InputStream inputDocument, final String fromMediaType, final EpcisVersion toVersion)
+      final InputStream inputDocument,
+      final String fromMediaType,
+      final String toMediaType,
+      final EpcisVersion toVersion)
       throws UnsupportedOperationException, IOException {
     // pre scan 1024 bytes to detect version
     final byte[] preScan = new byte[1024];
@@ -59,16 +57,19 @@ public class VersionTransformer {
     EpcisVersion fromVersion;
 
     if (preScanVersion.contains("schemaVersion=\"1.2\"")
-        || preScanVersion.contains("schemaVersion='1.2'")) {
+        || preScanVersion.contains("schemaVersion='1.2'")
+        || preScanVersion.replaceAll(" ", "").contains("\"schemaVersion\":\"1.2\"")) {
       fromVersion = EpcisVersion.VERSION_1_2;
     } else if (preScanVersion.contains("schemaVersion=\"2.0\"")
-        || preScanVersion.contains("schemaVersion='2.0'")) {
+        || preScanVersion.contains("schemaVersion='2.0'")
+        || preScanVersion.replaceAll(" ", "").contains("\"schemaVersion\":\"2.0\"")) {
       fromVersion = EpcisVersion.VERSION_2_0;
     } else {
       throw new FormatConverterException(
           "Provided document contains unsupported EPCIS document version");
     }
 
+    final PipedOutputStream pipedOutputStream = new PipedOutputStream();
     final PipedInputStream pipe = new PipedInputStream(pipedOutputStream);
     pipedOutputStream.write(preScan, 0, len);
 
@@ -85,7 +86,7 @@ public class VersionTransformer {
               }
             });
 
-    return convert(pipe, fromMediaType, fromVersion, toVersion);
+    return convert(pipe, fromMediaType, fromVersion, toMediaType, toVersion);
   }
 
   /**
@@ -182,9 +183,11 @@ public class VersionTransformer {
   // Private method to convert the JSON 2.0 document -> XML 2.0 and return it as InputStream
   private InputStream toXml(final InputStream inputDocument) {
     try {
+      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
       final EventHandler<? extends XmlEpcisEventsCollector> handler =
           new EventHandler(new XmlEpcisEventsCollector(byteArrayOutputStream));
       jsonToXmlConverter.convert(inputDocument, handler);
+      final PipedOutputStream pipedOutputStream = new PipedOutputStream();
       final InputStream convertedDocument = new PipedInputStream(pipedOutputStream);
 
       executorService.execute(
@@ -208,9 +211,11 @@ public class VersionTransformer {
   // Private method to convert the XML 2.0 document -> JSON 2.0 document and return as InputStream
   private InputStream toJson(final InputStream inputDocument) {
     try {
+      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
       final EventHandler<? extends JsonEpcisEventsCollector> handler =
           new EventHandler(new JsonEpcisEventsCollector(byteArrayOutputStream));
       xmlToJsonConverter.convert(inputDocument, handler);
+      final PipedOutputStream pipedOutputStream = new PipedOutputStream();
       final InputStream convertedDocument = new PipedInputStream(pipedOutputStream);
 
       executorService.execute(

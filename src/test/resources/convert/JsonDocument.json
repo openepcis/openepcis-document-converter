@@ -1,121 +1,66 @@
 {
   "@context": [
-    "https://gs1.github.io/EPCIS/epcis-context.jsonld",
     {
       "example": "http://ns.example.com/epcis/"
     }
   ],
-  "id": "https://id.example.org/document1",
   "type": "EPCISDocument",
   "schemaVersion": "2.0",
   "creationDate": "2005-07-11T11:30:47.0Z",
   "epcisBody": {
     "eventList": [
       {
-        "eventID": "ni:///sha-256;74f1dc48ee22289bc40ddd9f1d0ecae0dd09a2f4c3dfa66fdbca16cb2d8a4e77?ver=CBV2.0",
         "type": "ObjectEvent",
-        "action": "OBSERVE",
-        "bizStep": "inspecting",
+        "eventTime": "2005-04-04T04:33:31.116+02:00",
+        "eventTimeZoneOffset": "-06:00",
         "epcList": [
-          "urn:epc:id:sgtin:4012345.011111.9876"
+          "urn:epc:id:sgtin:0614141.107346.2017",
+          "urn:epc:id:sgtin:0614141.107346.2018"
         ],
-        "eventTime": "2019-04-02T15:00:00.000+01:00",
-        "eventTimeZoneOffset": "+01:00",
+        "action": "OBSERVE",
+        "bizStep": "shipping",
+        "disposition": "in_transit",
         "readPoint": {
-          "id": "urn:epc:id:sgln:4012345.00005.0"
+          "id": "urn:epc:id:sgln:0614141.07346.1234"
         },
-        "sensorElementList": [
+        "bizTransactionList": [
           {
-            "sensorMetadata": {
-              "time": "2019-04-02T14:05:00.000+01:00",
-              "deviceID": "urn:epc:id:giai:4000001.111",
-              "deviceMetadata": "https://id.gs1.org/8004/4000001111",
-              "rawData": "https://example.org/8004/401234599999"
-            },
-            "sensorReport": [
-              {
-                "type": "Temperature",
-                "value": 26,
-                "uom": "CEL"
-              },
-              {
-                "type": "AbsoluteHumidity",
-                "value": 12.1,
-                "uom": "A93"
-              },
-              {
-                "type": "Speed",
-                "value": 160,
-                "uom": "KMH"
-              },
-              {
-                "type": "Illuminance",
-                "value": 800,
-                "uom": "LUX"
-              }
-            ]
-          },
-          {
-            "sensorMetadata": {
-              "time": "2019-04-02T14:35:00.000+01:00",
-              "deviceID": "urn:epc:id:giai:4000001.111",
-              "deviceMetadata": "https://id.gs1.org/8004/4000001111",
-              "rawData": "https://example.org/8004/401234599999"
-            },
-            "sensorReport": [
-              {
-                "type": "Temperature",
-                "value": 26.1,
-                "uom": "CEL"
-              },
-              {
-                "type": "AbsoluteHumidity",
-                "value": 12.2,
-                "uom": "A93"
-              },
-              {
-                "type": "Speed",
-                "value": 161,
-                "uom": "KMH"
-              },
-              {
-                "type": "Illuminance",
-                "value": 801,
-                "uom": "LUX"
-              }
-            ]
-          },
-          {
-            "sensorMetadata": {
-              "time": "2019-04-02T14:55:00.000+01:00",
-              "deviceID": "urn:epc:id:giai:4000001.111",
-              "deviceMetadata": "https://id.gs1.org/8004/4000001111",
-              "rawData": "https://example.org/8004/401234599999"
-            },
-            "sensorReport": [
-              {
-                "type": "Temperature",
-                "value": 26.2,
-                "uom": "CEL"
-              },
-              {
-                "type": "AbsoluteHumidity",
-                "value": 12.2,
-                "uom": "A93"
-              },
-              {
-                "type": "Speed",
-                "value": 162,
-                "uom": "KMH"
-              },
-              {
-                "type": "Illuminance",
-                "value": 802,
-                "uom": "LUX"
-              }
-            ]
+            "type": "urn:epcglobal:cbv:btt:po",
+            "bizTransaction": "http://transaction.acme.com/po/12345678"
           }
-        ]
+        ],
+        "example:userElement": {
+          "anotherElement": "elementData"
+        }
+      },
+      {
+        "type": "ObjectEvent",
+        "eventTime": "2005-04-04T04:33:31.116+02:00",
+        "eventTimeZoneOffset": "-06:00",
+        "action": "ADD",
+        "bizStep": "commissioning",
+        "disposition": "in_transit",
+        "readPoint": {
+          "id": "urn:epc:id:sgln:0614141.07346.1234"
+        },
+        "quantityList": [
+          {
+            "epcClass": "urn:epc:class:lgtin:4023333.002000.2019-10-07",
+            "quantity": 150,
+            "uom": "KGM"
+          }
+        ],
+        "ilmd": {
+          "example:userIlmd": {
+            "part1": "1",
+            "part2": "2",
+            "part3": "3"
+          }
+        },
+        "extension": {},
+        "example:userElement": {
+          "anotherElement": "elementData"
+        }
       }
     ]
   }

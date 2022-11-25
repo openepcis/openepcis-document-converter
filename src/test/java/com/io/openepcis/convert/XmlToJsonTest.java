@@ -112,15 +112,12 @@ public class XmlToJsonTest {
 
   @Test
   public void jsonConversionScanTest() throws IOException {
-    final InputStream xmlStream = getClass().getResourceAsStream("/convert/XmlDocument.xml");
+    final InputStream xmlDocument = getClass().getResourceAsStream("/convert/XmlDocument.xml");
+    final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =
-        new VersionTransformer()
-            .convert(
-                xmlStream,
-                "application/xml",
-                EpcisVersion.VERSION_2_0,
-                "application/json",
-                EpcisVersion.VERSION_2_0);
+        versionTransformer.convert(
+            xmlDocument, "application/xml", "application/json", EpcisVersion.VERSION_2_0);
+    ;
     System.out.println(
         "Converted Version Transformer JSON : \n"
             + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));

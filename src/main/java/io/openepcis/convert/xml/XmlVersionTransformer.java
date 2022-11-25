@@ -5,7 +5,6 @@ import io.openepcis.convert.exception.FormatConverterException;
 import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import javax.xml.XMLConstants;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
@@ -23,16 +22,12 @@ public class XmlVersionTransformer {
   private final Transformer from_1_2_to_2_0;
   private final Transformer from_2_0_to_1_2;
   private final ExecutorService executorService;
-  private final PipedOutputStream outTransform;
 
   public XmlVersionTransformer() {
     this.executorService = Executors.newWorkStealingPool();
-    this.outTransform = new PipedOutputStream();
 
     try {
       final TransformerFactory transformerFactory = TransformerFactory.newInstance();
-      transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-      transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 
       from_1_2_to_2_0 =
           transformerFactory.newTransformer(
@@ -94,6 +89,7 @@ public class XmlVersionTransformer {
    * @throws IOException If any exception occur during the conversion then throw the error
    */
   private InputStream convert_1_2_to_2_0(final InputStream inputDocument) throws IOException {
+    final PipedOutputStream outTransform = new PipedOutputStream();
     final InputStream convertedDocument = new PipedInputStream(outTransform);
 
     executorService.execute(
@@ -121,6 +117,7 @@ public class XmlVersionTransformer {
    * @throws IOException If any exception occur during the conversion then throw the error
    */
   private InputStream convert_2_0_to_1_2(final InputStream inputDocument) throws IOException {
+    final PipedOutputStream outTransform = new PipedOutputStream();
     final InputStream convertedDocument = new PipedInputStream(outTransform);
 
     executorService.execute(

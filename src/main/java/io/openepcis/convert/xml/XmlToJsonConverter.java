@@ -47,6 +47,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class XmlToJsonConverter implements EventsConverter {
 
+  private final JAXBContext jaxbContext;
+
+  public XmlToJsonConverter(final JAXBContext jaxbContext) {
+    this.jaxbContext = jaxbContext;
+  }
+
+  public XmlToJsonConverter() throws JAXBException {
+    this(JAXBContext.newInstance("io.openepcis.model.epcis"));
+  }
+
   /**
    * API method to convert the list of EPCIS events from XML to JSON-LD format
    *
@@ -61,7 +71,7 @@ public class XmlToJsonConverter implements EventsConverter {
   @Override
   public void convert(InputStream xmlStream, EventHandler eventHandler)
       throws IOException, XMLStreamException, JAXBException {
-    convert(xmlStream, eventHandler, JAXBContext.newInstance("io.openepcis.model.epcis"));
+    convert(xmlStream, eventHandler, this.jaxbContext);
   }
 
   /**

@@ -15,7 +15,7 @@ public class LowerToHigherTest {
   private InputStream inputDocument;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     versionTransformer = new VersionTransformer();
   }
 

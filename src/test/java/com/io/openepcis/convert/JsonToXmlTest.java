@@ -84,11 +84,25 @@ public class JsonToXmlTest {
 
   @Test
   public void versionTransformerTest() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/JsonDocument.json");
-    final VersionTransformer versionTransformer = new VersionTransformer();
+    final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
     final InputStream convertedDocument =
-        versionTransformer.convert(
-            jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
+        new VersionTransformer()
+            .convert(jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
+    System.out.println(
+        "Version Transformer XMl : " + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void versionTransformerXmlTest() throws Exception {
+    final InputStream jsonStream = getClass().getResourceAsStream("/convert/JsonDocument.json");
+    final InputStream convertedDocument =
+        new VersionTransformer()
+            .convert(
+                jsonStream,
+                "application/json",
+                EpcisVersion.VERSION_2_0,
+                "application/xml",
+                EpcisVersion.VERSION_2_0);
     System.out.println(
         "Version Transformer XMl : " + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
   }

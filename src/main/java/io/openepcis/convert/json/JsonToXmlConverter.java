@@ -49,6 +49,16 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 @RequestScoped
 public class JsonToXmlConverter implements EventsConverter {
 
+  private final JAXBContext jaxbContext;
+
+  public JsonToXmlConverter(final JAXBContext jaxbContext) {
+    this.jaxbContext = jaxbContext;
+  }
+
+  public JsonToXmlConverter() throws JAXBException {
+    this(JAXBContext.newInstance("io.openepcis.model.epcis"));
+  }
+
   /**
    * API method to convert the list of EPCIS events from JSON-LD to XML format
    *
@@ -62,7 +72,7 @@ public class JsonToXmlConverter implements EventsConverter {
   @Override
   public void convert(InputStream jsonStream, EventHandler eventHandler)
       throws IOException, JAXBException {
-    convert(jsonStream, eventHandler, JAXBContext.newInstance("io.openepcis.model.epcis"));
+    convert(jsonStream, eventHandler, this.jaxbContext);
   }
   /**
    * API method to convert the list of EPCIS events from JSON-LD to XML format

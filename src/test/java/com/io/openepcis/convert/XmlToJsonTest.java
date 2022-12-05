@@ -24,7 +24,6 @@ import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.validator.EventValidator;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -95,7 +94,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void jsonConversionTest() throws IOException {
+  public void jsonConversionTest() throws Exception {
     final InputStream xmlStream = getClass().getResourceAsStream("/convert/XmlDocument.xml");
     final InputStream convertedDocument =
         new VersionTransformer()
@@ -111,7 +110,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void jsonConversionScanTest() throws IOException {
+  public void jsonConversionScanTest() throws Exception {
     final InputStream xmlDocument = getClass().getResourceAsStream("/convert/XmlDocument.xml");
     final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =

@@ -8,7 +8,12 @@ import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.util.ChannelUtil;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
-import java.io.*;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,15 +25,26 @@ public class VersionTransformer {
   private final XmlToJsonConverter xmlToJsonConverter;
   private final JsonToXmlConverter jsonToXmlConverter;
 
-  public VersionTransformer() {
-    this.executorService = Executors.newWorkStealingPool();
-    this.xmlVersionTransformer = new XmlVersionTransformer();
+  public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
+    this.executorService = executorService;
+    this.xmlVersionTransformer = new XmlVersionTransformer(this.executorService);
+    this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
+    this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
+  }
+
+  public VersionTransformer(final ExecutorService executorService) throws JAXBException {
+    this.executorService = executorService;
+    this.xmlVersionTransformer = new XmlVersionTransformer(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter();
     this.jsonToXmlConverter = new JsonToXmlConverter();
   }
 
+  public VersionTransformer() throws JAXBException {
+    this(Executors.newWorkStealingPool());
+  }
+
   /**
-   * shortcut with autodetect EPCIS version from inputStream
+   * Method with autodetect EPCIS version from inputStream
    *
    * @param inputDocument EPCIS document in either application/xml or application/json format as a
    *     InputStream
@@ -183,22 +199,23 @@ public class VersionTransformer {
   // Private method to convert the JSON 2.0 document -> XML 2.0 and return it as InputStream
   private InputStream toXml(final InputStream inputDocument) {
     try {
-      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      final PipedOutputStream xmlOutputStream = new PipedOutputStream();
       final EventHandler<? extends XmlEpcisEventsCollector> handler =
-          new EventHandler(new XmlEpcisEventsCollector(byteArrayOutputStream));
-      jsonToXmlConverter.convert(inputDocument, handler);
-      final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-      final InputStream convertedDocument = new PipedInputStream(pipedOutputStream);
+          new EventHandler(new XmlEpcisEventsCollector(xmlOutputStream));
 
-      executorService.execute(
-          () -> {
-            try {
-              byteArrayOutputStream.writeTo(pipedOutputStream);
-              pipedOutputStream.close();
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-          });
+      final PipedInputStream convertedDocument = new PipedInputStream(xmlOutputStream);
+
+      Executors.newWorkStealingPool()
+          .execute(
+              () -> {
+                try {
+                  jsonToXmlConverter.convert(inputDocument, handler);
+                  xmlOutputStream.close();
+                } catch (Exception e) {
+                  e.printStackTrace();
+                }
+              });
+
       return convertedDocument;
     } catch (Exception e) {
       throw new FormatConverterException(
@@ -211,26 +228,28 @@ public class VersionTransformer {
   // Private method to convert the XML 2.0 document -> JSON 2.0 document and return as InputStream
   private InputStream toJson(final InputStream inputDocument) {
     try {
-      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      final PipedOutputStream jsonOutputStream = new PipedOutputStream();
       final EventHandler<? extends JsonEpcisEventsCollector> handler =
-          new EventHandler(new JsonEpcisEventsCollector(byteArrayOutputStream));
-      xmlToJsonConverter.convert(inputDocument, handler);
-      final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-      final InputStream convertedDocument = new PipedInputStream(pipedOutputStream);
+          new EventHandler(new JsonEpcisEventsCollector(jsonOutputStream));
 
-      executorService.execute(
-          () -> {
-            try {
-              byteArrayOutputStream.writeTo(pipedOutputStream);
-              pipedOutputStream.close();
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-          });
+      final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
+
+      Executors.newWorkStealingPool()
+          .execute(
+              () -> {
+                try {
+                  xmlToJsonConverter.convert(inputDocument, handler);
+                } catch (Exception e) {
+                  throw new FormatConverterException(
+                      "Exception occurred during the conversion of XML 2.0 document -> JSON 2.0 document  : "
+                          + e.getMessage(),
+                      e);
+                }
+              });
       return convertedDocument;
     } catch (Exception e) {
       throw new FormatConverterException(
-          "Exception occurred during the conversion of XML 2.0 document -> JSON 2.0 document : "
+          "Exception occurred during the conversion of XML 2.0 document -> JSON 2.0 document using PipedInputStream  : "
               + e.getMessage(),
           e);
     }

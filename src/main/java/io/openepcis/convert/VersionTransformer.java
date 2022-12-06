@@ -74,11 +74,11 @@ public class VersionTransformer {
 
     if (preScanVersion.contains("schemaVersion=\"1.2\"")
         || preScanVersion.contains("schemaVersion='1.2'")
-        || preScanVersion.replaceAll(" ", "").contains("\"schemaVersion\":\"1.2\"")) {
+        || preScanVersion.replace(" ", "").contains("\"schemaVersion\":\"1.2\"")) {
       fromVersion = EpcisVersion.VERSION_1_2;
     } else if (preScanVersion.contains("schemaVersion=\"2.0\"")
         || preScanVersion.contains("schemaVersion='2.0'")
-        || preScanVersion.replaceAll(" ", "").contains("\"schemaVersion\":\"2.0\"")) {
+        || preScanVersion.replace(" ", "").contains("\"schemaVersion\":\"2.0\"")) {
       fromVersion = EpcisVersion.VERSION_2_0;
     } else {
       throw new FormatConverterException(

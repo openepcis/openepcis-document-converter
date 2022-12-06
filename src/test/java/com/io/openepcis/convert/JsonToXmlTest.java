@@ -97,12 +97,7 @@ public class JsonToXmlTest {
     final InputStream jsonStream = getClass().getResourceAsStream("/convert/JsonDocument.json");
     final InputStream convertedDocument =
         new VersionTransformer()
-            .convert(
-                jsonStream,
-                "application/json",
-                EpcisVersion.VERSION_2_0,
-                "application/xml",
-                EpcisVersion.VERSION_2_0);
+            .convert(jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
     System.out.println(
         "Version Transformer XMl : " + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
   }

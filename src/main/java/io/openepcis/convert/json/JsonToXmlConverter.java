@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.convert.EventsConverter;
+import io.openepcis.convert.collector.EpcisEventsCollector;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.XmlSupportExtension;
@@ -70,7 +71,8 @@ public class JsonToXmlConverter implements EventsConverter {
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(InputStream jsonStream, EventHandler eventHandler)
+  public void convert(
+      InputStream jsonStream, EventHandler<? extends EpcisEventsCollector> eventHandler)
       throws IOException, JAXBException {
     convert(jsonStream, eventHandler, this.jaxbContext);
   }
@@ -86,7 +88,10 @@ public class JsonToXmlConverter implements EventsConverter {
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(InputStream jsonStream, EventHandler eventHandler, JAXBContext jaxbContext)
+  public void convert(
+      InputStream jsonStream,
+      EventHandler<? extends EpcisEventsCollector> eventHandler,
+      JAXBContext jaxbContext)
       throws IOException, JAXBException {
 
     // Check if InputStream has some content if not then throw appropriate Exception
@@ -105,9 +110,7 @@ public class JsonToXmlConverter implements EventsConverter {
     final Map<String, String> contextValues = new HashMap<>();
 
     // Get the JSON Factory and parser Object
-    JsonParser jsonParser = new JsonFactory().createParser(jsonStream);
-
-    try {
+    try (JsonParser jsonParser = new JsonFactory().createParser(jsonStream)) {
       // To read the JSON-LD events using the Jackson
       final ObjectMapper objectMapper =
           new ObjectMapper()
@@ -199,7 +202,7 @@ public class JsonToXmlConverter implements EventsConverter {
         eventHandler.start(contextValues);
 
         // Call the method to loop until the end of the events file
-        eventTraverser(jsonParser, objectMapper, marshaller, eventHandler, contextValues);
+        eventTraverser(jsonParser, objectMapper, marshaller, eventHandler);
 
         // Call the End method to close all the header and other tags for the XML file
         eventHandler.end();
@@ -210,10 +213,8 @@ public class JsonToXmlConverter implements EventsConverter {
 
     } catch (Exception e) {
       throw new FormatConverterException("Exception during the reading of JSON-LD file : " + e);
-    } finally {
-      // Close JSONParser after reading all events
-      jsonParser.close();
     }
+    // Close JSONParser after reading all events
   }
 
   // Method which will traverse through the eventList and read event one-by-one
@@ -221,8 +222,7 @@ public class JsonToXmlConverter implements EventsConverter {
       JsonParser jsonParser,
       ObjectMapper objectMapper,
       Marshaller marshaller,
-      EventHandler eventHandler,
-      Map<String, String> context)
+      EventHandler<? extends EpcisEventsCollector> eventHandler)
       throws IOException, JAXBException {
 
     // StringWriter to get the converted XML from marshaller
@@ -239,13 +239,13 @@ public class JsonToXmlConverter implements EventsConverter {
       if (!(jsonNode == null || jsonNode.get("type") == null)) {
 
         // Based on eventType call different type of class
-        Object event = objectMapper.treeToValue(jsonNode, XmlSupportExtension.class);
+        XmlSupportExtension event = objectMapper.treeToValue(jsonNode, XmlSupportExtension.class);
 
         // If event has some value then perform the Marshalling and call handling methods based on
         // User input
         if (event != null) {
           // Create the XML based on type of incoming event type and store in StringWriter
-          marshaller.marshal(((XmlSupportExtension) event).xmlSupport(), xmlEvent);
+          marshaller.marshal(event.xmlSupport(), xmlEvent);
 
           // Call the method to check if the event adheres to XSD or write into the OutputStream
           // using the EventHandler

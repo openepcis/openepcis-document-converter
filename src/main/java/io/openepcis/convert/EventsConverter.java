@@ -15,6 +15,7 @@
  */
 package io.openepcis.convert;
 
+import io.openepcis.convert.collector.EpcisEventsCollector;
 import io.openepcis.convert.collector.EventHandler;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -32,9 +33,12 @@ import javax.xml.stream.XMLStreamException;
  * provided OutputStream type
  */
 public interface EventsConverter {
-  void convert(InputStream inputStream, EventHandler handler, JAXBContext jaxbContext)
+  void convert(
+      InputStream inputStream,
+      EventHandler<? extends EpcisEventsCollector> handler,
+      JAXBContext jaxbContext)
       throws IOException, XMLStreamException, JAXBException;
 
-  void convert(InputStream inputStream, EventHandler handler)
+  void convert(InputStream inputStream, EventHandler<? extends EpcisEventsCollector> handler)
       throws IOException, XMLStreamException, JAXBException;
 }

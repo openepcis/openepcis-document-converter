@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.convert.EventsConverter;
+import io.openepcis.convert.collector.EpcisEventsCollector;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.*;
@@ -69,7 +70,8 @@ public class XmlToJsonConverter implements EventsConverter {
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(InputStream xmlStream, EventHandler eventHandler)
+  public void convert(
+      InputStream xmlStream, EventHandler<? extends EpcisEventsCollector> eventHandler)
       throws IOException, XMLStreamException, JAXBException {
     convert(xmlStream, eventHandler, this.jaxbContext);
   }
@@ -83,11 +85,14 @@ public class XmlToJsonConverter implements EventsConverter {
    *     creating list of events after converting along with all header information.
    *     EventValidatorAndListCreator for validating each event and creating JSON-LD with header
    *     info.
-   * @param jaxbContext
+   * @param jaxbContext package/path to jaxb annotated classes.
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(InputStream xmlStream, EventHandler eventHandler, JAXBContext jaxbContext)
+  public void convert(
+      InputStream xmlStream,
+      EventHandler<? extends EpcisEventsCollector> eventHandler,
+      JAXBContext jaxbContext)
       throws IOException, XMLStreamException, JAXBException {
 
     try {
@@ -147,30 +152,24 @@ public class XmlToJsonConverter implements EventsConverter {
           Object event = null;
           // Based on eventType make unmarshaller call to respective event class
           switch (epcisEvent) {
-            case "ObjectEvent":
-              // Unmarshal the ObjectEvent and Convert it to JSON-LD
-              event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
-              break;
-            case "AggregationEvent":
-              // Unmarshal the AggregationEvent and Convert it to JSON-LD
-              event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
-              break;
-            case "TransactionEvent":
-              // Unmarshal the TransactionEvent and Convert it to JSON-LD
-              event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
-              break;
-            case "TransformationEvent":
-              // Unmarshal the TransformationEvent and Convert it to JSON-LD
-              event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
-              break;
-            case "AssociationEvent":
-              // Unmarshal the AssociationEvent and Convert it to JSON-LD
-              event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
-              break;
-            default:
-              // If NONE of the EPCIS event type matches then do not convert and make a note
-              log.error("JSON event does not match any of EPCIS event : {} ", epcisEvent);
-              break;
+            case "ObjectEvent" ->
+            // Unmarshal the ObjectEvent and Convert it to JSON-LD
+            event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
+            case "AggregationEvent" ->
+            // Unmarshal the AggregationEvent and Convert it to JSON-LD
+            event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
+            case "TransactionEvent" ->
+            // Unmarshal the TransactionEvent and Convert it to JSON-LD
+            event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
+            case "TransformationEvent" ->
+            // Unmarshal the TransformationEvent and Convert it to JSON-LD
+            event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
+            case "AssociationEvent" ->
+            // Unmarshal the AssociationEvent and Convert it to JSON-LD
+            event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
+            default ->
+            // If NONE of the EPCIS event type matches then do not convert and make a note
+            log.error("JSON event does not match any of EPCIS event : {} ", epcisEvent);
           }
 
           // Check if Object has some value
@@ -227,7 +226,7 @@ public class XmlToJsonConverter implements EventsConverter {
                   attributeIndex -> {
                     // Omit the attribute values which are already present within JSON-LD Schema by
                     // default
-                    if (Arrays.asList(Constants.PROTECTED_TERMS_OF_CONTEXT).stream()
+                    if (Arrays.stream(Constants.PROTECTED_TERMS_OF_CONTEXT)
                         .noneMatch(
                             keyword ->
                                 String.valueOf(xmlStreamReader.getAttributeName(attributeIndex))

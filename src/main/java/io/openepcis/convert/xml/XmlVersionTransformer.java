@@ -19,8 +19,6 @@ import javax.xml.transform.stream.StreamSource;
  */
 public class XmlVersionTransformer {
 
-  private final TransformerFactory transformerFactory = TransformerFactory.newInstance();
-
   private final Transformer from_1_2_to_2_0;
   private final Transformer from_2_0_to_1_2;
   private final ExecutorService executorService;
@@ -28,6 +26,8 @@ public class XmlVersionTransformer {
   public XmlVersionTransformer(final ExecutorService executorService) {
     this.executorService = executorService;
     try {
+      TransformerFactory transformerFactory = TransformerFactory.newInstance();
+
       from_1_2_to_2_0 =
           transformerFactory.newTransformer(
               new StreamSource(

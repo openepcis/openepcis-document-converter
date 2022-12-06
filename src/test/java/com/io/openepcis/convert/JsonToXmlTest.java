@@ -19,7 +19,7 @@ import io.openepcis.convert.EpcisVersion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.EventListCollector;
-import io.openepcis.convert.collector.XmlEpcisEventsCollector;
+import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.validator.EventValidator;
 import java.io.ByteArrayOutputStream;
@@ -45,7 +45,7 @@ public class JsonToXmlTest {
   public void jsonToXmlStreamTest() throws Exception {
     final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final EventHandler handler = new EventHandler(null, new XmlEpcisEventsCollector(out));
+    final EventHandler handler = new EventHandler(null, new XmlEPCISEventCollector(out));
     new JsonToXmlConverter().convert(jsonStream, handler);
     Assert.assertTrue(out.size() > 0);
     // TODO: check why this test failed
@@ -63,7 +63,7 @@ public class JsonToXmlTest {
   public void jsonToXmlTestDocument() throws Exception {
     final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final EventHandler handler = new EventHandler(null, new XmlEpcisEventsCollector(out));
+    final EventHandler handler = new EventHandler(null, new XmlEPCISEventCollector(out));
     new JsonToXmlConverter().convert(jsonStream, handler);
     Assert.assertTrue(out.size() > 0);
     System.out.println(out);
@@ -76,7 +76,7 @@ public class JsonToXmlTest {
         getClass().getResourceAsStream("/convert/InputEpcisSingleEvent.json");
     final ByteArrayOutputStream out = new ByteArrayOutputStream();
     final EventHandler handler =
-        new EventHandler(new EventValidator(), new XmlEpcisEventsCollector(out));
+        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(out));
     new JsonToXmlConverter().convert(jsonStream, handler);
     Assert.assertTrue(out.size() > 0);
     System.out.println(out);

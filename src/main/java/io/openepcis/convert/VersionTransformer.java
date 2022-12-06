@@ -1,8 +1,8 @@
 package io.openepcis.convert;
 
 import io.openepcis.convert.collector.EventHandler;
-import io.openepcis.convert.collector.JsonEpcisEventsCollector;
-import io.openepcis.convert.collector.XmlEpcisEventsCollector;
+import io.openepcis.convert.collector.JsonEPCISEventCollector;
+import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.util.ChannelUtil;
@@ -200,8 +200,8 @@ public class VersionTransformer {
   private InputStream toXml(final InputStream inputDocument) {
     try {
       final PipedOutputStream xmlOutputStream = new PipedOutputStream();
-      final EventHandler<? extends XmlEpcisEventsCollector> handler =
-          new EventHandler(new XmlEpcisEventsCollector(xmlOutputStream));
+      final EventHandler<? extends XmlEPCISEventCollector> handler =
+          new EventHandler(new XmlEPCISEventCollector(xmlOutputStream));
 
       final PipedInputStream convertedDocument = new PipedInputStream(xmlOutputStream);
 
@@ -212,14 +212,17 @@ public class VersionTransformer {
                   jsonToXmlConverter.convert(inputDocument, handler);
                   xmlOutputStream.close();
                 } catch (Exception e) {
-                  e.printStackTrace();
+                  throw new FormatConverterException(
+                      "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document  : "
+                          + e.getMessage(),
+                      e);
                 }
               });
 
       return convertedDocument;
     } catch (Exception e) {
       throw new FormatConverterException(
-          "Exception occurred during the conversion of JSON 2.0 document -> XML 2.0 document : "
+          "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document using PipedInputStream : "
               + e.getMessage(),
           e);
     }
@@ -229,8 +232,8 @@ public class VersionTransformer {
   private InputStream toJson(final InputStream inputDocument) {
     try {
       final PipedOutputStream jsonOutputStream = new PipedOutputStream();
-      final EventHandler<? extends JsonEpcisEventsCollector> handler =
-          new EventHandler(new JsonEpcisEventsCollector(jsonOutputStream));
+      final EventHandler<? extends JsonEPCISEventCollector> handler =
+          new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
 
       final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
 
@@ -241,7 +244,7 @@ public class VersionTransformer {
                   xmlToJsonConverter.convert(inputDocument, handler);
                 } catch (Exception e) {
                   throw new FormatConverterException(
-                      "Exception occurred during the conversion of XML 2.0 document -> JSON 2.0 document  : "
+                      "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
                           + e.getMessage(),
                       e);
                 }
@@ -249,7 +252,7 @@ public class VersionTransformer {
       return convertedDocument;
     } catch (Exception e) {
       throw new FormatConverterException(
-          "Exception occurred during the conversion of XML 2.0 document -> JSON 2.0 document using PipedInputStream  : "
+          "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document using PipedInputStream  : "
               + e.getMessage(),
           e);
     }

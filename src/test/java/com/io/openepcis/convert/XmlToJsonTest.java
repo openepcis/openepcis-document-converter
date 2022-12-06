@@ -19,7 +19,7 @@ import io.openepcis.convert.EpcisVersion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.EventListCollector;
-import io.openepcis.convert.collector.JsonEpcisEventsCollector;
+import io.openepcis.convert.collector.JsonEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.validator.EventValidator;
 import io.openepcis.convert.xml.XmlToJsonConverter;
@@ -72,7 +72,7 @@ public class XmlToJsonTest {
   public void xmlToJsonStreamTest() throws Exception {
     final InputStream xmlStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.xml");
     final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
-    final JsonEpcisEventsCollector collector = new JsonEpcisEventsCollector(jsonOutput);
+    final JsonEPCISEventCollector collector = new JsonEPCISEventCollector(jsonOutput);
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new XmlToJsonConverter().convert(xmlStream, handler);
     Assert.assertTrue(jsonOutput.size() > 0);
@@ -86,7 +86,7 @@ public class XmlToJsonTest {
     final InputStream xmlStream =
         getClass().getResourceAsStream("/convert/InputEpcisSingleEvent.xml");
     final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
-    final JsonEpcisEventsCollector collector = new JsonEpcisEventsCollector(jsonOutput);
+    final JsonEPCISEventCollector collector = new JsonEPCISEventCollector(jsonOutput);
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new XmlToJsonConverter().convert(xmlStream, handler);
     Assert.assertTrue(jsonOutput.size() > 0);

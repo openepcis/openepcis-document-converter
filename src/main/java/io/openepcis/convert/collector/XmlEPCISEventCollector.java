@@ -31,13 +31,13 @@ import javax.xml.stream.util.EventReaderDelegate;
  * the converted events based on user provided OutputStream type. end : To close all the XML header
  * tags that were created in the start method
  */
-public class XmlEpcisEventsCollector implements EpcisEventsCollector<OutputStream> {
+public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream> {
 
   private final OutputStream stream;
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
 
-  public XmlEpcisEventsCollector(OutputStream stream) {
+  public XmlEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
     try {
       // To write the final xml with all event and header information create XMLEventWriter

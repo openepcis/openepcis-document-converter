@@ -21,7 +21,7 @@ import java.util.List;
  * Class that implements the EPCISEventsCollector to collect the converted Events into the List if
  * user has provided List as a type in the Handler
  */
-public class EventListCollector implements EpcisEventsCollector<List<String>> {
+public class EventListCollector implements EPCISEventCollector<List<String>> {
 
   private final List<String> events;
 

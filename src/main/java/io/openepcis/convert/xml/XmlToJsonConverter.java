@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.convert.EventsConverter;
-import io.openepcis.convert.collector.EpcisEventsCollector;
+import io.openepcis.convert.collector.EPCISEventCollector;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.*;
@@ -71,7 +71,7 @@ public class XmlToJsonConverter implements EventsConverter {
    */
   @Override
   public void convert(
-      InputStream xmlStream, EventHandler<? extends EpcisEventsCollector> eventHandler)
+      InputStream xmlStream, EventHandler<? extends EPCISEventCollector> eventHandler)
       throws IOException, XMLStreamException, JAXBException {
     convert(xmlStream, eventHandler, this.jaxbContext);
   }
@@ -91,7 +91,7 @@ public class XmlToJsonConverter implements EventsConverter {
   @Override
   public void convert(
       InputStream xmlStream,
-      EventHandler<? extends EpcisEventsCollector> eventHandler,
+      EventHandler<? extends EPCISEventCollector> eventHandler,
       JAXBContext jaxbContext)
       throws IOException, XMLStreamException, JAXBException {
 

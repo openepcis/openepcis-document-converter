@@ -21,7 +21,7 @@ import java.util.Map;
  * Interface to collect each of the converted events into the desired container based on User
  * provided OutputStream/List Type
  */
-public interface EpcisEventsCollector<R> {
+public interface EPCISEventCollector<R> {
 
   // Method to store the event
   void collect(Object event);

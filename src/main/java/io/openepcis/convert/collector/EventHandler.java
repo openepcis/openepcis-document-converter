@@ -23,12 +23,12 @@ import java.util.Map;
  * Class to delegate the incoming request to appropriate class to perform either XSD/Schema
  * validation or create final XML/JSON file after conversion
  */
-public class EventHandler<R> implements EPCISEventValidator, EpcisEventsCollector<R> {
+public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector<R> {
 
   private EPCISEventValidator validator;
-  private final EpcisEventsCollector<R> collector;
+  private final EPCISEventCollector<R> collector;
 
-  public EventHandler(EPCISEventValidator validator, EpcisEventsCollector<R> collector) {
+  public EventHandler(EPCISEventValidator validator, EPCISEventCollector<R> collector) {
     if (validator == null && collector == null) {
       throw new FormatConverterException(
           "Invalid EventHandler, Both EventCollector and EventValidator cannot be Null");
@@ -37,7 +37,7 @@ public class EventHandler<R> implements EPCISEventValidator, EpcisEventsCollecto
     this.collector = collector;
   }
 
-  public EventHandler(EpcisEventsCollector<R> collector) {
+  public EventHandler(EPCISEventCollector<R> collector) {
     this.collector = collector;
   }
 

@@ -31,13 +31,13 @@ import java.util.Map;
  * store event information based on user provided OutputStream type. end : Method to close all the
  * JSON-LD header objects that were created in the start method.
  */
-public class JsonEpcisEventsCollector implements EpcisEventsCollector<OutputStream> {
+public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream> {
 
   private final OutputStream stream;
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
 
-  public JsonEpcisEventsCollector(OutputStream stream) {
+  public JsonEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
     // Create the final JSON-LD with Header and event information
     try {

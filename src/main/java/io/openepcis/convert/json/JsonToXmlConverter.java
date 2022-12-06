@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.convert.EventsConverter;
-import io.openepcis.convert.collector.EpcisEventsCollector;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.XmlSupportExtension;
@@ -72,7 +71,8 @@ public class JsonToXmlConverter implements EventsConverter {
    */
   @Override
   public void convert(
-      InputStream jsonStream, EventHandler<? extends EpcisEventsCollector> eventHandler)
+      InputStream jsonStream,
+      EventHandler<? extends io.openepcis.convert.collector.EPCISEventCollector> eventHandler)
       throws IOException, JAXBException {
     convert(jsonStream, eventHandler, this.jaxbContext);
   }
@@ -90,7 +90,7 @@ public class JsonToXmlConverter implements EventsConverter {
   @Override
   public void convert(
       InputStream jsonStream,
-      EventHandler<? extends EpcisEventsCollector> eventHandler,
+      EventHandler<? extends io.openepcis.convert.collector.EPCISEventCollector> eventHandler,
       JAXBContext jaxbContext)
       throws IOException, JAXBException {
 
@@ -132,16 +132,20 @@ public class JsonToXmlConverter implements EventsConverter {
       while (!(jsonParser.getText().equals("type") || jsonParser.getText().equals("eventID"))) {
         if (jsonParser.getCurrentName() != null
             && jsonParser.getCurrentName().equalsIgnoreCase("@context")) {
-          // Loop until end of the Array to obtain Context elements
-          while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
 
-            // If element has name then store name and text in Map
-            if (jsonParser.getCurrentName() != null
-                && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
-              // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on
-              // corresponding XSD
-              DefaultJsonSchemaNamespaceURIResolver.getInstance()
-                  .namespacePopulator(jsonParser.getText(), jsonParser.getCurrentName());
+          // Read the context value only if the value is of type array else skip to add only string
+          if (jsonParser.nextToken() == JsonToken.START_ARRAY) {
+            // Loop until end of the Array to obtain Context elements
+            while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+
+              // If element has name then store name and text in Map
+              if (jsonParser.getCurrentName() != null
+                  && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
+                // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on
+                // corresponding XSD
+                DefaultJsonSchemaNamespaceURIResolver.getInstance()
+                    .namespacePopulator(jsonParser.getText(), jsonParser.getCurrentName());
+              }
             }
           }
         }
@@ -222,7 +226,7 @@ public class JsonToXmlConverter implements EventsConverter {
       JsonParser jsonParser,
       ObjectMapper objectMapper,
       Marshaller marshaller,
-      EventHandler<? extends EpcisEventsCollector> eventHandler)
+      EventHandler<? extends io.openepcis.convert.collector.EPCISEventCollector> eventHandler)
       throws IOException, JAXBException {
 
     // StringWriter to get the converted XML from marshaller

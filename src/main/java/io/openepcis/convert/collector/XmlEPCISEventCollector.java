@@ -37,7 +37,10 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
 
+  private final XMLInputFactory factory = XMLInputFactory.newInstance();
+
   public XmlEPCISEventCollector(OutputStream stream) {
+    factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
     this.stream = stream;
     try {
       // To write the final xml with all event and header information create XMLEventWriter
@@ -54,8 +57,6 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
 
   public void collect(Object event) {
     try {
-      final XMLInputFactory factory = XMLInputFactory.newInstance();
-      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
       XMLEventReader xer =
           new EventReaderDelegate(
               factory.createXMLEventReader(new StringReader(event.toString()))) {
@@ -72,6 +73,7 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       if (xer.peek().isStartDocument()) {
         xer.nextEvent();
         xmlEventWriter.add(xer);
+        xmlEventWriter.flush();
       }
     } catch (XMLStreamException e) {
       throw new FormatConverterException(

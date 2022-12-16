@@ -212,10 +212,15 @@ public class VersionTransformer {
                   jsonToXmlConverter.convert(inputDocument, handler);
                   xmlOutputStream.close();
                 } catch (Exception e) {
-                  throw new FormatConverterException(
-                      "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document  : "
-                          + e.getMessage(),
-                      e);
+                  try {
+                    xmlOutputStream.write(e.getMessage().getBytes());
+                    xmlOutputStream.close();
+                  } finally {
+                    throw new FormatConverterException(
+                        "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document  : "
+                            + e.getMessage(),
+                        e);
+                  }
                 }
               });
 
@@ -243,10 +248,15 @@ public class VersionTransformer {
                 try {
                   xmlToJsonConverter.convert(inputDocument, handler);
                 } catch (Exception e) {
-                  throw new FormatConverterException(
-                      "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
-                          + e.getMessage(),
-                      e);
+                  try {
+                    jsonOutputStream.write(e.getMessage().getBytes());
+                    jsonOutputStream.close();
+                  } finally {
+                    throw new FormatConverterException(
+                        "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
+                            + e.getMessage(),
+                        e);
+                  }
                 }
               });
       return convertedDocument;

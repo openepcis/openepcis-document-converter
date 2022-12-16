@@ -103,10 +103,15 @@ public class XmlVersionTransformer {
                 new StreamResult(new BufferedOutputStream(outTransform)));
             outTransform.close();
           } catch (Exception e) {
-            throw new FormatConverterException(
-                "Exception occurred during conversion of EPCIS XML document from 1.2 to 2.0 : "
-                    + e.getMessage(),
-                e);
+            try {
+              outTransform.write(e.getMessage().getBytes());
+              outTransform.close();
+            } finally {
+              throw new FormatConverterException(
+                  "Exception occurred during conversion of EPCIS XML document from 1.2 to 2.0 : "
+                      + e.getMessage(),
+                  e);
+            }
           }
         });
     return convertedDocument;
@@ -131,10 +136,15 @@ public class XmlVersionTransformer {
                 new StreamResult(new BufferedOutputStream(outTransform)));
             outTransform.close();
           } catch (Exception e) {
-            throw new FormatConverterException(
-                "Exception occurred during conversion of EPCIS XML document from 2.0 to 1.2, Failed to convert : "
-                    + e.getMessage(),
-                e);
+            try {
+              outTransform.write(e.getMessage().getBytes());
+              outTransform.close();
+            } finally {
+              throw new FormatConverterException(
+                  "Exception occurred during conversion of EPCIS XML document from 2.0 to 1.2, Failed to convert : "
+                      + e.getMessage(),
+                  e);
+            }
           }
         });
     return convertedDocument;

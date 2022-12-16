@@ -51,6 +51,14 @@ public class JsonToXmlConverter implements EventsConverter {
 
   private final JAXBContext jaxbContext;
 
+  // To read the JSON-LD events using the Jackson
+  private final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .registerModule(
+              new SimpleModule()
+                  .addDeserializer(JsonNode.class, new JsonNodeDupeFieldHandlingDeserializer()))
+          .registerModule(new JavaTimeModule());
+
   public JsonToXmlConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
   }
@@ -111,13 +119,6 @@ public class JsonToXmlConverter implements EventsConverter {
 
     // Get the JSON Factory and parser Object
     try (JsonParser jsonParser = new JsonFactory().createParser(jsonStream)) {
-      // To read the JSON-LD events using the Jackson
-      final ObjectMapper objectMapper =
-          new ObjectMapper()
-              .registerModule(
-                  new SimpleModule()
-                      .addDeserializer(JsonNode.class, new JsonNodeDupeFieldHandlingDeserializer()))
-              .registerModule(new JavaTimeModule());
 
       // To read the duplicate keys for User Extensions, ILMD and other elements in JSON-LD
       jsonParser.setCodec(objectMapper);

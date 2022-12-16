@@ -89,18 +89,17 @@ public class VersionTransformer {
     final PipedInputStream pipe = new PipedInputStream(pipedOutputStream);
     pipedOutputStream.write(preScan, 0, len);
 
-    Executors.newWorkStealingPool()
-        .execute(
-            () -> {
-              try {
-                ChannelUtil.copy(inputDocument, pipedOutputStream);
-              } catch (Exception e) {
-                throw new FormatConverterException(
-                    "Exception occurred during reading of schema version from input document : "
-                        + e.getMessage(),
-                    e);
-              }
-            });
+    executorService.execute(
+        () -> {
+          try {
+            ChannelUtil.copy(inputDocument, pipedOutputStream);
+          } catch (Exception e) {
+            throw new FormatConverterException(
+                "Exception occurred during reading of schema version from input document : "
+                    + e.getMessage(),
+                e);
+          }
+        });
 
     return convert(pipe, fromMediaType, fromVersion, toMediaType, toVersion);
   }
@@ -205,24 +204,23 @@ public class VersionTransformer {
 
       final PipedInputStream convertedDocument = new PipedInputStream(xmlOutputStream);
 
-      Executors.newWorkStealingPool()
-          .execute(
-              () -> {
-                try {
-                  jsonToXmlConverter.convert(inputDocument, handler);
-                  xmlOutputStream.close();
-                } catch (Exception e) {
-                  try {
-                    xmlOutputStream.write(e.getMessage().getBytes());
-                    xmlOutputStream.close();
-                  } finally {
-                    throw new FormatConverterException(
-                        "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document  : "
-                            + e.getMessage(),
-                        e);
-                  }
-                }
-              });
+      executorService.execute(
+          () -> {
+            try {
+              jsonToXmlConverter.convert(inputDocument, handler);
+              xmlOutputStream.close();
+            } catch (Exception e) {
+              try {
+                xmlOutputStream.write(e.getMessage().getBytes());
+                xmlOutputStream.close();
+              } finally {
+                throw new FormatConverterException(
+                    "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document  : "
+                        + e.getMessage(),
+                    e);
+              }
+            }
+          });
 
       return convertedDocument;
     } catch (Exception e) {
@@ -242,23 +240,22 @@ public class VersionTransformer {
 
       final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
 
-      Executors.newWorkStealingPool()
-          .execute(
-              () -> {
-                try {
-                  xmlToJsonConverter.convert(inputDocument, handler);
-                } catch (Exception e) {
-                  try {
-                    jsonOutputStream.write(e.getMessage().getBytes());
-                    jsonOutputStream.close();
-                  } finally {
-                    throw new FormatConverterException(
-                        "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
-                            + e.getMessage(),
-                        e);
-                  }
-                }
-              });
+      executorService.execute(
+          () -> {
+            try {
+              xmlToJsonConverter.convert(inputDocument, handler);
+            } catch (Exception e) {
+              try {
+                jsonOutputStream.write(e.getMessage().getBytes());
+                jsonOutputStream.close();
+              } finally {
+                throw new FormatConverterException(
+                    "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
+                        + e.getMessage(),
+                    e);
+              }
+            }
+          });
       return convertedDocument;
     } catch (Exception e) {
       throw new FormatConverterException(

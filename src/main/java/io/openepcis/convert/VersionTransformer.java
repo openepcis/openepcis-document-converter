@@ -29,14 +29,14 @@ public class VersionTransformer {
 
   public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
     this.executorService = executorService;
-    this.xmlVersionTransformer = XmlVersionTransformerFactory.newXmlVersionTransformer(this.executorService);
+    this.xmlVersionTransformer = XmlVersionTransformer.newInstance(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
     this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
   }
 
   public VersionTransformer(final ExecutorService executorService) throws JAXBException {
     this.executorService = executorService;
-    this.xmlVersionTransformer = new DefaultXmlVersionTransformer(this.executorService);
+    this.xmlVersionTransformer = XmlVersionTransformer.newInstance(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter();
     this.jsonToXmlConverter = new JsonToXmlConverter();
   }

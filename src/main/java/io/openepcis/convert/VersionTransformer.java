@@ -7,7 +7,9 @@ import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.util.ChannelUtil;
 import io.openepcis.convert.xml.XmlToJsonConverter;
+import io.openepcis.convert.xml.DefaultXmlVersionTransformer;
 import io.openepcis.convert.xml.XmlVersionTransformer;
+import io.openepcis.convert.xml.XmlVersionTransformerFactory;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import java.io.IOException;
@@ -27,14 +29,14 @@ public class VersionTransformer {
 
   public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
     this.executorService = executorService;
-    this.xmlVersionTransformer = new XmlVersionTransformer(this.executorService);
+    this.xmlVersionTransformer = XmlVersionTransformerFactory.newXmlVersionTransformer(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
     this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
   }
 
   public VersionTransformer(final ExecutorService executorService) throws JAXBException {
     this.executorService = executorService;
-    this.xmlVersionTransformer = new XmlVersionTransformer(this.executorService);
+    this.xmlVersionTransformer = new DefaultXmlVersionTransformer(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter();
     this.jsonToXmlConverter = new JsonToXmlConverter();
   }

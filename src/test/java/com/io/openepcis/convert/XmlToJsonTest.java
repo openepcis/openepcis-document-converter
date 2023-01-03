@@ -24,6 +24,7 @@ import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.validator.EventValidator;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -77,7 +78,6 @@ public class XmlToJsonTest {
     new XmlToJsonConverter().convert(xmlStream, handler);
     Assert.assertTrue(jsonOutput.size() > 0);
     Assert.assertTrue(jsonOutput.toString().contains("eventList"));
-    System.out.println(jsonOutput.toString());
   }
 
   // Test the single event
@@ -90,7 +90,6 @@ public class XmlToJsonTest {
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new XmlToJsonConverter().convert(xmlStream, handler);
     Assert.assertTrue(jsonOutput.size() > 0);
-    System.out.println(jsonOutput.toString());
   }
 
   @Test
@@ -104,9 +103,12 @@ public class XmlToJsonTest {
                 EpcisVersion.VERSION_2_0,
                 "application/json",
                 EpcisVersion.VERSION_2_0);
-    System.out.println(
-        "Converted Version Transformer JSON : \n"
-            + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 
   @Test
@@ -117,8 +119,11 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             xmlDocument, "application/xml", "application/json", EpcisVersion.VERSION_2_0);
     ;
-    System.out.println(
-        "Converted Version Transformer JSON : \n"
-            + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 }

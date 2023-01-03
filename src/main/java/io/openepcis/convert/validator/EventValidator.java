@@ -79,10 +79,9 @@ public class EventValidator implements EPCISEventValidator {
         // If validation is successful then show the message of success
         log.debug("Event adheres to EPCIS Standard XSD Schema");
       } catch (Exception ex) {
-        // If validation fails then show the error message
-        log.error(
-            "Event Does NOT adheres to EPCIS Standard XSD Schema. However, proceeding to next event from EventList ",
-            ex);
+        // If validation fails then show warning message
+        log.warn(
+            "Event Does NOT adhere to EPCIS Standard XSD Schema. However, proceeding to next event from EventList ");
       }
     } else if (event instanceof String convertedEvent) {
       // If the event is of String type then its JSON so compare with JSON Schema
@@ -101,27 +100,16 @@ public class EventValidator implements EPCISEventValidator {
 
           // Based on eventType choose different Schema file for the validation
           switch (epcisEvent) {
-            case "ObjectEvent":
-              schemaFile = "eventSchemas/ObjectEventSchema.json";
-              break;
-            case "AggregationEvent":
-              schemaFile = "eventSchemas/AggregationEventSchema.json";
-              break;
-            case "TransactionEvent":
-              schemaFile = "eventSchemas/TransactionEventSchema.json";
-              break;
-            case "TransformationEvent":
-              schemaFile = "eventSchemas/TransformationEventSchema.json";
-              break;
-            case "AssociationEvent":
-              schemaFile = "eventSchemas/AssociationEventSchema.json";
-              break;
-            default:
-              // If NONE of the EPCIS event type matches
-              log.error(
-                  "JSON event does not match any of EPCIS event. However, proceeding to next event from EventList ",
-                  epcisEvent);
-              break;
+            case "ObjectEvent" -> schemaFile = "eventSchemas/ObjectEventSchema.json";
+            case "AggregationEvent" -> schemaFile = "eventSchemas/AggregationEventSchema.json";
+            case "TransactionEvent" -> schemaFile = "eventSchemas/TransactionEventSchema.json";
+            case "TransformationEvent" -> schemaFile =
+                "eventSchemas/TransformationEventSchema.json";
+            case "AssociationEvent" -> schemaFile = "eventSchemas/AssociationEventSchema.json";
+            default ->
+            // If NONE of the EPCIS event type matches
+            log.error(
+                "JSON event does not match any of EPCIS event. However, proceeding to next event from EventList ");
           }
 
           // Get the schema file based on different schema
@@ -135,9 +123,8 @@ public class EventValidator implements EPCISEventValidator {
           if (report.isSuccess()) {
             log.debug("Event adheres to EPCIS Standard JSON-LD Schema");
           } else {
-            log.error(
-                "Event Does NOT adheres to EPCIS Standard JSON-LD Schema. However, proceeding to next event from EventList",
-                report);
+            log.warn(
+                "Event Does NOT adhere to EPCIS Standard JSON-LD Schema. However, proceeding to next event from EventList");
           }
         } else {
           log.error(

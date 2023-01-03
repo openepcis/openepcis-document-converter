@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,7 +26,12 @@ public class HigherToLowerTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument, "application/xml", EpcisVersion.VERSION_2_0, EpcisVersion.VERSION_1_2);
-    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 
   @Test
@@ -34,7 +40,12 @@ public class HigherToLowerTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument, "application/xml", "application/xml", EpcisVersion.VERSION_1_2);
-    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 
   @Test
@@ -47,6 +58,11 @@ public class HigherToLowerTest {
             EpcisVersion.VERSION_2_0,
             "application/xml",
             EpcisVersion.VERSION_1_2);
-    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 }

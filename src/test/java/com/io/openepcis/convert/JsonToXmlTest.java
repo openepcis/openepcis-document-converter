@@ -23,6 +23,7 @@ import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.validator.EventValidator;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -66,7 +67,6 @@ public class JsonToXmlTest {
     final EventHandler handler = new EventHandler(null, new XmlEPCISEventCollector(out));
     new JsonToXmlConverter().convert(jsonStream, handler);
     Assert.assertTrue(out.size() > 0);
-    System.out.println(out);
   }
 
   // Test the conversion of single EPCIS event in JSON -> XML
@@ -79,7 +79,6 @@ public class JsonToXmlTest {
         new EventHandler(new EventValidator(), new XmlEPCISEventCollector(out));
     new JsonToXmlConverter().convert(jsonStream, handler);
     Assert.assertTrue(out.size() > 0);
-    System.out.println(out);
   }
 
   @Test
@@ -88,8 +87,12 @@ public class JsonToXmlTest {
     final InputStream convertedDocument =
         new VersionTransformer()
             .convert(jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
-    System.out.println(
-        "Version Transformer XMl : " + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 
   @Test
@@ -98,7 +101,11 @@ public class JsonToXmlTest {
     final InputStream convertedDocument =
         new VersionTransformer()
             .convert(jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
-    System.out.println(
-        "Version Transformer XMl : " + IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
   }
 }

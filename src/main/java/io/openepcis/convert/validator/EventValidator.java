@@ -81,7 +81,7 @@ public class EventValidator implements EPCISEventValidator {
       } catch (Exception ex) {
         // If validation fails then show warning message
         log.warn(
-            "Event Does NOT adhere to EPCIS Standard XSD Schema. However, proceeding to next event from EventList ");
+            "Event Does NOT adhere to EPCIS Standard XSD Schema. However, proceeding to next event from EventList");
       }
     } else if (event instanceof String convertedEvent) {
       // If the event is of String type then its JSON so compare with JSON Schema
@@ -109,7 +109,7 @@ public class EventValidator implements EPCISEventValidator {
             default ->
             // If NONE of the EPCIS event type matches
             log.error(
-                "JSON event does not match any of EPCIS event. However, proceeding to next event from EventList ");
+                "JSON event does not match any of EPCIS event. However, proceeding to next event from EventList");
           }
 
           // Get the schema file based on different schema

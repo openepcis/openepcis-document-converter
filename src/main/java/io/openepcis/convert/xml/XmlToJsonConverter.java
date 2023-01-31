@@ -25,6 +25,7 @@ import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.*;
 import io.openepcis.model.epcis.modifier.Constants;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
@@ -38,6 +39,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
 
 /**
  * Class for handling the conversion of EPCIS 2.0 events in XML format to EPCIS 2.0 JSON format. It
@@ -55,7 +57,17 @@ public class XmlToJsonConverter implements EventsConverter {
   }
 
   public XmlToJsonConverter() throws JAXBException {
-    this(JAXBContext.newInstance("io.openepcis.model.epcis"));
+    this(
+        JAXBContext.newInstance(
+            "io.openepcis.model.epcis",
+            Thread.currentThread().getContextClassLoader(),
+            new HashMap<>() {
+              {
+                put(
+                    JAXBContextProperties.NAMESPACE_PREFIX_MAPPER,
+                    new EPCISNamespacePrefixMapper());
+              }
+            }));
   }
 
   /**

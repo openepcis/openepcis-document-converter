@@ -27,6 +27,7 @@ import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
@@ -37,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.enterprise.context.RequestScoped;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 
 /**
@@ -64,7 +66,17 @@ public class JsonToXmlConverter implements EventsConverter {
   }
 
   public JsonToXmlConverter() throws JAXBException {
-    this(JAXBContext.newInstance("io.openepcis.model.epcis"));
+    this(
+        JAXBContext.newInstance(
+            "io.openepcis.model.epcis",
+            Thread.currentThread().getContextClassLoader(),
+            new HashMap<>() {
+              {
+                put(
+                    JAXBContextProperties.NAMESPACE_PREFIX_MAPPER,
+                    new EPCISNamespacePrefixMapper());
+              }
+            }));
   }
 
   /**

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
+import io.openepcis.convert.util.IndentingXMLStreamWriter;
+import io.openepcis.convert.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
@@ -37,6 +39,9 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import javax.enterprise.context.RequestScoped;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
@@ -60,6 +65,8 @@ public class JsonToXmlConverter implements EventsConverter {
               new SimpleModule()
                   .addDeserializer(JsonNode.class, new JsonNodeDupeFieldHandlingDeserializer()))
           .registerModule(new JavaTimeModule());
+
+  private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
   public JsonToXmlConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
@@ -125,6 +132,9 @@ public class JsonToXmlConverter implements EventsConverter {
 
     // Create a Marshaller instance to convert to XML
     final Marshaller marshaller = jaxbContext.createMarshaller();
+    // Set Marshalling properties: print formatted XML, exclude <xml> version tag for every event,
+    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+    marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
     // Store the information from JSON header for creation of final XML
     final Map<String, String> contextValues = new HashMap<>();
@@ -164,10 +174,6 @@ public class JsonToXmlConverter implements EventsConverter {
         }
         jsonParser.nextToken();
       }
-
-      // Set Marshalling properties: print formatted XML, exclude <xml> version tag for every event,
-      marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-      marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
       try {
         XmlSupportExtension singleEvent =
@@ -240,10 +246,14 @@ public class JsonToXmlConverter implements EventsConverter {
       ObjectMapper objectMapper,
       Marshaller marshaller,
       EventHandler<? extends io.openepcis.convert.collector.EPCISEventCollector> eventHandler)
-      throws IOException, JAXBException {
+      throws IOException, JAXBException, XMLStreamException {
 
     // StringWriter to get the converted XML from marshaller
     final StringWriter xmlEvent = new StringWriter();
+
+    final XMLStreamWriter skipEPCISNamespaceWriter =
+        new NonEPCISNamespaceXMLStreamWriter(
+            new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(xmlEvent)));
 
     // Loop until the end of the EPCIS events file
     while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
@@ -262,7 +272,7 @@ public class JsonToXmlConverter implements EventsConverter {
         // User input
         if (event != null) {
           // Create the XML based on type of incoming event type and store in StringWriter
-          marshaller.marshal(event.xmlSupport(), xmlEvent);
+          marshaller.marshal(event.xmlSupport(), skipEPCISNamespaceWriter);
 
           // Call the method to check if the event adheres to XSD or write into the OutputStream
           // using the EventHandler

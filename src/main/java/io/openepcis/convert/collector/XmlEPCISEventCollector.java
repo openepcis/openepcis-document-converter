@@ -37,15 +37,19 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
 
-  private final XMLInputFactory factory = XMLInputFactory.newInstance();
+  private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+
+  private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
+
+  static {
+    XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
+  }
 
   public XmlEPCISEventCollector(OutputStream stream) {
-    factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
     this.stream = stream;
     try {
       // To write the final xml with all event and header information create XMLEventWriter
-      xmlEventWriter = XMLOutputFactory.newInstance().createXMLEventWriter(stream);
-
+      xmlEventWriter = XML_OUTPUT_FACTORY.createXMLEventWriter(stream);
       // To create and add elements to final XML with all elements
       events = XMLEventFactory.newInstance();
     } catch (XMLStreamException e) {
@@ -59,7 +63,7 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     try {
       XMLEventReader xer =
           new EventReaderDelegate(
-              factory.createXMLEventReader(new StringReader(event.toString()))) {
+              XML_INPUT_FACTORY.createXMLEventReader(new StringReader(event.toString()))) {
             @Override
             public boolean hasNext() {
               if (!super.hasNext()) return false;
@@ -134,9 +138,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   @Override
   public void collectSingleEvent(Object event) {
     try {
-      final XMLInputFactory factory = XMLInputFactory.newInstance();
-      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
-      XMLEventReader xer = factory.createXMLEventReader(new StringReader(event.toString()));
+      XMLEventReader xer =
+          XML_INPUT_FACTORY.createXMLEventReader(new StringReader(event.toString()));
       if (xer.peek().isStartDocument()) {
         xer.nextEvent();
         xmlEventWriter.add(xer);

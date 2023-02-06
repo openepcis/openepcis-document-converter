@@ -120,7 +120,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Write the info related to Context element in JSON
       jsonGenerator.writeFieldName("@context");
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString("https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld");
+      jsonGenerator.writeString("https://gs1.github.io/EPCIS/epcis-context.jsonld");
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
       DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();

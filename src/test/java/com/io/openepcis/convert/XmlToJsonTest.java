@@ -15,7 +15,7 @@
  */
 package com.io.openepcis.convert;
 
-import io.openepcis.convert.EpcisVersion;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.EventListCollector;
@@ -100,9 +100,9 @@ public class XmlToJsonTest {
             .convert(
                 xmlStream,
                 "application/xml",
-                EpcisVersion.VERSION_2_0,
+                EPCISVersion.VERSION_2_0,
                 "application/json",
-                EpcisVersion.VERSION_2_0);
+                EPCISVersion.VERSION_2_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -117,7 +117,7 @@ public class XmlToJsonTest {
     final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =
         versionTransformer.convert(
-            xmlDocument, "application/xml", "application/json", EpcisVersion.VERSION_2_0);
+            xmlDocument, "application/xml", "application/json", EPCISVersion.VERSION_2_0);
     ;
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {

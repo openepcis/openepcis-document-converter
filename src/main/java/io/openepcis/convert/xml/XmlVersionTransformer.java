@@ -1,6 +1,6 @@
 package io.openepcis.convert.xml;
 
-import io.openepcis.convert.EpcisVersion;
+import io.openepcis.constants.EPCISVersion;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 
 public interface XmlVersionTransformer {
   public InputStream xmlConverter(
-      InputStream inputStream, EpcisVersion fromVersion, EpcisVersion toVersion)
+      InputStream inputStream, EPCISVersion fromVersion, EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException;
 
   static XmlVersionTransformer newInstance() {

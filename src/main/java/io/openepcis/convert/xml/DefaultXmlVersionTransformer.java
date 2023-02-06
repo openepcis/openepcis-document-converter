@@ -1,6 +1,6 @@
 package io.openepcis.convert.xml;
 
-import io.openepcis.convert.EpcisVersion;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.exception.FormatConverterException;
 import java.io.*;
 import java.util.concurrent.ExecutorService;
@@ -61,17 +61,17 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    */
   @Override
   public final InputStream xmlConverter(
-      final InputStream inputStream, final EpcisVersion fromVersion, final EpcisVersion toVersion)
+      final InputStream inputStream, final EPCISVersion fromVersion, final EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException {
     if (fromVersion.equals(toVersion)) {
       // if input document version and conversion version are equal then return same document.
       return inputStream;
-    } else if (fromVersion.equals(EpcisVersion.VERSION_1_2)
-        && toVersion.equals(EpcisVersion.VERSION_2_0)) {
+    } else if (fromVersion.equals(EPCISVersion.VERSION_1_2)
+        && toVersion.equals(EPCISVersion.VERSION_2_0)) {
       // If input document version is 1.2 and conversion version is 2.0, convert from XML 1.2 -> 2.0
       return convert_1_2_to_2_0(inputStream);
-    } else if (fromVersion.equals(EpcisVersion.VERSION_2_0)
-        && toVersion.equals(EpcisVersion.VERSION_1_2)) {
+    } else if (fromVersion.equals(EPCISVersion.VERSION_2_0)
+        && toVersion.equals(EPCISVersion.VERSION_1_2)) {
       // If input document version is 2.0 and conversion version is 1.2, convert from XML 2.0 -> 1.2
       return convert_2_0_to_1_2(inputStream);
     } else {

@@ -35,7 +35,6 @@
                         </sensorElementList>
                     </extension>
                 </extension>
-                <example:myField xmlns:example="http://ns.example.com/epcis">Example of a vendor/user extension</example:myField>
             </ObjectEvent>
         </EventList>
     </EPCISBody>

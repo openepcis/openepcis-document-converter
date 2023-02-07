@@ -17,6 +17,7 @@ package io.openepcis.convert.collector;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
@@ -83,7 +84,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeStartObject();
 
       // Write Other header fields of JSON
-      jsonGenerator.writeStringField("type", "EPCISDocument");
+      jsonGenerator.writeStringField(EPCIS.TYPE, EPCIS.EPCIS_DOCUMENT);
 
       // Write schema version and other attributes within XML Header
       context.forEach(
@@ -98,11 +99,11 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
           });
 
       // Start epcisBody object
-      jsonGenerator.writeFieldName("epcisBody");
+      jsonGenerator.writeFieldName(EPCIS.EPCIS_BODY_IN_LOWER_CASE);
       jsonGenerator.writeStartObject();
 
       // Start eventList
-      jsonGenerator.writeFieldName("eventList");
+      jsonGenerator.writeFieldName(EPCIS.EVENT_LIST_IN_LOWER_CASE);
       jsonGenerator.writeStartArray();
     } catch (IOException e) {
       throw new FormatConverterException(
@@ -118,13 +119,14 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeEndObject(); // End epcisBody
 
       // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName("@context");
+      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString("https://gs1.github.io/EPCIS/epcis-context.jsonld");
+      jsonGenerator.writeString(EPCIS.DEFAULT_CONTEXT);
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
       DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();
-
+      System.out.println(
+          DefaultJsonSchemaNamespaceURIResolver.getInstance().getModifiedNamespace());
       // Get all the stored namespaces from jsonNamespaces
       DefaultJsonSchemaNamespaceURIResolver.getInstance()
           .getModifiedNamespace()
@@ -162,9 +164,9 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // create Outermost JsonObject
       jsonGenerator.writeStartObject();
       // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName("@context");
+      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString("https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld");
+      jsonGenerator.writeString(EPCIS.DEFAULT_CONTEXT);
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
       DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();

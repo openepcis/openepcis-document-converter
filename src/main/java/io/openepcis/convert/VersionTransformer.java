@@ -1,5 +1,7 @@
 package io.openepcis.convert;
 
+import io.openepcis.constants.EPCIS;
+import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.JsonEPCISEventCollector;
@@ -67,19 +69,19 @@ public class VersionTransformer {
     final int len = inputDocument.read(preScan);
     final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
 
-    if (!preScanVersion.contains("schemaVersion")) {
+    if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
       throw new UnsupportedOperationException("unable to detect EPCIS schemaVersion");
     }
 
     EPCISVersion fromVersion;
 
-    if (preScanVersion.contains("schemaVersion=\"1.2\"")
-        || preScanVersion.contains("schemaVersion='1.2'")
-        || preScanVersion.replace(" ", "").contains("\"schemaVersion\":\"1.2\"")) {
+    if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"1.2\"")
+        || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='1.2'")
+        || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"1.2\"")) {
       fromVersion = EPCISVersion.VERSION_1_2_0;
-    } else if (preScanVersion.contains("schemaVersion=\"2.0\"")
-        || preScanVersion.contains("schemaVersion='2.0'")
-        || preScanVersion.replace(" ", "").contains("\"schemaVersion\":\"2.0\"")) {
+    } else if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"2.0\"")
+        || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='2.0'")
+        || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"2.0\"")) {
       fromVersion = EPCISVersion.VERSION_2_0_0;
     } else {
       throw new FormatConverterException(
@@ -155,33 +157,34 @@ public class VersionTransformer {
       final EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException {
     // If input fromVersion and the required output toVersion is same then return the same input.
-    if (fromMediaType.toLowerCase().contains("xml") && toMediaType.toLowerCase().contains("xml")) {
+    if (fromMediaType.toLowerCase().contains(EPCIS.XML_FORMAT)
+        && toMediaType.toLowerCase().contains(EPCIS.XML_FORMAT)) {
       // If input & conversion mediaType is xml then convert from either 1.2 -> 2.0 or 2.0 -> 1.2
       return xmlVersionTransformer.xmlConverter(inputDocument, fromVersion, toVersion);
-    } else if (fromMediaType.toLowerCase().contains("json")
-        && toMediaType.toLowerCase().contains("xml")
+    } else if (fromMediaType.toLowerCase().contains(EPCIS.JSON_FORMAT)
+        && toMediaType.toLowerCase().contains(EPCIS.XML_FORMAT)
         && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
         && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If fromMedia is json and toMedia is xml and both versions are 2.0
       return toXml(inputDocument);
-    } else if (fromMediaType.toLowerCase().contains("json")
-        && toMediaType.toLowerCase().contains("xml")
+    } else if (fromMediaType.toLowerCase().contains(EPCIS.JSON_FORMAT)
+        && toMediaType.toLowerCase().contains(EPCIS.XML_FORMAT)
         && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
         && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
       // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
       return convert(
           toXml(inputDocument),
-          "application/xml",
+          EPCISFormat.fromString(EPCIS.XML_FORMAT).get().getMediaType(),
           EPCISVersion.VERSION_2_0_0,
           EPCISVersion.VERSION_1_2_0);
-    } else if (fromMediaType.toLowerCase().contains("xml")
-        && toMediaType.toLowerCase().contains("json")
+    } else if (fromMediaType.toLowerCase().contains(EPCIS.XML_FORMAT)
+        && toMediaType.toLowerCase().contains(EPCIS.JSON_FORMAT)
         && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
         && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If fromMedia is xml and toMedia is json and both versions are 2.0 convert xml->json
       return toJson(inputDocument);
-    } else if (fromMediaType.toLowerCase().contains("xml")
-        && toMediaType.toLowerCase().contains("json")
+    } else if (fromMediaType.toLowerCase().contains(EPCIS.XML_FORMAT)
+        && toMediaType.toLowerCase().contains(EPCIS.JSON_FORMAT)
         && fromVersion.equals(EPCISVersion.VERSION_1_2_0)
         && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If fromMedia is xml and toMedia is json and fromVersion is 1.2, toVersion 2.0 then convert
@@ -189,7 +192,7 @@ public class VersionTransformer {
       final InputStream convertedXml =
           convert(
               inputDocument,
-              "application/xml",
+              EPCISFormat.fromString(EPCIS.XML_FORMAT).get().getMediaType(),
               EPCISVersion.VERSION_1_2_0,
               EPCISVersion.VERSION_2_0_0);
       return toJson(convertedXml);

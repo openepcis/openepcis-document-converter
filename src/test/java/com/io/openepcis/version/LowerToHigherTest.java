@@ -25,7 +25,7 @@ public class LowerToHigherTest {
     inputDocument = getClass().getResourceAsStream("/version/LowerVersionXml_1.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputDocument, "xml", EPCISVersion.VERSION_1_2, EPCISVersion.VERSION_2_0);
+            inputDocument, "xml", EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -39,7 +39,7 @@ public class LowerToHigherTest {
     inputDocument = getClass().getResourceAsStream("/version/LowerVersionXml_2.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputDocument, "application/xml", "application/xml", EPCISVersion.VERSION_2_0);
+            inputDocument, "application/xml", "application/xml", EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -55,9 +55,9 @@ public class LowerToHigherTest {
         versionTransformer.convert(
             inputDocument,
             "application/xml",
-            EPCISVersion.VERSION_1_2,
+            EPCISVersion.VERSION_1_2_0,
             "xml",
-            EPCISVersion.VERSION_2_0);
+            EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

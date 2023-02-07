@@ -86,7 +86,7 @@ public class JsonToXmlTest {
     final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
     final InputStream convertedDocument =
         new VersionTransformer()
-            .convert(jsonStream, "application/json", "application/xml", EPCISVersion.VERSION_1_2);
+            .convert(jsonStream, "application/json", "application/xml", EPCISVersion.VERSION_1_2_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -100,7 +100,7 @@ public class JsonToXmlTest {
     final InputStream jsonStream = getClass().getResourceAsStream("/convert/JsonDocument.json");
     final InputStream convertedDocument =
         new VersionTransformer()
-            .convert(jsonStream, "application/json", "application/xml", EPCISVersion.VERSION_1_2);
+            .convert(jsonStream, "application/json", "application/xml", EPCISVersion.VERSION_1_2_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

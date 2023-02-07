@@ -100,9 +100,9 @@ public class XmlToJsonTest {
             .convert(
                 xmlStream,
                 "application/xml",
-                EPCISVersion.VERSION_2_0,
+                EPCISVersion.VERSION_2_0_0,
                 "application/json",
-                EPCISVersion.VERSION_2_0);
+                EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -117,7 +117,7 @@ public class XmlToJsonTest {
     final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =
         versionTransformer.convert(
-            xmlDocument, "application/xml", "application/json", EPCISVersion.VERSION_2_0);
+            xmlDocument, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
     ;
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {

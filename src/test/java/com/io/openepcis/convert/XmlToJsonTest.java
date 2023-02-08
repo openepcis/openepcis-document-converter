@@ -201,4 +201,22 @@ public class XmlToJsonTest {
       // ignored
     }
   }
+
+  @Test
+  public void withSensorDataJsonTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/SensorData_and_extension.xml");
+    final VersionTransformer versionTransformer = new VersionTransformer();
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
 }

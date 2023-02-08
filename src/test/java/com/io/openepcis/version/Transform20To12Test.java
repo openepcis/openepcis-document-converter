@@ -10,7 +10,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class HigherToLowerTest {
+public class Transform20To12Test {
 
   private VersionTransformer versionTransformer;
   private InputStream inputDocument;
@@ -22,7 +22,11 @@ public class HigherToLowerTest {
 
   @Test
   public void convertDirectTest() throws IOException {
-    inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_1.xml");
+    inputDocument =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/XML/Capture/Documents/ObjectEvent_all_possible_fields.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
@@ -39,7 +43,11 @@ public class HigherToLowerTest {
 
   @Test
   public void convertWithScanTest() throws IOException {
-    inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_2.xml");
+    inputDocument =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/XML/Capture/Documents/AssociationEvent_all_possible_fields.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument, "application/xml", "application/xml", EPCISVersion.VERSION_1_2_0);
@@ -53,7 +61,11 @@ public class HigherToLowerTest {
 
   @Test
   public void convertWithAllInfoTest() throws IOException {
-    inputDocument = getClass().getResourceAsStream("/version/HigherVersionXml_3.xml");
+    inputDocument =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/XML/Capture/Documents/Combination_of_different_event.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,

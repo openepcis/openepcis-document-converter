@@ -35,11 +35,10 @@ public class JsonToXmlTest {
 
   private ByteArrayOutputStream byteArrayOutputStream;
   private InputStream inputStream;
-
   final XMLFormatter formatter = new XMLFormatter();
 
   @Before
-  public void before() throws Exception {
+  public void before() {
     byteArrayOutputStream = new ByteArrayOutputStream();
   }
 

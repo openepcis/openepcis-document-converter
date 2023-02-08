@@ -18,8 +18,8 @@ import javax.xml.transform.stream.StreamSource;
  */
 public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
 
-  private final Transformer from_1_2_to_2_0;
-  private final Transformer from_2_0_to_1_2;
+  private final Transformer from12To20;
+  private final Transformer from20T012;
   private final ExecutorService executorService;
 
   public DefaultXmlVersionTransformer(final ExecutorService executorService) {
@@ -27,14 +27,14 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
     try {
       TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
-      from_1_2_to_2_0 =
+      from12To20 =
           transformerFactory.newTransformer(
               new StreamSource(
                   DefaultXmlVersionTransformer.class
                       .getClassLoader()
                       .getResourceAsStream("xalan-conversion/convert-1.2-to-2.0.xsl")));
 
-      from_2_0_to_1_2 =
+      from20T012 =
           transformerFactory.newTransformer(
               new StreamSource(
                   DefaultXmlVersionTransformer.class
@@ -69,11 +69,11 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
     } else if (fromVersion.equals(EPCISVersion.VERSION_1_2_0)
         && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If input document version is 1.2 and conversion version is 2.0, convert from XML 1.2 -> 2.0
-      return convert_1_2_to_2_0(inputStream);
+      return convert12To20(inputStream);
     } else if (fromVersion.equals(EPCISVersion.VERSION_2_0_0)
         && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
       // If input document version is 2.0 and conversion version is 1.2, convert from XML 2.0 -> 1.2
-      return convert_2_0_to_1_2(inputStream);
+      return convert20To12(inputStream);
     } else {
       throw new UnsupportedOperationException(
           "Requested conversion is not supported, Please check provided MediaType/Version and try again");
@@ -87,14 +87,14 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    * @return converted EPCIS 2.0 XML document as a InputStream
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  private InputStream convert_1_2_to_2_0(final InputStream inputDocument) throws IOException {
+  private InputStream convert12To20(final InputStream inputDocument) throws IOException {
     final PipedOutputStream outTransform = new PipedOutputStream();
     final InputStream convertedDocument = new PipedInputStream(outTransform);
 
     executorService.execute(
         () -> {
           try {
-            from_1_2_to_2_0.transform(
+            from12To20.transform(
                 new StreamSource(inputDocument),
                 new StreamResult(new BufferedOutputStream(outTransform)));
             outTransform.close();
@@ -120,14 +120,14 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    * @return converted EPCIS 1.2 XML document as a InputStream
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  private InputStream convert_2_0_to_1_2(final InputStream inputDocument) throws IOException {
+  private InputStream convert20To12(final InputStream inputDocument) throws IOException {
     final PipedOutputStream outTransform = new PipedOutputStream();
     final InputStream convertedDocument = new PipedInputStream(outTransform);
 
     executorService.execute(
         () -> {
           try {
-            from_2_0_to_1_2.transform(
+            from20T012.transform(
                 new StreamSource(inputDocument),
                 new StreamResult(new BufferedOutputStream(outTransform)));
             outTransform.close();

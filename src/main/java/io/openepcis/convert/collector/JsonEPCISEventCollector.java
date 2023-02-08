@@ -125,8 +125,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
       DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();
-      System.out.println(
-          DefaultJsonSchemaNamespaceURIResolver.getInstance().getModifiedNamespace());
+
       // Get all the stored namespaces from jsonNamespaces
       DefaultJsonSchemaNamespaceURIResolver.getInstance()
           .getModifiedNamespace()

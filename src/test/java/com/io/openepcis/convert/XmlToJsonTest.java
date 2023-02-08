@@ -39,13 +39,13 @@ public class XmlToJsonTest {
   final XMLFormatter formatter = new XMLFormatter();
 
   @Before
-  public void before() throws Exception {
+  public void before() {
     byteArrayOutputStream = new ByteArrayOutputStream();
   }
 
   // Test case for Valid XML to JSON-LD conversion
   @Test
-  public void xmlToJsonObjectEventTest() throws Exception {
+  public void objectEventTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -54,12 +54,11 @@ public class XmlToJsonTest {
     final EventHandler handler =
         new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream));
     new XmlToJsonConverter().convert(inputStream, handler);
-    System.out.println(byteArrayOutputStream);
-    // Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
   }
 
   @Test
-  public void xmlToJsonAggregationEventTest() throws Exception {
+  public void aggregationEventTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -72,7 +71,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void xmlToJsonTransformationEventTest() throws Exception {
+  public void transformationEventTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -86,7 +85,7 @@ public class XmlToJsonTest {
 
   // Test case for Invalid values for EventHandler
   @Test(expected = FormatConverterException.class)
-  public void xmlToJsonInvalidTest() throws Exception {
+  public void invalidDocumentTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -98,7 +97,7 @@ public class XmlToJsonTest {
 
   // Test case for Invalid JSON file contents
   @Test(expected = FormatConverterException.class)
-  public void xmlToJsonInvalidJSONContent() throws Exception {
+  public void fileNotPresentTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -109,13 +108,16 @@ public class XmlToJsonTest {
 
   // Test to only validate the converted JSON events against JSON-Schema
   @Test
-  public void xmlToJsonValidate() throws Exception {
-    final InputStream xmlStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.xml");
-    new XmlToJsonConverter().convert(xmlStream, new EventHandler(new EventValidator(), null));
+  public void validationTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/ObjectEvent.xml");
+    new XmlToJsonConverter().convert(inputStream, new EventHandler(new EventValidator(), null));
   }
 
   @Test
-  public void xmlToJsonStreamTest() throws Exception {
+  public void combinationOfEventsTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -130,7 +132,7 @@ public class XmlToJsonTest {
 
   // Test the single event
   @Test
-  public void xmlToJsonSingleEvent() throws Exception {
+  public void singleEventTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
@@ -138,17 +140,19 @@ public class XmlToJsonTest {
     final JsonEPCISEventCollector collector = new JsonEPCISEventCollector(byteArrayOutputStream);
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new XmlToJsonConverter().convert(inputStream, handler);
-    System.out.println(byteArrayOutputStream);
-    // Assert.assertTrue(byteArrayOutputStream.size() > 0);
+    Assert.assertTrue(byteArrayOutputStream.size() > 0);
   }
 
   @Test
-  public void jsonConversionTest() throws Exception {
-    final InputStream xmlStream = getClass().getResourceAsStream("/convert/XmlDocument.xml");
+  public void sensorElementsWithConvertMethodTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/SensorData_and_extension.xml");
     final InputStream convertedDocument =
         new VersionTransformer()
             .convert(
-                xmlStream,
+                inputStream,
                 "application/xml",
                 EPCISVersion.VERSION_2_0_0,
                 "application/json",
@@ -163,13 +167,34 @@ public class XmlToJsonTest {
 
   @Test
   public void jsonConversionScanTest() throws Exception {
-    final InputStream xmlDocument = getClass().getResourceAsStream("/convert/XmlDocument.xml");
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/XML/Capture/Documents/TransformationEvent_with_errorDeclaration.xml");
     final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =
         versionTransformer.convert(
-            xmlDocument, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
-    System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
-    // Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
+
+  @Test
+  public void bareStringJsonConversionTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/BareString_information.xml");
+    final VersionTransformer versionTransformer = new VersionTransformer();
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

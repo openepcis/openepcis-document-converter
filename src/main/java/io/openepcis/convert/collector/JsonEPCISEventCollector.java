@@ -90,7 +90,11 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       context.forEach(
           (key, value) -> {
             try {
-              jsonGenerator.writeStringField(key, value);
+              if (key.equalsIgnoreCase(EPCIS.SCHEMA_VERSION)) {
+                jsonGenerator.writeStringField(key, "2.0");
+              } else {
+                jsonGenerator.writeStringField(key, value);
+              }
             } catch (IOException e) {
               throw new FormatConverterException(
                   "Exception during XML-JSON-LD conversion, Error occurred during the addition of attributes: "

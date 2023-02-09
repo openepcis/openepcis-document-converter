@@ -23,6 +23,7 @@ import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.util.XMLFormatter;
 import io.openepcis.convert.validator.EventValidator;
 import io.openepcis.convert.xml.XmlToJsonConverter;
+import jakarta.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,14 +34,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class XmlToJsonTest {
+  private VersionTransformer versionTransformer;
   private ByteArrayOutputStream byteArrayOutputStream;
   private InputStream inputStream;
 
   final XMLFormatter formatter = new XMLFormatter();
 
   @Before
-  public void before() {
+  public void before() throws JAXBException {
     byteArrayOutputStream = new ByteArrayOutputStream();
+    versionTransformer = new VersionTransformer();
   }
 
   // Test case for Valid XML to JSON-LD conversion
@@ -172,7 +175,6 @@ public class XmlToJsonTest {
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/TransformationEvent_with_errorDeclaration.xml");
-    final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
@@ -190,7 +192,6 @@ public class XmlToJsonTest {
         getClass()
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/BareString_information.xml");
-    final VersionTransformer versionTransformer = new VersionTransformer();
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
@@ -208,7 +209,24 @@ public class XmlToJsonTest {
         getClass()
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/SensorData_and_extension.xml");
-    final VersionTransformer versionTransformer = new VersionTransformer();
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
+
+  @Test
+  public void document12WithErrorTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "1.2/EPCIS/XML/Capture/Documents/ObjectEvent_with_baseExtension_errorDeclaration.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);

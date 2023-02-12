@@ -18,6 +18,7 @@ package io.openepcis.convert.collector;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCIS;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
@@ -103,11 +104,11 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
           });
 
       // Start epcisBody object
-      jsonGenerator.writeFieldName(EPCIS.EPCIS_BODY_IN_LOWER_CASE);
+      jsonGenerator.writeFieldName(EPCIS.EPCIS_BODY_IN_CAMEL_CASE);
       jsonGenerator.writeStartObject();
 
       // Start eventList
-      jsonGenerator.writeFieldName(EPCIS.EVENT_LIST_IN_LOWER_CASE);
+      jsonGenerator.writeFieldName(EPCIS.EVENT_LIST_IN_CAMEL_CASE);
       jsonGenerator.writeStartArray();
     } catch (IOException e) {
       throw new FormatConverterException(
@@ -125,7 +126,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Write the info related to Context element in JSON
       jsonGenerator.writeFieldName(EPCIS.CONTEXT);
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString(EPCIS.DEFAULT_CONTEXT);
+      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
       DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();
@@ -169,7 +170,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Write the info related to Context element in JSON
       jsonGenerator.writeFieldName(EPCIS.CONTEXT);
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString(EPCIS.DEFAULT_CONTEXT);
+      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
       DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();

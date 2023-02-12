@@ -110,10 +110,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       }
 
       // Add EPCISBody and EventList tag as outer tag
-      xmlEventWriter.add(
-          events.createStartElement(new QName(EPCIS.EPCIS_BODY_IN_UPPER_CASE), null, null));
-      xmlEventWriter.add(
-          events.createStartElement(new QName(EPCIS.EVENT_LIST_IN_UPPER_CASE), null, null));
+      xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EPCIS_BODY), null, null));
+      xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EVENT_LIST), null, null));
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the creation of final XML file header information "
@@ -126,8 +124,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     try {
       // End the EventList, EPCISBody, EPCISDocument and the while document after completing all
       // files writing
-      xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EVENT_LIST_IN_UPPER_CASE), null));
-      xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EPCIS_BODY_IN_UPPER_CASE), null));
+      xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EVENT_LIST), null));
+      xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EPCIS_BODY), null));
       xmlEventWriter.add(
           events.createEndElement(new QName(EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE), null));
       xmlEventWriter.add(events.createEndDocument());

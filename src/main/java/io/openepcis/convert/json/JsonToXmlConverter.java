@@ -200,7 +200,7 @@ public class JsonToXmlConverter implements EventsConverter {
         eventHandler.collectSingleEvent(singleXmlEvent);
       } catch (Exception e) {
         // Loop until the start of the EPCIS EventList array and prepare the XML header elements
-        while (!jsonParser.getText().equals(EPCIS.EVENT_LIST_IN_LOWER_CASE)) {
+        while (!jsonParser.getText().equals(EPCIS.EVENT_LIST_IN_CAMEL_CASE)) {
           if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING
                   || jsonParser.getCurrentToken() == JsonToken.VALUE_NUMBER_FLOAT)
               && (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SCHEMA_VERSION)

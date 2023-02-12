@@ -15,6 +15,7 @@
  */
 package com.io.openepcis.convert;
 
+import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
@@ -156,9 +157,9 @@ public class XmlToJsonTest {
         new VersionTransformer()
             .convert(
                 inputStream,
-                "application/xml",
+                EPCISFormat.XML,
                 EPCISVersion.VERSION_2_0_0,
-                "application/json",
+                EPCISFormat.JSON_LD,
                 EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
@@ -177,7 +178,7 @@ public class XmlToJsonTest {
                 "2.0/EPCIS/XML/Capture/Documents/TransformationEvent_with_errorDeclaration.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -194,7 +195,7 @@ public class XmlToJsonTest {
             .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/BareString_information.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -211,7 +212,7 @@ public class XmlToJsonTest {
             .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/SensorData_and_extension.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -229,7 +230,7 @@ public class XmlToJsonTest {
                 "1.2/EPCIS/XML/Capture/Documents/ObjectEvent_with_baseExtension_errorDeclaration.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputStream, "application/xml", "application/json", EPCISVersion.VERSION_2_0_0);
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

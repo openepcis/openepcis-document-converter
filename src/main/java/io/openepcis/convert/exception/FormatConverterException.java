@@ -20,7 +20,7 @@ import java.io.Serial;
 /**
  * Class that is used to throw any Exception that may occur during the execution of the XML-JSON or
  * JSON-XML conversion of the EPCIS events. During the execution if any error occurs then respective
- * information will be passed onto the methods of this class and those information will be show to
+ * information will be passed onto the methods of this class and this information will be show to
  * user and execution will be stopped.
  */
 public class FormatConverterException extends RuntimeException {

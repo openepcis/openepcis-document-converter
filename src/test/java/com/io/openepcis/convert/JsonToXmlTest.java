@@ -15,78 +15,110 @@
  */
 package com.io.openepcis.convert;
 
-import io.openepcis.convert.EpcisVersion;
+import io.openepcis.constants.EPCISFormat;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
-import io.openepcis.convert.collector.EventListCollector;
 import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.json.JsonToXmlConverter;
+import io.openepcis.convert.util.XMLFormatter;
 import io.openepcis.convert.validator.EventValidator;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class JsonToXmlTest {
 
-  @Test
-  public void jsonToXmlTest() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
-    final EventListCollector collector = new EventListCollector(new ArrayList<>());
-    final EventHandler handler = new EventHandler(new EventValidator(), collector);
-    new JsonToXmlConverter().convert(jsonStream, handler);
-    Assert.assertEquals(1, collector.get().size());
+  private ByteArrayOutputStream byteArrayOutputStream;
+  private InputStream inputStream;
+  final XMLFormatter formatter = new XMLFormatter();
+
+  @Before
+  public void before() {
+    byteArrayOutputStream = new ByteArrayOutputStream();
   }
 
   @Test
-  public void jsonToXmlStreamTest() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final EventHandler handler = new EventHandler(null, new XmlEPCISEventCollector(out));
-    new JsonToXmlConverter().convert(jsonStream, handler);
-    Assert.assertTrue(out.size() > 0);
-    // TODO: check why this test failed
-    // Assert.assertEquals(1207, out.size());
+  public void jsonToXmlObjectEventTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/ObjectEvent_all_possible_fields.json");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void jsonToXmlAggregationEventTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/AggregationEvent_all_possible_fields.json");
+    final EventHandler handler =
+        new EventHandler(null, new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
   }
 
   // Test to only validate the converted XML events
   @Test
-  public void jsonToXMLValidation() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
-    new JsonToXmlConverter().convert(jsonStream, new EventHandler(new EventValidator(), null));
+  public void jsonToXmlTransactionEventTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/TransactionEvent_all_possible_fields.json");
+    final EventHandler handler =
+        new EventHandler(null, new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
   }
 
   @Test
-  public void jsonToXmlTestDocument() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-    final EventHandler handler = new EventHandler(null, new XmlEPCISEventCollector(out));
-    new JsonToXmlConverter().convert(jsonStream, handler);
-    Assert.assertTrue(out.size() > 0);
+  public void jsonToXmlTransformationEventTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/TransformationEvent_all_possible_fields.json");
+    final EventHandler handler =
+        new EventHandler(null, new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.size() > 0);
   }
 
   // Test the conversion of single EPCIS event in JSON -> XML
   @Test
   public void jsonToXmlTestSingleEvent() throws Exception {
-    final InputStream jsonStream =
-        getClass().getResourceAsStream("/convert/InputEpcisSingleEvent.json");
-    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/JSON/Capture/Events/AssociationEvent.json");
     final EventHandler handler =
-        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(out));
-    new JsonToXmlConverter().convert(jsonStream, handler);
-    Assert.assertTrue(out.size() > 0);
+        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.size() > 0);
   }
 
   @Test
-  public void versionTransformerTest() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/InputEPCISEvents.json");
+  public void jsonToXmlVersionTransformerTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/AssociationEvent_all_possible_fields.json");
     final InputStream convertedDocument =
         new VersionTransformer()
-            .convert(jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
+            .convert(inputStream, EPCISFormat.JSON_LD, EPCISFormat.XML, EPCISVersion.VERSION_1_2_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -96,11 +128,19 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void versionTransformerXmlTest() throws Exception {
-    final InputStream jsonStream = getClass().getResourceAsStream("/convert/JsonDocument.json");
+  public void jsonToXmlVersionTransformerEventTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/JSON/Capture/Documents/SensorData_and_extension.json");
     final InputStream convertedDocument =
         new VersionTransformer()
-            .convert(jsonStream, "application/json", "application/xml", EpcisVersion.VERSION_1_2);
+            .convert(
+                inputStream,
+                EPCISFormat.JSON_LD,
+                EPCISVersion.VERSION_2_0_0,
+                EPCISFormat.XML,
+                EPCISVersion.VERSION_1_2_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

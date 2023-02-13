@@ -123,5 +123,19 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
+
+        <!-- Add constants as dependencies -->
+        <dependency>
+            <groupId>io.openepcis</groupId>
+            <artifactId>openepcis-epcis-constants</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!-- Add constants as dependencies -->
+        <dependency>
+            <groupId>io.openepcis</groupId>
+            <artifactId>openepcis-test-resources</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 </project>

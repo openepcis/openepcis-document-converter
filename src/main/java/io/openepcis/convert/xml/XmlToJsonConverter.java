@@ -18,6 +18,7 @@ package io.openepcis.convert.xml;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EPCISEventCollector;
 import io.openepcis.convert.collector.EventHandler;
@@ -164,19 +165,19 @@ public class XmlToJsonConverter implements EventsConverter {
           Object event = null;
           // Based on eventType make unmarshaller call to respective event class
           switch (epcisEvent) {
-            case "ObjectEvent" ->
+            case EPCIS.OBJECT_EVENT ->
             // Unmarshal the ObjectEvent and Convert it to JSON-LD
             event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
-            case "AggregationEvent" ->
+            case EPCIS.AGGREGATION_EVENT ->
             // Unmarshal the AggregationEvent and Convert it to JSON-LD
             event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
-            case "TransactionEvent" ->
+            case EPCIS.TRANSACTION_EVENT ->
             // Unmarshal the TransactionEvent and Convert it to JSON-LD
             event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
-            case "TransformationEvent" ->
+            case EPCIS.TRANSFORMATION_EVENT ->
             // Unmarshal the TransformationEvent and Convert it to JSON-LD
             event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
-            case "AssociationEvent" ->
+            case EPCIS.ASSOCIATION_EVENT ->
             // Unmarshal the AssociationEvent and Convert it to JSON-LD
             event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
             default ->
@@ -208,7 +209,7 @@ public class XmlToJsonConverter implements EventsConverter {
           }
 
         } else if (xmlStreamReader.isStartElement()
-            && xmlStreamReader.getLocalName().toLowerCase().contains("document")) {
+            && xmlStreamReader.getLocalName().toLowerCase().contains(EPCIS.DOCUMENT)) {
           // Get the information related to the XML header elements till "EventList", If the element
           // is EPCISDocument get all namespaces
 

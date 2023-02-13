@@ -1,5 +1,23 @@
+/*
+ * Copyright 2022 benelog GmbH & Co. KG
+ *
+ *     Licensed under the Apache License, Version 2.0 (the "License");
+ *     you may not use this file except in compliance with the License.
+ *     You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *     Unless required by applicable law or agreed to in writing, software
+ *     distributed under the License is distributed on an "AS IS" BASIS,
+ *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *     See the License for the specific language governing permissions and
+ *     limitations under the License.
+ */
 package io.openepcis.convert;
 
+import io.openepcis.constants.EPCIS;
+import io.openepcis.constants.EPCISFormat;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.JsonEPCISEventCollector;
 import io.openepcis.convert.collector.XmlEPCISEventCollector;
@@ -57,29 +75,29 @@ public class VersionTransformer {
    */
   public final InputStream convert(
       final InputStream inputDocument,
-      final String fromMediaType,
-      final String toMediaType,
-      final EpcisVersion toVersion)
+      final EPCISFormat fromMediaType,
+      final EPCISFormat toMediaType,
+      final EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException {
     // pre scan 1024 bytes to detect version
     final byte[] preScan = new byte[1024];
     final int len = inputDocument.read(preScan);
     final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
 
-    if (!preScanVersion.contains("schemaVersion")) {
+    if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
       throw new UnsupportedOperationException("unable to detect EPCIS schemaVersion");
     }
 
-    EpcisVersion fromVersion;
+    EPCISVersion fromVersion;
 
-    if (preScanVersion.contains("schemaVersion=\"1.2\"")
-        || preScanVersion.contains("schemaVersion='1.2'")
-        || preScanVersion.replace(" ", "").contains("\"schemaVersion\":\"1.2\"")) {
-      fromVersion = EpcisVersion.VERSION_1_2;
-    } else if (preScanVersion.contains("schemaVersion=\"2.0\"")
-        || preScanVersion.contains("schemaVersion='2.0'")
-        || preScanVersion.replace(" ", "").contains("\"schemaVersion\":\"2.0\"")) {
-      fromVersion = EpcisVersion.VERSION_2_0;
+    if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"1.2\"")
+        || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='1.2'")
+        || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"1.2\"")) {
+      fromVersion = EPCISVersion.VERSION_1_2_0;
+    } else if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"2.0\"")
+        || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='2.0'")
+        || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"2.0\"")) {
+      fromVersion = EPCISVersion.VERSION_2_0_0;
     } else {
       throw new FormatConverterException(
           "Provided document contains unsupported EPCIS document version");
@@ -122,9 +140,9 @@ public class VersionTransformer {
    */
   public final InputStream convert(
       final InputStream inputDocument,
-      final String mediaType,
-      final EpcisVersion fromVersion,
-      final EpcisVersion toVersion)
+      final EPCISFormat mediaType,
+      final EPCISVersion fromVersion,
+      final EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException {
     return convert(inputDocument, mediaType, fromVersion, mediaType, toVersion);
   }
@@ -148,46 +166,49 @@ public class VersionTransformer {
    */
   public final InputStream convert(
       final InputStream inputDocument,
-      final String fromMediaType,
-      final EpcisVersion fromVersion,
-      final String toMediaType,
-      final EpcisVersion toVersion)
+      final EPCISFormat fromMediaType,
+      final EPCISVersion fromVersion,
+      final EPCISFormat toMediaType,
+      final EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException {
     // If input fromVersion and the required output toVersion is same then return the same input.
-    if (fromMediaType.toLowerCase().contains("xml") && toMediaType.toLowerCase().contains("xml")) {
+    if (EPCISFormat.XML.equals(fromMediaType) && EPCISFormat.XML.equals(toMediaType)) {
       // If input & conversion mediaType is xml then convert from either 1.2 -> 2.0 or 2.0 -> 1.2
       return xmlVersionTransformer.xmlConverter(inputDocument, fromVersion, toVersion);
-    } else if (fromMediaType.toLowerCase().contains("json")
-        && toMediaType.toLowerCase().contains("xml")
-        && fromVersion.equals(EpcisVersion.VERSION_2_0)
-        && toVersion.equals(EpcisVersion.VERSION_2_0)) {
+    } else if (EPCISFormat.JSON_LD.equals(fromMediaType)
+        && EPCISFormat.XML.equals(toMediaType)
+        && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
+        && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If fromMedia is json and toMedia is xml and both versions are 2.0
       return toXml(inputDocument);
-    } else if (fromMediaType.toLowerCase().contains("json")
-        && toMediaType.toLowerCase().contains("xml")
-        && fromVersion.equals(EpcisVersion.VERSION_2_0)
-        && toVersion.equals(EpcisVersion.VERSION_1_2)) {
+    } else if (EPCISFormat.JSON_LD.equals(fromMediaType)
+        && EPCISFormat.XML.equals(toMediaType)
+        && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
+        && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
       // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
       return convert(
           toXml(inputDocument),
-          "application/xml",
-          EpcisVersion.VERSION_2_0,
-          EpcisVersion.VERSION_1_2);
-    } else if (fromMediaType.toLowerCase().contains("xml")
-        && toMediaType.toLowerCase().contains("json")
-        && fromVersion.equals(EpcisVersion.VERSION_2_0)
-        && toVersion.equals(EpcisVersion.VERSION_2_0)) {
+          EPCISFormat.XML,
+          EPCISVersion.VERSION_2_0_0,
+          EPCISVersion.VERSION_1_2_0);
+    } else if (EPCISFormat.XML.equals(fromMediaType)
+        && EPCISFormat.JSON_LD.equals(toMediaType)
+        && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
+        && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If fromMedia is xml and toMedia is json and both versions are 2.0 convert xml->json
       return toJson(inputDocument);
-    } else if (fromMediaType.toLowerCase().contains("xml")
-        && toMediaType.toLowerCase().contains("json")
-        && fromVersion.equals(EpcisVersion.VERSION_1_2)
-        && toVersion.equals(EpcisVersion.VERSION_2_0)) {
+    } else if (EPCISFormat.XML.equals(fromMediaType)
+        && EPCISFormat.JSON_LD.equals(toMediaType)
+        && fromVersion.equals(EPCISVersion.VERSION_1_2_0)
+        && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
       // If fromMedia is xml and toMedia is json and fromVersion is 1.2, toVersion 2.0 then convert
       // xml->2.0 and then to JSON
       final InputStream convertedXml =
           convert(
-              inputDocument, "application/xml", EpcisVersion.VERSION_1_2, EpcisVersion.VERSION_2_0);
+              inputDocument,
+              EPCISFormat.XML,
+              EPCISVersion.VERSION_1_2_0,
+              EPCISVersion.VERSION_2_0_0);
       return toJson(convertedXml);
     } else {
       throw new UnsupportedOperationException(

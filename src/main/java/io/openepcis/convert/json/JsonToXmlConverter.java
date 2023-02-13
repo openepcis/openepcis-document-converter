@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.exception.FormatConverterException;
@@ -152,9 +153,10 @@ public class JsonToXmlConverter implements EventsConverter {
       }
 
       // Loop until type element to read the Context values and namespaces present in it
-      while (!(jsonParser.getText().equals("type") || jsonParser.getText().equals("eventID"))) {
+      while (!(jsonParser.getText().equals(EPCIS.TYPE)
+          || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
         if (jsonParser.getCurrentName() != null
-            && jsonParser.getCurrentName().equalsIgnoreCase("@context")) {
+            && jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.CONTEXT)) {
 
           // Read the context value only if the value is of type array else skip to add only string
           if (jsonParser.nextToken() == JsonToken.START_ARRAY) {
@@ -198,11 +200,11 @@ public class JsonToXmlConverter implements EventsConverter {
         eventHandler.collectSingleEvent(singleXmlEvent);
       } catch (Exception e) {
         // Loop until the start of the EPCIS EventList array and prepare the XML header elements
-        while (!jsonParser.getText().equals("eventList")) {
+        while (!jsonParser.getText().equals(EPCIS.EVENT_LIST_IN_CAMEL_CASE)) {
           if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING
                   || jsonParser.getCurrentToken() == JsonToken.VALUE_NUMBER_FLOAT)
-              && (jsonParser.getCurrentName().equalsIgnoreCase("schemaVersion")
-                  || jsonParser.getCurrentName().equalsIgnoreCase("creationDate"))) {
+              && (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SCHEMA_VERSION)
+                  || jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.CREATION_DATE))) {
 
             // Add the elements from JSON Header to XML header
             contextValues.put(jsonParser.getCurrentName(), jsonParser.getText());
@@ -263,7 +265,7 @@ public class JsonToXmlConverter implements EventsConverter {
 
       // Check if the JsonNode is valid and contains the values if not throw error for particular
       // event
-      if (!(jsonNode == null || jsonNode.get("type") == null)) {
+      if (!(jsonNode == null || jsonNode.get(EPCIS.TYPE) == null)) {
 
         // Based on eventType call different type of class
         XmlSupportExtension event = objectMapper.treeToValue(jsonNode, XmlSupportExtension.class);

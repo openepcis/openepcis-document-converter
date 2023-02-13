@@ -23,6 +23,7 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.google.common.io.Resources;
+import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.exception.FormatConverterException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -88,7 +89,7 @@ public class EventValidator implements EPCISEventValidator {
 
       try {
         // Get the JSONNode from the Event and what type of event
-        final JsonNode parent = new ObjectMapper().readTree(convertedEvent).get("type");
+        final JsonNode parent = new ObjectMapper().readTree(convertedEvent).get(EPCIS.TYPE);
 
         // If the epcisEvent is not null then continue with validation
         if (parent != null && parent.textValue() != null) {
@@ -100,12 +101,12 @@ public class EventValidator implements EPCISEventValidator {
 
           // Based on eventType choose different Schema file for the validation
           switch (epcisEvent) {
-            case "ObjectEvent" -> schemaFile = "eventSchemas/ObjectEventSchema.json";
-            case "AggregationEvent" -> schemaFile = "eventSchemas/AggregationEventSchema.json";
-            case "TransactionEvent" -> schemaFile = "eventSchemas/TransactionEventSchema.json";
-            case "TransformationEvent" -> schemaFile =
+            case EPCIS.OBJECT_EVENT -> schemaFile = "eventSchemas/ObjectEventSchema.json";
+            case EPCIS.AGGREGATION_EVENT -> schemaFile = "eventSchemas/AggregationEventSchema.json";
+            case EPCIS.TRANSACTION_EVENT -> schemaFile = "eventSchemas/TransactionEventSchema.json";
+            case EPCIS.TRANSFORMATION_EVENT -> schemaFile =
                 "eventSchemas/TransformationEventSchema.json";
-            case "AssociationEvent" -> schemaFile = "eventSchemas/AssociationEventSchema.json";
+            case EPCIS.ASSOCIATION_EVENT -> schemaFile = "eventSchemas/AssociationEventSchema.json";
             default ->
             // If NONE of the EPCIS event type matches
             log.error(

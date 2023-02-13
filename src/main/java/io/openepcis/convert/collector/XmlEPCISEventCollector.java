@@ -15,6 +15,7 @@
  */
 package io.openepcis.convert.collector;
 
+import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.exception.FormatConverterException;
 import java.io.OutputStream;
 import java.io.StringReader;
@@ -96,11 +97,11 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     try {
       // Start the EPCIS document and add the header elements
       xmlEventWriter.add(events.createStartDocument());
-      xmlEventWriter.add(events.createStartElement(new QName("epcis:EPCISDocument"), null, null));
-      xmlEventWriter.add(events.createNamespace("epcis", "urn:epcglobal:epcis:xsd:2"));
       xmlEventWriter.add(
-          events.createNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
-      xmlEventWriter.add(events.createNamespace("cbvmda", "urn:epcglobal:cbv:mda:"));
+          events.createStartElement(new QName(EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE), null, null));
+      xmlEventWriter.add(events.createNamespace(EPCIS.EPCIS, EPCIS.EPCIS_2_0_XMLNS));
+      xmlEventWriter.add(events.createNamespace(EPCIS.XSI, EPCIS.XML_SCHEMA_INSTANCE));
+      xmlEventWriter.add(events.createNamespace(EPCIS.CBV_MDA, EPCIS.CBV_MDA_URN));
 
       // Add the values from JSON Context header stored in MAP to XML header
       for (Map.Entry<String, String> stringStringEntry : context.entrySet()) {
@@ -109,8 +110,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       }
 
       // Add EPCISBody and EventList tag as outer tag
-      xmlEventWriter.add(events.createStartElement(new QName("EPCISBody"), null, null));
-      xmlEventWriter.add(events.createStartElement(new QName("EventList"), null, null));
+      xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EPCIS_BODY), null, null));
+      xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EVENT_LIST), null, null));
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the creation of final XML file header information "
@@ -123,9 +124,10 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     try {
       // End the EventList, EPCISBody, EPCISDocument and the while document after completing all
       // files writing
-      xmlEventWriter.add(events.createEndElement(new QName("EventList"), null));
-      xmlEventWriter.add(events.createEndElement(new QName("EPCISBody"), null));
-      xmlEventWriter.add(events.createEndElement(new QName("epcis:Document"), null));
+      xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EVENT_LIST), null));
+      xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EPCIS_BODY), null));
+      xmlEventWriter.add(
+          events.createEndElement(new QName(EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE), null));
       xmlEventWriter.add(events.createEndDocument());
       xmlEventWriter.close();
     } catch (XMLStreamException e) {

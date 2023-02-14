@@ -84,6 +84,34 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // create Outermost JsonObject
       jsonGenerator.writeStartObject();
 
+      // Write the info related to Context element in JSON
+      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
+      jsonGenerator.writeStartArray();
+      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
+
+      // Modify the Namespaces so trailing / or : is added and default values are removed
+      DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();
+
+      // Get all the stored namespaces from jsonNamespaces
+      DefaultJsonSchemaNamespaceURIResolver.getInstance()
+          .getModifiedNamespace()
+          .forEach(
+              (key, value) -> {
+                try {
+                  jsonGenerator.writeStartObject();
+                  jsonGenerator.writeStringField(value, key);
+                  jsonGenerator.writeEndObject();
+                } catch (IOException e1) {
+                  throw new FormatConverterException(
+                      "Exception during XML-JSON-LD conversion, Error occurred during the addition of Namespaces: "
+                          + e1);
+                }
+              });
+      jsonGenerator.writeEndArray();
+
+      // Clear the namespaces that have been already added at the document level
+      DefaultJsonSchemaNamespaceURIResolver.getInstance().namespaceReset();
+
       // Write Other header fields of JSON
       jsonGenerator.writeStringField(EPCIS.TYPE, EPCIS.EPCIS_DOCUMENT);
 
@@ -122,31 +150,6 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
     try {
       jsonGenerator.writeEndArray(); // End the eventList array
       jsonGenerator.writeEndObject(); // End epcisBody
-
-      // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
-      jsonGenerator.writeStartArray();
-      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
-
-      // Modify the Namespaces so trailing / or : is added and default values are removed
-      DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyNamespaces();
-
-      // Get all the stored namespaces from jsonNamespaces
-      DefaultJsonSchemaNamespaceURIResolver.getInstance()
-          .getModifiedNamespace()
-          .forEach(
-              (key, value) -> {
-                try {
-                  jsonGenerator.writeStartObject();
-                  jsonGenerator.writeStringField(value, key);
-                  jsonGenerator.writeEndObject();
-                } catch (IOException e1) {
-                  throw new FormatConverterException(
-                      "Exception during XML-JSON-LD conversion, Error occurred during the addition of Namespaces: "
-                          + e1);
-                }
-              });
-      jsonGenerator.writeEndArray();
       jsonGenerator.writeEndObject(); // End whole json file
     } catch (IOException e) {
       throw new FormatConverterException(

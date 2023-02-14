@@ -15,13 +15,14 @@
  */
 package com.io.openepcis.convert;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.JsonEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
-import io.openepcis.convert.util.XMLFormatter;
 import io.openepcis.convert.validator.EventValidator;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import jakarta.xml.bind.JAXBException;
@@ -39,7 +40,7 @@ public class XmlToJsonTest {
   private ByteArrayOutputStream byteArrayOutputStream;
   private InputStream inputStream;
 
-  final XMLFormatter formatter = new XMLFormatter();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Before
   public void before() throws JAXBException {
@@ -232,6 +233,24 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
+
+  @Test
+  public void sampleTest() throws Exception {
+    inputStream = getClass().getResourceAsStream("/SampleFile.xml");
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
+    objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+    System.out.println(
+        objectMapper
+            .readTree(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8))
+            .toPrettyString());
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

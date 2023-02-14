@@ -188,11 +188,11 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void bareStringJsonConversionTest() throws Exception {
+  public void curieStringJsonConversionTest() throws Exception {
     inputStream =
         getClass()
             .getClassLoader()
-            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/BareString_information.xml");
+            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/CurieString_document.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);

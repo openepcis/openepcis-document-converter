@@ -15,8 +15,6 @@
  */
 package com.io.openepcis.convert;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.VersionTransformer;
@@ -39,8 +37,6 @@ public class XmlToJsonTest {
   private VersionTransformer versionTransformer;
   private ByteArrayOutputStream byteArrayOutputStream;
   private InputStream inputStream;
-
-  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Before
   public void before() throws JAXBException {
@@ -193,7 +189,7 @@ public class XmlToJsonTest {
     inputStream =
         getClass()
             .getClassLoader()
-            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/BareString_information.xml");
+            .getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/CurieString_document.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
@@ -241,16 +237,13 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void sampleTest() throws Exception {
+  public void jsonConversionTest() throws Exception {
     inputStream = getClass().getResourceAsStream("/SampleFile.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
-    objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-    System.out.println(
-        objectMapper
-            .readTree(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8))
-            .toPrettyString());
+    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
+    // System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

@@ -119,7 +119,7 @@ public class XmlToJsonConverter implements EventsConverter {
       boolean isDocument = false;
 
       // Clear the namespaces before reading the document
-      DefaultJsonSchemaNamespaceURIResolver.getInstance().namespaceReset();
+      DefaultJsonSchemaNamespaceURIResolver.getInstance().resetAllNamespaces();
 
       // Jackson instance to convert the unmarshalled event to JSON
       final ObjectMapper objectMapper =
@@ -226,7 +226,7 @@ public class XmlToJsonConverter implements EventsConverter {
                     if (!Arrays.asList(Constants.PROTECTED_TERMS_OF_CONTEXT)
                         .contains(xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
                       DefaultJsonSchemaNamespaceURIResolver.getInstance()
-                          .namespacePopulator(
+                          .populateDocumentNamespaces(
                               xmlStreamReader.getNamespaceURI(namespaceIndex),
                               xmlStreamReader.getNamespacePrefix(namespaceIndex));
                     }

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cbvmda="urn:epcglobal:cbv:mda" schemaVersion="2.0"
-                     creationDate="2023-01-11T12:00:00.000+01:00">
+                     creationDate="2023-01-11T12:00:00.000+01:00" xmlns:ext1="https://ns.ext.de/epcis/">
     <EPCISBody>
         <EventList>
-            <ObjectEvent xmlns:ext2="http://www.ext2.net/" xmlns:ext1="https://ns.ext.de/epcis/">
+            <ObjectEvent xmlns:ext2="http://www.ext2.net/">
                 <eventTime>2023-01-11T12:00:00+01:00</eventTime>
                 <eventTimeZoneOffset>+01:00</eventTimeZoneOffset>
                 <certificationInfo>https://accreditation-council.example.org/certificate/ABC12345</certificationInfo>
@@ -18,9 +18,10 @@
                                       type="gs1:Dimensionless"></sensorReport>
                     </sensorElement>
                 </sensorElementList>
-                <ext2:name>Testing</ext2:name>
+                <ext1:name>Testing</ext1:name>
+                <ext2:address>Cologne</ext2:address>
             </ObjectEvent>
-            <ObjectEvent xmlns:ext2="http://www.ext2.net/" xmlns:ext4="http://www.ext4.net/" xmlns:ext1="https://ns.ext.de/epcis/" xmlns:ext3="http://www.ext3.net/">
+            <ObjectEvent xmlns:ext4="http://www.ext4.net/" xmlns:ext1="https://ns.ext.de/epcis/" xmlns:ext3="http://www.ext3.net/">
                 <eventTime>2023-01-11T12:00:00+01:00</eventTime>
                 <eventTimeZoneOffset>+01:00</eventTimeZoneOffset>
                 <certificationInfo>https://accreditation-council.example.org/certificate/ABC12345</certificationInfo>
@@ -40,6 +41,39 @@
                 <ext4:address>
                     <ext4:city>Bangalore</ext4:city>
                 </ext4:address>
+            </ObjectEvent>
+            <ObjectEvent>
+                <eventTime>2023-01-11T12:00:00+01:00</eventTime>
+                <eventTimeZoneOffset>+01:00</eventTimeZoneOffset>
+                <certificationInfo>https://accreditation-council.example.org/certificate/ABC12345</certificationInfo>
+                <epcList>
+                    <epc>https://id.gs1.de/01/04012345999990/21/XYZ-1234</epc>
+                </epcList>
+                <action>OBSERVE</action>
+                <sensorElementList>
+                    <sensorElement>
+                        <sensorMetadata time="2023-01-11T11:05:00Z" bizRules="https://id.example.com/253/4012345000054987"></sensorMetadata>
+                        <sensorReport exception="gs1:ALARM_CONDITION" coordinateReferenceSystem="http://www.opengis.net/def/crs/EPSG/0/27700"
+                                      type="gs1:Dimensionless"></sensorReport>
+                    </sensorElement>
+                </sensorElementList>
+            </ObjectEvent>
+            <ObjectEvent>
+                <eventTime>2023-01-11T12:00:00+01:00</eventTime>
+                <eventTimeZoneOffset>+01:00</eventTimeZoneOffset>
+                <certificationInfo>https://accreditation-council.example.org/certificate/ABC12345</certificationInfo>
+                <epcList>
+                    <epc>https://id.gs1.de/01/04012345999990/21/XYZ-1234</epc>
+                </epcList>
+                <action>OBSERVE</action>
+                <sensorElementList>
+                    <sensorElement>
+                        <sensorMetadata time="2023-01-11T11:05:00Z" bizRules="https://id.example.com/253/4012345000054987"></sensorMetadata>
+                        <sensorReport exception="gs1:ALARM_CONDITION" coordinateReferenceSystem="http://www.opengis.net/def/crs/EPSG/0/27700"
+                                      type="gs1:Dimensionless"></sensorReport>
+                    </sensorElement>
+                </sensorElementList>
+                <ext5:hello xmlns:ext5="http://www.ext4.net/">Testing</ext5:hello>
             </ObjectEvent>
         </EventList>
     </EPCISBody>

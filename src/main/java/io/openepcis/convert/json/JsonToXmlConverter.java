@@ -59,6 +59,9 @@ public class JsonToXmlConverter implements EventsConverter {
 
   private final JAXBContext jaxbContext;
 
+  private final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
+      DefaultJsonSchemaNamespaceURIResolver.getInstance();
+
   // To read the JSON-LD events using the Jackson
   private final ObjectMapper objectMapper =
       new ObjectMapper()
@@ -129,7 +132,7 @@ public class JsonToXmlConverter implements EventsConverter {
     }
 
     // Clear the namespaces before reading the document
-    DefaultJsonSchemaNamespaceURIResolver.getInstance().resetAllNamespaces();
+    defaultJsonSchemaNamespaceURIResolver.getInstance().resetAllNamespaces();
 
     // Create a Marshaller instance to convert to XML
     final Marshaller marshaller = jaxbContext.createMarshaller();
@@ -168,7 +171,8 @@ public class JsonToXmlConverter implements EventsConverter {
                   && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
                 // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on
                 // corresponding XSD
-                DefaultJsonSchemaNamespaceURIResolver.getInstance()
+                defaultJsonSchemaNamespaceURIResolver
+                    .getInstance()
                     .populateDocumentNamespaces(jsonParser.getText(), jsonParser.getCurrentName());
               }
             }
@@ -182,13 +186,13 @@ public class JsonToXmlConverter implements EventsConverter {
             objectMapper.readValue(jsonParser, XmlSupportExtension.class);
 
         // Modify the Namespaces so trailing / or : is added and default values are removed
-        DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
-        DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
+        defaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
+        defaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
 
         // Set the namespaces for the marshaller
         marshaller.setProperty(
             MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-            DefaultJsonSchemaNamespaceURIResolver.getInstance().getAllNamespaces());
+            defaultJsonSchemaNamespaceURIResolver.getInstance().getAllNamespaces());
 
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();
@@ -267,13 +271,13 @@ public class JsonToXmlConverter implements EventsConverter {
         // User input
         if (event != null) {
           // Modify the Namespaces so trailing / or : is added and default values are removed
-          DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
-          DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
+          defaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
+          defaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
 
           // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
           marshaller.setProperty(
               MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-              DefaultJsonSchemaNamespaceURIResolver.getInstance().getAllNamespaces());
+              defaultJsonSchemaNamespaceURIResolver.getInstance().getAllNamespaces());
 
           // Create the XML based on type of incoming event type and store in StringWriter
           marshaller.marshal(event.xmlSupport(), skipEPCISNamespaceWriter);
@@ -284,6 +288,9 @@ public class JsonToXmlConverter implements EventsConverter {
 
           // Clear the StringWriter for next event
           xmlEvent.getBuffer().setLength(0);
+
+          // Reset the namespaces stored for particular event
+          defaultJsonSchemaNamespaceURIResolver.getInstance().resetEventNamespaces();
         }
 
       } else {

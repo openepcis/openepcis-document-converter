@@ -15,6 +15,9 @@
         "@context": [
           {
             "ext2": "http://www.ext2.net/"
+          },
+          {
+            "ext1": "https://ns.ext.de/epcis/"
           }
         ],
         "eventTime": "2023-01-11T12:00:00+01:00",
@@ -39,13 +42,17 @@
             ]
           }
         ],
-        "ext2:name": "Testing"
+        "ext2:address": "Cologne",
+        "ext1:name": "Testing"
       },
       {
         "type": "ObjectEvent",
         "@context": [
           {
             "ext4": "http://www.ext4.net/"
+          },
+          {
+            "ext1": "https://ns.ext.de/epcis/"
           },
           {
             "ext3": "http://www.ext3.net/"
@@ -78,6 +85,62 @@
         "ext4:address": {
           "ext4:city": "Bangalore"
         }
+      },
+      {
+        "type": "ObjectEvent",
+        "eventTime": "2023-01-11T12:00:00+01:00",
+        "eventTimeZoneOffset": "+01:00",
+        "certificationInfo": "https://accreditation-council.example.org/certificate/ABC12345",
+        "epcList": [
+          "https://id.gs1.de/01/04012345999990/21/XYZ-1234"
+        ],
+        "action": "OBSERVE",
+        "sensorElementList": [
+          {
+            "sensorMetadata": {
+              "time": "2023-01-11T11:05:00Z",
+              "bizRules": "https://id.example.com/253/4012345000054987"
+            },
+            "sensorReport": [
+              {
+                "type": "Dimensionless",
+                "exception": "gs1:ALARM_CONDITION",
+                "coordinateReferenceSystem": "http://www.opengis.net/def/crs/EPSG/0/27700"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ObjectEvent",
+        "@context": [
+          {
+            "ext5": "http://www.ext4.net/"
+          }
+        ],
+        "eventTime": "2023-01-11T12:00:00+01:00",
+        "eventTimeZoneOffset": "+01:00",
+        "certificationInfo": "https://accreditation-council.example.org/certificate/ABC12345",
+        "epcList": [
+          "https://id.gs1.de/01/04012345999990/21/XYZ-1234"
+        ],
+        "action": "OBSERVE",
+        "sensorElementList": [
+          {
+            "sensorMetadata": {
+              "time": "2023-01-11T11:05:00Z",
+              "bizRules": "https://id.example.com/253/4012345000054987"
+            },
+            "sensorReport": [
+              {
+                "type": "Dimensionless",
+                "exception": "gs1:ALARM_CONDITION",
+                "coordinateReferenceSystem": "http://www.opengis.net/def/crs/EPSG/0/27700"
+              }
+            ]
+          }
+        ],
+        "ext5:hello": "Testing"
       }
     ]
   }

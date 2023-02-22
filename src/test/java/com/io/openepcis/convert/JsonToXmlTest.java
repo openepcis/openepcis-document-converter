@@ -148,4 +148,28 @@ public class JsonToXmlTest {
       // ignored
     }
   }
+
+  @Test
+  public void xmlConversionTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/Namespaces_at_different_level.json");
+    final InputStream convertedDocument =
+        new VersionTransformer()
+            .convert(
+                inputStream,
+                EPCISFormat.JSON_LD,
+                EPCISVersion.VERSION_2_0_0,
+                EPCISFormat.XML,
+                EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
+    // System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
 }

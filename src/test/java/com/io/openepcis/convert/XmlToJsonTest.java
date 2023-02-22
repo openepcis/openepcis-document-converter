@@ -21,7 +21,6 @@ import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.JsonEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
-import io.openepcis.convert.util.XMLFormatter;
 import io.openepcis.convert.validator.EventValidator;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import jakarta.xml.bind.JAXBException;
@@ -38,8 +37,6 @@ public class XmlToJsonTest {
   private VersionTransformer versionTransformer;
   private ByteArrayOutputStream byteArrayOutputStream;
   private InputStream inputStream;
-
-  final XMLFormatter formatter = new XMLFormatter();
 
   @Before
   public void before() throws JAXBException {
@@ -232,6 +229,25 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
+
+  @Test
+  public void jsonConversionTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/XML/Capture/Documents/Namespaces_at_different_level.xml");
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
+    // System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

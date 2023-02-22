@@ -151,7 +151,11 @@ public class JsonToXmlTest {
 
   @Test
   public void xmlConversionTest() throws Exception {
-    inputStream = getClass().getResourceAsStream("/SampleFile.json");
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/JSON/Capture/Documents/Namespaces_at_different_level.json");
     final InputStream convertedDocument =
         new VersionTransformer()
             .convert(

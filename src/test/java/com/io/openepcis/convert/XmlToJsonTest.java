@@ -238,7 +238,11 @@ public class XmlToJsonTest {
 
   @Test
   public void jsonConversionTest() throws Exception {
-    inputStream = getClass().getResourceAsStream("/SampleFile.xml");
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream(
+                "2.0/EPCIS/XML/Capture/Documents/Namespaces_at_different_level.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);

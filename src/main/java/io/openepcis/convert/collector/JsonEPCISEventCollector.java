@@ -39,6 +39,9 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
 
+  private final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
+      DefaultJsonSchemaNamespaceURIResolver.getInstance();
+
   public JsonEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
     // Create the final JSON-LD with Header and event information
@@ -90,11 +93,12 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
-      DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
+      defaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
 
       // Get all the stored namespaces from jsonNamespaces
-      DefaultJsonSchemaNamespaceURIResolver.getInstance()
-          .getDocumentNamespaces()
+      defaultJsonSchemaNamespaceURIResolver
+          .getInstance()
+          .getModifiedNamespaces()
           .forEach(
               (key, value) -> {
                 try {
@@ -108,6 +112,9 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
                 }
               });
       jsonGenerator.writeEndArray();
+
+      // Reset the modified namespaces
+      defaultJsonSchemaNamespaceURIResolver.getInstance().resetModifiedNamespaces();
 
       // Write Other header fields of JSON
       jsonGenerator.writeStringField(EPCIS.TYPE, EPCIS.EPCIS_DOCUMENT);
@@ -173,11 +180,12 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
       // Modify the Namespaces so trailing / or : is added and default values are removed
-      DefaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
+      defaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
 
       // Get all the stored namespaces from jsonNamespaces
-      DefaultJsonSchemaNamespaceURIResolver.getInstance()
-          .getEventNamespaces()
+      defaultJsonSchemaNamespaceURIResolver
+          .getInstance()
+          .getModifiedNamespaces()
           .forEach(
               (key, value) -> {
                 try {
@@ -191,6 +199,12 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
                 }
               });
       jsonGenerator.writeEndArray();
+
+      // Reset the event namespaces
+      defaultJsonSchemaNamespaceURIResolver.getInstance().resetEventNamespaces();
+
+      // Reset the modified namespaces
+      defaultJsonSchemaNamespaceURIResolver.getInstance().resetModifiedNamespaces();
 
       // Add comma to separate the context and serialized event
       jsonGenerator.writeRaw(",");

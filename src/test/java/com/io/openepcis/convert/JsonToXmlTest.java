@@ -94,6 +94,7 @@ public class JsonToXmlTest {
         new EventHandler(null, new XmlEPCISEventCollector(byteArrayOutputStream));
     new JsonToXmlConverter().convert(inputStream, handler);
     Assert.assertTrue(byteArrayOutputStream.size() > 0);
+    // System.out.println(byteArrayOutputStream);
   }
 
   // Test the conversion of single EPCIS event in JSON -> XML
@@ -165,7 +166,6 @@ public class JsonToXmlTest {
                 EPCISFormat.XML,
                 EPCISVersion.VERSION_2_0_0);
     Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
-    // System.out.println(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8));
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

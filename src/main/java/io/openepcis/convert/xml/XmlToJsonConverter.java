@@ -53,6 +53,8 @@ public class XmlToJsonConverter implements EventsConverter {
 
   private final JAXBContext jaxbContext;
 
+  private DefaultJsonSchemaNamespaceURIResolver namespaceResolver;
+
   public XmlToJsonConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
   }
@@ -69,6 +71,8 @@ public class XmlToJsonConverter implements EventsConverter {
                     new EPCISNamespacePrefixMapper());
               }
             }));
+
+    this.namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
   }
 
   /**
@@ -119,7 +123,7 @@ public class XmlToJsonConverter implements EventsConverter {
       boolean isDocument = false;
 
       // Clear the namespaces before reading the document
-      DefaultJsonSchemaNamespaceURIResolver.getInstance().resetAllNamespaces();
+      namespaceResolver.resetAllNamespaces();
 
       // Jackson instance to convert the unmarshalled event to JSON
       final ObjectMapper objectMapper =
@@ -225,10 +229,9 @@ public class XmlToJsonConverter implements EventsConverter {
                     // default
                     if (!Arrays.asList(Constants.PROTECTED_TERMS_OF_CONTEXT)
                         .contains(xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
-                      DefaultJsonSchemaNamespaceURIResolver.getInstance()
-                          .populateDocumentNamespaces(
-                              xmlStreamReader.getNamespaceURI(namespaceIndex),
-                              xmlStreamReader.getNamespacePrefix(namespaceIndex));
+                      namespaceResolver.populateDocumentNamespaces(
+                          xmlStreamReader.getNamespaceURI(namespaceIndex),
+                          xmlStreamReader.getNamespacePrefix(namespaceIndex));
                     }
                   });
 

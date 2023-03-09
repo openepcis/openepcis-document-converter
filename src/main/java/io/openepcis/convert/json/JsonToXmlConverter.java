@@ -60,7 +60,7 @@ public class JsonToXmlConverter implements EventsConverter {
   private final JAXBContext jaxbContext;
 
   private final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
-      DefaultJsonSchemaNamespaceURIResolver.getInstance();
+      DefaultJsonSchemaNamespaceURIResolver.getContext();
 
   // To read the JSON-LD events using the Jackson
   private final ObjectMapper objectMapper =
@@ -184,20 +184,21 @@ public class JsonToXmlConverter implements EventsConverter {
         XmlSupportExtension singleEvent =
             objectMapper.readValue(jsonParser, XmlSupportExtension.class);
 
-        // Modify the Namespaces so trailing / or : is added and default values are removed
-        defaultJsonSchemaNamespaceURIResolver.modifyDocumentNamespaces();
-        defaultJsonSchemaNamespaceURIResolver.modifyEventNamespaces();
-
         // Set the namespaces for the marshaller
         marshaller.setProperty(
             MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-            defaultJsonSchemaNamespaceURIResolver.getModifiedNamespaces());
+            defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
 
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();
 
+        final XMLStreamWriter skipEPCISNamespaceWriter =
+            new NonEPCISNamespaceXMLStreamWriter(
+                new IndentingXMLStreamWriter(
+                    XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+
         // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
-        marshaller.marshal((singleEvent).xmlSupport(), singleXmlEvent);
+        marshaller.marshal((singleEvent).xmlSupport(), skipEPCISNamespaceWriter);
 
         // Call the method to check if the event adheres to XSD or write into the OutputStream using
         // the EventHandler
@@ -286,9 +287,6 @@ public class JsonToXmlConverter implements EventsConverter {
 
           // Reset the namespaces stored for particular event
           defaultJsonSchemaNamespaceURIResolver.resetEventNamespaces();
-
-          // Reset the namespaces stored for modified namespaces
-          defaultJsonSchemaNamespaceURIResolver.resetModifiedNamespaces();
         }
 
       } else {

@@ -253,4 +253,60 @@ public class XmlToJsonTest {
       // ignored
     }
   }
+
+  /*
+     Tests for EPCISQueryDocument conversion from JSON to XML
+  */
+  @Test
+  public void combinationOfDifferentEventsTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Query/Combination_of_different_event.xml");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream));
+    new XmlToJsonConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void jumbledFieldsOrderTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Query/JumbledFieldsOrder.xml");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream));
+    new XmlToJsonConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void objectEventWithAllPossibleFieldsTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Query/ObjectEvent_all_possible_fields.xml");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream));
+    new XmlToJsonConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void sensorDataWithCombinedEventsTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/XML/Query/SensorData_with_combined_events.xml");
+    final InputStream convertedDocument =
+        versionTransformer.convert(
+            inputStream, EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
 }

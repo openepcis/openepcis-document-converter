@@ -15,6 +15,8 @@
  */
 package io.openepcis.convert.xml;
 
+import static io.openepcis.constants.EPCIS.PROTECTED_TERMS_OF_CONTEXT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -22,9 +24,9 @@ import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EPCISEventCollector;
 import io.openepcis.convert.collector.EventHandler;
+import io.openepcis.convert.collector.JsonEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.*;
-import io.openepcis.model.epcis.modifier.Constants;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
@@ -32,7 +34,6 @@ import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -161,7 +162,7 @@ public class XmlToJsonConverter implements EventsConverter {
         // Check if the initial element is one of the elements from "EVENT_TYPES" (one of EPCIS
         // event)
         if (xmlStreamReader.isStartElement()
-            && Arrays.asList(Constants.EVENT_TYPES).contains(xmlStreamReader.getLocalName())) {
+            && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName())) {
 
           // Get the event type
           final String epcisEvent = xmlStreamReader.getLocalName();
@@ -221,14 +222,18 @@ public class XmlToJsonConverter implements EventsConverter {
           // single EPCIS event
           isDocument = true;
 
+          // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
+          JsonEPCISEventCollector.setEPCISDocument(
+              xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) ? true : false);
+
           // Get all Namespaces from the XML header and store it within the xmlNamespaces MAP
           IntStream.range(0, xmlStreamReader.getNamespaceCount())
               .forEach(
                   namespaceIndex -> {
                     // Omit the Namespace values which are already present within JSON-LD Schema by
                     // default
-                    if (!Arrays.asList(Constants.PROTECTED_TERMS_OF_CONTEXT)
-                        .contains(xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
+                    if (!PROTECTED_TERMS_OF_CONTEXT.contains(
+                        xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
                       namespaceResolver.populateDocumentNamespaces(
                           xmlStreamReader.getNamespaceURI(namespaceIndex),
                           xmlStreamReader.getNamespacePrefix(namespaceIndex));
@@ -242,11 +247,8 @@ public class XmlToJsonConverter implements EventsConverter {
                   attributeIndex -> {
                     // Omit the attribute values which are already present within JSON-LD Schema by
                     // default
-                    if (Arrays.stream(Constants.PROTECTED_TERMS_OF_CONTEXT)
-                        .noneMatch(
-                            keyword ->
-                                String.valueOf(xmlStreamReader.getAttributeName(attributeIndex))
-                                    .contains(keyword))) {
+                    if (!PROTECTED_TERMS_OF_CONTEXT.contains(
+                        xmlStreamReader.getAttributeName(attributeIndex))) {
                       contextAttributes.put(
                           String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)),
                           xmlStreamReader.getAttributeValue(attributeIndex));

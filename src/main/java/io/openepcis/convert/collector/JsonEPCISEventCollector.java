@@ -15,15 +15,17 @@
  */
 package io.openepcis.convert.collector;
 
+import static io.openepcis.constants.EPCIS.*;
+
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import io.openepcis.constants.EPCIS;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import lombok.Setter;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final JSON file with all
@@ -38,6 +40,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private final OutputStream stream;
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
+
+  @Setter public static boolean isEPCISDocument;
 
   private DefaultJsonSchemaNamespaceURIResolver namespaceResolver;
 
@@ -89,7 +93,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeStartObject();
 
       // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
+      jsonGenerator.writeFieldName(CONTEXT);
       jsonGenerator.writeStartArray();
       jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
@@ -111,13 +115,13 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeEndArray();
 
       // Write Other header fields of JSON
-      jsonGenerator.writeStringField(EPCIS.TYPE, EPCIS.EPCIS_DOCUMENT);
+      jsonGenerator.writeStringField(TYPE, isEPCISDocument ? EPCIS_DOCUMENT : EPCIS_QUERY_DOCUMENT);
 
       // Write schema version and other attributes within XML Header
       context.forEach(
           (key, value) -> {
             try {
-              if (key.equalsIgnoreCase(EPCIS.SCHEMA_VERSION)) {
+              if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
                 jsonGenerator.writeStringField(key, "2.0");
               } else {
                 jsonGenerator.writeStringField(key, value);
@@ -130,11 +134,20 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
           });
 
       // Start epcisBody object
-      jsonGenerator.writeFieldName(EPCIS.EPCIS_BODY_IN_CAMEL_CASE);
+      jsonGenerator.writeFieldName(EPCIS_BODY_IN_CAMEL_CASE);
       jsonGenerator.writeStartObject();
 
+      // Add additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        jsonGenerator.writeFieldName(QUERY_RESULTS_IN_CAMEL_CASE);
+        jsonGenerator.writeStartObject();
+
+        jsonGenerator.writeFieldName(RESULTS_BODY_IN_CAMEL_CASE);
+        jsonGenerator.writeStartObject();
+      }
+
       // Start eventList
-      jsonGenerator.writeFieldName(EPCIS.EVENT_LIST_IN_CAMEL_CASE);
+      jsonGenerator.writeFieldName(EVENT_LIST_IN_CAMEL_CASE);
       jsonGenerator.writeStartArray();
     } catch (IOException e) {
       throw new FormatConverterException(
@@ -147,6 +160,13 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   public void end() {
     try {
       jsonGenerator.writeEndArray(); // End the eventList array
+
+      // Close additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        jsonGenerator.writeEndObject(); // End resultsBody
+        jsonGenerator.writeEndObject(); // End queryResults
+      }
+
       jsonGenerator.writeEndObject(); // End epcisBody
       jsonGenerator.writeEndObject(); // End whole json file
     } catch (IOException e) {
@@ -169,7 +189,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // create Outermost JsonObject
       jsonGenerator.writeStartObject();
       // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
+      jsonGenerator.writeFieldName(CONTEXT);
       jsonGenerator.writeStartArray();
       jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 

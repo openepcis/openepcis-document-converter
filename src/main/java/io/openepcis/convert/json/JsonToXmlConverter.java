@@ -25,6 +25,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EventHandler;
+import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.util.IndentingXMLStreamWriter;
 import io.openepcis.convert.util.NonEPCISNamespaceXMLStreamWriter;
@@ -160,7 +161,6 @@ public class JsonToXmlConverter implements EventsConverter {
           || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
         if (jsonParser.getCurrentName() != null
             && jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.CONTEXT)) {
-
           // Read the context value only if the value is of type array else skip to add only string
           if (jsonParser.nextToken() == JsonToken.START_ARRAY) {
             // Loop until end of the Array to obtain Context elements
@@ -206,6 +206,14 @@ public class JsonToXmlConverter implements EventsConverter {
       } catch (Exception e) {
         // Loop until the start of the EPCIS EventList array and prepare the XML header elements
         while (!jsonParser.getText().equals(EPCIS.EVENT_LIST_IN_CAMEL_CASE)) {
+
+          // If the element is type then accordingly set the value EPCISDocument/EPCISQueryDocument
+          if (jsonParser.getCurrentName().equals(EPCIS.TYPE)) {
+            // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
+            XmlEPCISEventCollector.setEPCISDocument(
+                jsonParser.getText().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) ? true : false);
+          }
+
           if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING
                   || jsonParser.getCurrentToken() == JsonToken.VALUE_NUMBER_FLOAT)
               && (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SCHEMA_VERSION)

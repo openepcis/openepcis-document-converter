@@ -43,11 +43,11 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
 
   @Setter public static boolean isEPCISDocument;
 
-  private DefaultJsonSchemaNamespaceURIResolver namespaceResolver;
+  private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
+      DefaultJsonSchemaNamespaceURIResolver.getContext();
 
   public JsonEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
-    this.namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
 
     // Create the final JSON-LD with Header and event information
     try {

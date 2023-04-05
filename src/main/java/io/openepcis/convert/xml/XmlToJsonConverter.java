@@ -54,7 +54,8 @@ public class XmlToJsonConverter implements EventsConverter {
 
   private final JAXBContext jaxbContext;
 
-  private DefaultJsonSchemaNamespaceURIResolver namespaceResolver;
+  private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
+      DefaultJsonSchemaNamespaceURIResolver.getContext();
 
   public XmlToJsonConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
@@ -72,8 +73,6 @@ public class XmlToJsonConverter implements EventsConverter {
                     new EPCISNamespacePrefixMapper());
               }
             }));
-
-    this.namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
   }
 
   /**

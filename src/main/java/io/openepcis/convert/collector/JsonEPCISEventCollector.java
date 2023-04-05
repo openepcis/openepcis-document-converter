@@ -15,15 +15,17 @@
  */
 package io.openepcis.convert.collector;
 
+import static io.openepcis.constants.EPCIS.*;
+
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import io.openepcis.constants.EPCIS;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import lombok.Setter;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final JSON file with all
@@ -39,11 +41,14 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
 
-  private final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
-      DefaultJsonSchemaNamespaceURIResolver.getInstance();
+  @Setter public static boolean isEPCISDocument;
+
+  private DefaultJsonSchemaNamespaceURIResolver namespaceResolver;
 
   public JsonEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
+    this.namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
+
     // Create the final JSON-LD with Header and event information
     try {
       jsonGenerator = new JsonFactory().createGenerator(this.stream).useDefaultPrettyPrinter();
@@ -88,17 +93,13 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeStartObject();
 
       // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
+      jsonGenerator.writeFieldName(CONTEXT);
       jsonGenerator.writeStartArray();
       jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
-      // Modify the Namespaces so trailing / or : is added and default values are removed
-      defaultJsonSchemaNamespaceURIResolver.getInstance().modifyDocumentNamespaces();
-
       // Get all the stored namespaces from jsonNamespaces
-      defaultJsonSchemaNamespaceURIResolver
-          .getInstance()
-          .getModifiedNamespaces()
+      namespaceResolver
+          .getDocumentNamespaces()
           .forEach(
               (key, value) -> {
                 try {
@@ -113,17 +114,14 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
               });
       jsonGenerator.writeEndArray();
 
-      // Reset the modified namespaces
-      defaultJsonSchemaNamespaceURIResolver.getInstance().resetModifiedNamespaces();
-
       // Write Other header fields of JSON
-      jsonGenerator.writeStringField(EPCIS.TYPE, EPCIS.EPCIS_DOCUMENT);
+      jsonGenerator.writeStringField(TYPE, isEPCISDocument ? EPCIS_DOCUMENT : EPCIS_QUERY_DOCUMENT);
 
       // Write schema version and other attributes within XML Header
       context.forEach(
           (key, value) -> {
             try {
-              if (key.equalsIgnoreCase(EPCIS.SCHEMA_VERSION)) {
+              if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
                 jsonGenerator.writeStringField(key, "2.0");
               } else {
                 jsonGenerator.writeStringField(key, value);
@@ -136,11 +134,20 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
           });
 
       // Start epcisBody object
-      jsonGenerator.writeFieldName(EPCIS.EPCIS_BODY_IN_CAMEL_CASE);
+      jsonGenerator.writeFieldName(EPCIS_BODY_IN_CAMEL_CASE);
       jsonGenerator.writeStartObject();
 
+      // Add additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        jsonGenerator.writeFieldName(QUERY_RESULTS_IN_CAMEL_CASE);
+        jsonGenerator.writeStartObject();
+
+        jsonGenerator.writeFieldName(RESULTS_BODY_IN_CAMEL_CASE);
+        jsonGenerator.writeStartObject();
+      }
+
       // Start eventList
-      jsonGenerator.writeFieldName(EPCIS.EVENT_LIST_IN_CAMEL_CASE);
+      jsonGenerator.writeFieldName(EVENT_LIST_IN_CAMEL_CASE);
       jsonGenerator.writeStartArray();
     } catch (IOException e) {
       throw new FormatConverterException(
@@ -153,6 +160,13 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   public void end() {
     try {
       jsonGenerator.writeEndArray(); // End the eventList array
+
+      // Close additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        jsonGenerator.writeEndObject(); // End resultsBody
+        jsonGenerator.writeEndObject(); // End queryResults
+      }
+
       jsonGenerator.writeEndObject(); // End epcisBody
       jsonGenerator.writeEndObject(); // End whole json file
     } catch (IOException e) {
@@ -175,17 +189,13 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // create Outermost JsonObject
       jsonGenerator.writeStartObject();
       // Write the info related to Context element in JSON
-      jsonGenerator.writeFieldName(EPCIS.CONTEXT);
+      jsonGenerator.writeFieldName(CONTEXT);
       jsonGenerator.writeStartArray();
       jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
-      // Modify the Namespaces so trailing / or : is added and default values are removed
-      defaultJsonSchemaNamespaceURIResolver.getInstance().modifyEventNamespaces();
-
       // Get all the stored namespaces from jsonNamespaces
-      defaultJsonSchemaNamespaceURIResolver
-          .getInstance()
-          .getModifiedNamespaces()
+      namespaceResolver
+          .getEventNamespaces()
           .forEach(
               (key, value) -> {
                 try {
@@ -201,10 +211,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeEndArray();
 
       // Reset the event namespaces
-      defaultJsonSchemaNamespaceURIResolver.getInstance().resetEventNamespaces();
-
-      // Reset the modified namespaces
-      defaultJsonSchemaNamespaceURIResolver.getInstance().resetModifiedNamespaces();
+      namespaceResolver.resetEventNamespaces();
 
       // Add comma to separate the context and serialized event
       jsonGenerator.writeRaw(",");

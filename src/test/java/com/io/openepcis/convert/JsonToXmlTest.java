@@ -94,7 +94,6 @@ public class JsonToXmlTest {
         new EventHandler(null, new XmlEPCISEventCollector(byteArrayOutputStream));
     new JsonToXmlConverter().convert(inputStream, handler);
     Assert.assertTrue(byteArrayOutputStream.size() > 0);
-    // System.out.println(byteArrayOutputStream);
   }
 
   // Test the conversion of single EPCIS event in JSON -> XML
@@ -165,7 +164,68 @@ public class JsonToXmlTest {
                 EPCISVersion.VERSION_2_0_0,
                 EPCISFormat.XML,
                 EPCISVersion.VERSION_2_0_0);
-    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
+    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
+    try {
+      convertedDocument.close();
+    } catch (IOException ignore) {
+      // ignored
+    }
+  }
+
+  /*
+     Tests for EPCISQueryDocument conversion from JSON to XML
+  */
+  @Test
+  public void combinationOfDifferentEventsTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/JSON/Query/Combination_of_different_event.json");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void jumbledFieldsOrderTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/JSON/Query/JumbledFieldsOrder.json");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void objectEventWithAllPossibleFieldsTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/JSON/Query/ObjectEventWithAllPossibleFields.json");
+    final EventHandler handler =
+        new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream));
+    new JsonToXmlConverter().convert(inputStream, handler);
+    Assert.assertTrue(byteArrayOutputStream.toString().length() > 0);
+  }
+
+  @Test
+  public void sensorDataWithCombinedEventsTest() throws Exception {
+    inputStream =
+        getClass()
+            .getClassLoader()
+            .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
+    final InputStream convertedDocument =
+        new VersionTransformer()
+            .convert(
+                inputStream,
+                EPCISFormat.JSON_LD,
+                EPCISVersion.VERSION_2_0_0,
+                EPCISFormat.XML,
+                EPCISVersion.VERSION_2_0_0);
+    Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

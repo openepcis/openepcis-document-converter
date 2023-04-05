@@ -23,6 +23,7 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import javax.xml.stream.*;
 import javax.xml.stream.util.EventReaderDelegate;
+import lombok.Setter;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final XML file with all
@@ -37,6 +38,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   private final OutputStream stream;
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
+
+  @Setter public static boolean isEPCISDocument;
 
   private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
@@ -98,10 +101,23 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       // Start the EPCIS document and add the header elements
       xmlEventWriter.add(events.createStartDocument());
       xmlEventWriter.add(
-          events.createStartElement(new QName(EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE), null, null));
-      xmlEventWriter.add(events.createNamespace(EPCIS.EPCIS, EPCIS.EPCIS_2_0_XMLNS));
+          events.createStartElement(
+              new QName(
+                  isEPCISDocument
+                      ? EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE
+                      : EPCIS.EPCIS_QUERY_DOCUMENT_WITH_NAMESPACE),
+              null,
+              null));
+      xmlEventWriter.add(
+          isEPCISDocument
+              ? events.createNamespace(EPCIS.EPCIS, EPCIS.EPCIS_2_0_XMLNS)
+              : events.createNamespace(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS));
       xmlEventWriter.add(events.createNamespace(EPCIS.XSI, EPCIS.XML_SCHEMA_INSTANCE));
       xmlEventWriter.add(events.createNamespace(EPCIS.CBV_MDA, EPCIS.CBV_MDA_URN));
+      xmlEventWriter.add(
+          events.createNamespace(
+              EPCIS.STANDARD_BUSINESS_DOCUMENT_HEADER_PREFIX,
+              EPCIS.STANDARD_BUSINESS_DOCUMENT_HEADER));
 
       // Add the values from JSON Context header stored in MAP to XML header
       for (Map.Entry<String, String> stringStringEntry : context.entrySet()) {
@@ -111,6 +127,14 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
 
       // Add EPCISBody and EventList tag as outer tag
       xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EPCIS_BODY), null, null));
+
+      // Add additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
+        xmlEventWriter.add(
+            events.createStartElement(new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null, null));
+      }
+
       xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EVENT_LIST), null, null));
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
@@ -125,9 +149,24 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       // End the EventList, EPCISBody, EPCISDocument and the while document after completing all
       // files writing
       xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EVENT_LIST), null));
+
+      // Close additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        xmlEventWriter.add(
+            events.createEndElement(
+                new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null)); // end resultsBody
+        xmlEventWriter.add(
+            events.createEndElement(new QName(EPCIS.QUERY_RESULTS), null)); // end QueryResults
+      }
+
       xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EPCIS_BODY), null));
       xmlEventWriter.add(
-          events.createEndElement(new QName(EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE), null));
+          events.createEndElement(
+              new QName(
+                  isEPCISDocument
+                      ? EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE
+                      : EPCIS.EPCIS_QUERY_DOCUMENT_WITH_NAMESPACE),
+              null));
       xmlEventWriter.add(events.createEndDocument());
       xmlEventWriter.close();
     } catch (XMLStreamException e) {

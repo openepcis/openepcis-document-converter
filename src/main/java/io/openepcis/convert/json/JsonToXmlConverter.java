@@ -25,6 +25,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EventHandler;
+import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.util.IndentingXMLStreamWriter;
 import io.openepcis.convert.util.NonEPCISNamespaceXMLStreamWriter;
@@ -60,7 +61,7 @@ public class JsonToXmlConverter implements EventsConverter {
   private final JAXBContext jaxbContext;
 
   private final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
-      DefaultJsonSchemaNamespaceURIResolver.getInstance();
+      DefaultJsonSchemaNamespaceURIResolver.getContext();
 
   // To read the JSON-LD events using the Jackson
   private final ObjectMapper objectMapper =
@@ -160,7 +161,6 @@ public class JsonToXmlConverter implements EventsConverter {
           || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
         if (jsonParser.getCurrentName() != null
             && jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.CONTEXT)) {
-
           // Read the context value only if the value is of type array else skip to add only string
           if (jsonParser.nextToken() == JsonToken.START_ARRAY) {
             // Loop until end of the Array to obtain Context elements
@@ -184,20 +184,21 @@ public class JsonToXmlConverter implements EventsConverter {
         XmlSupportExtension singleEvent =
             objectMapper.readValue(jsonParser, XmlSupportExtension.class);
 
-        // Modify the Namespaces so trailing / or : is added and default values are removed
-        defaultJsonSchemaNamespaceURIResolver.modifyDocumentNamespaces();
-        defaultJsonSchemaNamespaceURIResolver.modifyEventNamespaces();
-
         // Set the namespaces for the marshaller
         marshaller.setProperty(
             MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-            defaultJsonSchemaNamespaceURIResolver.getModifiedNamespaces());
+            defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
 
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();
 
+        final XMLStreamWriter skipEPCISNamespaceWriter =
+            new NonEPCISNamespaceXMLStreamWriter(
+                new IndentingXMLStreamWriter(
+                    XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+
         // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
-        marshaller.marshal((singleEvent).xmlSupport(), singleXmlEvent);
+        marshaller.marshal((singleEvent).xmlSupport(), skipEPCISNamespaceWriter);
 
         // Call the method to check if the event adheres to XSD or write into the OutputStream using
         // the EventHandler
@@ -205,6 +206,14 @@ public class JsonToXmlConverter implements EventsConverter {
       } catch (Exception e) {
         // Loop until the start of the EPCIS EventList array and prepare the XML header elements
         while (!jsonParser.getText().equals(EPCIS.EVENT_LIST_IN_CAMEL_CASE)) {
+
+          // If the element is type then accordingly set the value EPCISDocument/EPCISQueryDocument
+          if (jsonParser.getCurrentName().equals(EPCIS.TYPE)) {
+            // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
+            XmlEPCISEventCollector.setEPCISDocument(
+                jsonParser.getText().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) ? true : false);
+          }
+
           if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING
                   || jsonParser.getCurrentToken() == JsonToken.VALUE_NUMBER_FLOAT)
               && (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SCHEMA_VERSION)
@@ -286,9 +295,6 @@ public class JsonToXmlConverter implements EventsConverter {
 
           // Reset the namespaces stored for particular event
           defaultJsonSchemaNamespaceURIResolver.resetEventNamespaces();
-
-          // Reset the namespaces stored for modified namespaces
-          defaultJsonSchemaNamespaceURIResolver.resetModifiedNamespaces();
         }
 
       } else {

@@ -25,7 +25,9 @@ import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final JSON file with all
@@ -41,7 +43,11 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
 
-  @Setter public static boolean isEPCISDocument;
+  @Getter @Setter private static boolean isEPCISDocument;
+
+  @Getter @Setter private static String subscriptionID;
+
+  @Getter @Setter private static String queryName;
 
   private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
       DefaultJsonSchemaNamespaceURIResolver.getContext();
@@ -141,6 +147,14 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       if (!isEPCISDocument) {
         jsonGenerator.writeFieldName(QUERY_RESULTS_IN_CAMEL_CASE);
         jsonGenerator.writeStartObject();
+
+        if (!StringUtils.isBlank(subscriptionID)) {
+          jsonGenerator.writeStringField(SUBSCRIPTION_ID, subscriptionID);
+        }
+
+        if (!StringUtils.isBlank(queryName)) {
+          jsonGenerator.writeStringField(QUERY_NAME, queryName);
+        }
 
         jsonGenerator.writeFieldName(RESULTS_BODY_IN_CAMEL_CASE);
         jsonGenerator.writeStartObject();

@@ -108,6 +108,7 @@ public class JsonToXmlConverter implements EventsConverter {
       throws IOException, JAXBException {
     convert(jsonStream, eventHandler, this.jaxbContext);
   }
+
   /**
    * API method to convert the list of EPCIS events from JSON-LD to XML format
    *
@@ -211,7 +212,16 @@ public class JsonToXmlConverter implements EventsConverter {
           if (jsonParser.getCurrentName().equals(EPCIS.TYPE)) {
             // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
             XmlEPCISEventCollector.setEPCISDocument(
-                jsonParser.getText().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) ? true : false);
+                jsonParser.getText().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT));
+          }
+
+          // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
+          if (!XmlEPCISEventCollector.isEPCISDocument()) {
+            if (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+              XmlEPCISEventCollector.setSubscriptionID(jsonParser.nextTextValue());
+            } else if (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+              XmlEPCISEventCollector.setQueryName(jsonParser.nextTextValue());
+            }
           }
 
           if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING

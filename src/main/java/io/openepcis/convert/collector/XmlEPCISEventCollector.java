@@ -23,7 +23,9 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import javax.xml.stream.*;
 import javax.xml.stream.util.EventReaderDelegate;
+import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final XML file with all
@@ -39,7 +41,11 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
 
-  @Setter public static boolean isEPCISDocument;
+  @Getter @Setter private static boolean isEPCISDocument;
+
+  @Getter @Setter private static String subscriptionID;
+
+  @Getter @Setter private static String queryName;
 
   private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
@@ -131,6 +137,22 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       // Add additional wrapper tags for EPCISQueryDocument
       if (!isEPCISDocument) {
         xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
+
+        // For EPCISQueryDocument add subscriptionID if present
+        if (!StringUtils.isBlank(subscriptionID)) {
+          xmlEventWriter.add(
+              events.createStartElement(new QName(EPCIS.SUBSCRIPTION_ID), null, null));
+          xmlEventWriter.add(events.createSpace(subscriptionID));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.SUBSCRIPTION_ID), null));
+        }
+
+        // For EPCISQueryDocument add QueryName if present
+        if (!StringUtils.isBlank(queryName)) {
+          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
+          xmlEventWriter.add(events.createSpace(queryName));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
+        }
+
         xmlEventWriter.add(
             events.createStartElement(new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null, null));
       }

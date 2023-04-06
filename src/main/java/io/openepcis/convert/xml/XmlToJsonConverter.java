@@ -158,6 +158,7 @@ public class XmlToJsonConverter implements EventsConverter {
 
       // Read Until the end of the file and unmarshall event-by-event
       while (xmlStreamReader.hasNext()) {
+
         // Check if the initial element is one of the elements from "EVENT_TYPES" (one of EPCIS
         // event)
         if (xmlStreamReader.isStartElement()
@@ -212,51 +213,72 @@ public class XmlToJsonConverter implements EventsConverter {
             }
           }
 
-        } else if (xmlStreamReader.isStartElement()
-            && xmlStreamReader.getLocalName().toLowerCase().contains(EPCIS.DOCUMENT)) {
-          // Get the information related to the XML header elements till "EventList", If the element
-          // is EPCISDocument get all namespaces
+        } else if (xmlStreamReader.isStartElement()) {
 
-          // Set the variable to true if the provided XML is EPCIS document else set to false for
-          // single EPCIS event
-          isDocument = true;
+          // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
+          if (!JsonEPCISEventCollector.isEPCISDocument()) {
+            if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+              JsonEPCISEventCollector.setSubscriptionID(xmlStreamReader.getElementText());
+            } else if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+              JsonEPCISEventCollector.setQueryName(xmlStreamReader.getElementText());
+            } else if (xmlStreamReader
+                .getLocalName()
+                .equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
+              // For QueryDocument invoke EventHandle Start to create the header information at
+              // resultsBody
+              eventHandler.start(contextAttributes);
+            }
+          }
 
-          // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
-          JsonEPCISEventCollector.setEPCISDocument(
-              xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) ? true : false);
+          if (xmlStreamReader.getLocalName().toLowerCase().contains(EPCIS.DOCUMENT)) {
+            // Get the information related to the XML header elements till "EventList", If the
+            // element is EPCISDocument get all namespaces
 
-          // Get all Namespaces from the XML header and store it within the xmlNamespaces MAP
-          IntStream.range(0, xmlStreamReader.getNamespaceCount())
-              .forEach(
-                  namespaceIndex -> {
-                    // Omit the Namespace values which are already present within JSON-LD Schema by
-                    // default
-                    if (!PROTECTED_TERMS_OF_CONTEXT.contains(
-                        xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
-                      namespaceResolver.populateDocumentNamespaces(
-                          xmlStreamReader.getNamespaceURI(namespaceIndex),
-                          xmlStreamReader.getNamespacePrefix(namespaceIndex));
-                    }
-                  });
+            // Set the variable to true if the provided XML is EPCIS document else set to false for
+            // single EPCIS event
+            isDocument = true;
 
-          // Get all the Attributes from XML header and store it within attributes MAP for creation
-          // of final JSON
-          IntStream.range(0, xmlStreamReader.getAttributeCount())
-              .forEach(
-                  attributeIndex -> {
-                    // Omit the attribute values which are already present within JSON-LD Schema by
-                    // default
-                    if (!PROTECTED_TERMS_OF_CONTEXT.contains(
-                        xmlStreamReader.getAttributeName(attributeIndex))) {
-                      contextAttributes.put(
-                          String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)),
-                          xmlStreamReader.getAttributeValue(attributeIndex));
-                    }
-                  });
+            // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
+            JsonEPCISEventCollector.setEPCISDocument(
+                xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT));
 
-          // Call the EventHandle Start method to create the header information for the final JSON
-          // file
-          eventHandler.start(contextAttributes);
+            // Get all Namespaces from the XML header and store it within the xmlNamespaces MAP
+            IntStream.range(0, xmlStreamReader.getNamespaceCount())
+                .forEach(
+                    namespaceIndex -> {
+                      // Omit the Namespace values which are already present within JSON-LD Schema
+                      // by
+                      // default
+                      if (!PROTECTED_TERMS_OF_CONTEXT.contains(
+                          xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
+                        namespaceResolver.populateDocumentNamespaces(
+                            xmlStreamReader.getNamespaceURI(namespaceIndex),
+                            xmlStreamReader.getNamespacePrefix(namespaceIndex));
+                      }
+                    });
+
+            // Get all the Attributes from XML header and store it within attributes MAP for
+            // creation of final JSON
+            IntStream.range(0, xmlStreamReader.getAttributeCount())
+                .forEach(
+                    attributeIndex -> {
+                      // Omit the attribute values which are already present within JSON-LD Schema
+                      // by
+                      // default
+                      if (!PROTECTED_TERMS_OF_CONTEXT.contains(
+                          xmlStreamReader.getAttributeName(attributeIndex))) {
+                        contextAttributes.put(
+                            String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)),
+                            xmlStreamReader.getAttributeValue(attributeIndex));
+                      }
+                    });
+
+            // For EPCISDocument invoke EventHandle Start to create the header information at
+            // EPCISDocument
+            if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
+              eventHandler.start(contextAttributes);
+            }
+          }
         }
         // Move to the next event/element in InputStream
         xmlStreamReader.next();

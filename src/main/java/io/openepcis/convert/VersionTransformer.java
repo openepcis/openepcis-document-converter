@@ -33,8 +33,10 @@ import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 public class VersionTransformer {
 
@@ -43,11 +45,21 @@ public class VersionTransformer {
   private final XmlToJsonConverter xmlToJsonConverter;
   private final JsonToXmlConverter jsonToXmlConverter;
 
+  private Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+
   public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
     this.executorService = executorService;
     this.xmlVersionTransformer = XmlVersionTransformer.newInstance(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
     this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
+  }
+
+  private VersionTransformer(VersionTransformer parent, Function<Object, Object> eventMapper) {
+    this.executorService = parent.executorService;
+    this.xmlVersionTransformer = parent.xmlVersionTransformer;
+    this.jsonToXmlConverter = parent.jsonToXmlConverter.mapWith(eventMapper);
+    this.xmlToJsonConverter = parent.xmlToJsonConverter.mapWith(eventMapper);
+    this.epcisEventMapper = Optional.ofNullable(eventMapper);
   }
 
   public VersionTransformer(final ExecutorService executorService) throws JAXBException {
@@ -284,5 +296,9 @@ public class VersionTransformer {
               + e.getMessage(),
           e);
     }
+  }
+
+  public final VersionTransformer mapWith(final Function<Object, Object> mapper) {
+    return new VersionTransformer(this, mapper);
   }
 }

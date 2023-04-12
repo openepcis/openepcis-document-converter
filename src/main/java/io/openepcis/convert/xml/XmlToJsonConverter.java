@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -57,8 +59,16 @@ public class XmlToJsonConverter implements EventsConverter {
   private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
       DefaultJsonSchemaNamespaceURIResolver.getContext();
 
+  private Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+
   public XmlToJsonConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
+  }
+
+  private XmlToJsonConverter(
+      final XmlToJsonConverter parent, Function<Object, Object> epcisEventMapper) {
+    this(parent.jaxbContext);
+    this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
   public XmlToJsonConverter() throws JAXBException {
@@ -192,6 +202,10 @@ public class XmlToJsonConverter implements EventsConverter {
 
           // Check if Object has some value
           if (event != null) {
+            // map event
+            if (epcisEventMapper.isPresent()) {
+              event = epcisEventMapper.get().apply(event);
+            }
             // Create the JSON using Jackson ObjectMapper based on type of incoming event type and
             // store
             final String eventAsJson =
@@ -291,5 +305,9 @@ public class XmlToJsonConverter implements EventsConverter {
       throw new FormatConverterException(
           "Exception occurred during the conversion of the conversion of XML to JSON-LD", e);
     }
+  }
+
+  public final XmlToJsonConverter mapWith(final Function<Object, Object> mapper) {
+    return new XmlToJsonConverter(this, mapper);
   }
 }

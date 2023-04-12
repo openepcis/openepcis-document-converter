@@ -40,6 +40,8 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import javax.enterprise.context.RequestScoped;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -63,6 +65,8 @@ public class JsonToXmlConverter implements EventsConverter {
   private final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
       DefaultJsonSchemaNamespaceURIResolver.getContext();
 
+  private Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+
   // To read the JSON-LD events using the Jackson
   private final ObjectMapper objectMapper =
       new ObjectMapper()
@@ -75,6 +79,12 @@ public class JsonToXmlConverter implements EventsConverter {
 
   public JsonToXmlConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
+  }
+
+  private JsonToXmlConverter(
+      final JsonToXmlConverter parent, Function<Object, Object> epcisEventMapper) {
+    this(parent.jaxbContext);
+    this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
   public JsonToXmlConverter() throws JAXBException {
@@ -198,8 +208,13 @@ public class JsonToXmlConverter implements EventsConverter {
                 new IndentingXMLStreamWriter(
                     XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
 
+        Object xmlSupport = singleEvent.xmlSupport();
+        if (epcisEventMapper.isPresent()) {
+          xmlSupport = epcisEventMapper.get().apply(xmlSupport);
+        }
+
         // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
-        marshaller.marshal((singleEvent).xmlSupport(), skipEPCISNamespaceWriter);
+        marshaller.marshal(xmlSupport, skipEPCISNamespaceWriter);
 
         // Call the method to check if the event adheres to XSD or write into the OutputStream using
         // the EventHandler
@@ -294,7 +309,11 @@ public class JsonToXmlConverter implements EventsConverter {
               defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
 
           // Create the XML based on type of incoming event type and store in StringWriter
-          marshaller.marshal(event.xmlSupport(), skipEPCISNamespaceWriter);
+          Object xmlSupport = event.xmlSupport();
+          if (epcisEventMapper.isPresent()) {
+            xmlSupport = epcisEventMapper.get().apply(xmlSupport);
+          }
+          marshaller.marshal(xmlSupport, skipEPCISNamespaceWriter);
 
           // Call the method to check if the event adheres to XSD or write into the OutputStream
           // using the EventHandler
@@ -313,5 +332,9 @@ public class JsonToXmlConverter implements EventsConverter {
                 + jsonNode);
       }
     }
+  }
+
+  public final JsonToXmlConverter mapWith(final Function<Object, Object> mapper) {
+    return new JsonToXmlConverter(this, mapper);
   }
 }

@@ -29,6 +29,7 @@ import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.util.IndentingXMLStreamWriter;
 import io.openepcis.convert.util.NonEPCISNamespaceXMLStreamWriter;
+import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
@@ -38,9 +39,8 @@ import jakarta.xml.bind.Marshaller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.enterprise.context.RequestScoped;
 import javax.xml.stream.XMLOutputFactory;
@@ -155,6 +155,8 @@ public class JsonToXmlConverter implements EventsConverter {
     // Store the information from JSON header for creation of final XML
     final Map<String, String> contextValues = new HashMap<>();
 
+    final AtomicInteger sequenceInEventList = new AtomicInteger(0);
+
     // Get the JSON Factory and parser Object
     try (JsonParser jsonParser = new JsonFactory().createParser(jsonStream)) {
 
@@ -209,7 +211,12 @@ public class JsonToXmlConverter implements EventsConverter {
                     XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
 
         Object xmlSupport = singleEvent.xmlSupport();
-        if (epcisEventMapper.isPresent()) {
+        if (epcisEventMapper.isPresent()
+            && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
+          final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
+          epcisEvent.setContextInfo(
+              List.of(defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()));
+          epcisEvent.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
           xmlSupport = epcisEventMapper.get().apply(xmlSupport);
         }
 
@@ -282,6 +289,7 @@ public class JsonToXmlConverter implements EventsConverter {
 
     // StringWriter to get the converted XML from marshaller
     final StringWriter xmlEvent = new StringWriter();
+    final AtomicInteger sequenceInEventList = new AtomicInteger(0);
 
     final XMLStreamWriter skipEPCISNamespaceWriter =
         new NonEPCISNamespaceXMLStreamWriter(
@@ -309,8 +317,14 @@ public class JsonToXmlConverter implements EventsConverter {
               defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
 
           // Create the XML based on type of incoming event type and store in StringWriter
+
           Object xmlSupport = event.xmlSupport();
-          if (epcisEventMapper.isPresent()) {
+          if (epcisEventMapper.isPresent()
+              && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
+            final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
+            epcisEvent.setContextInfo(
+                List.of(defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()));
+            epcisEvent.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
             xmlSupport = epcisEventMapper.get().apply(xmlSupport);
           }
           marshaller.marshal(xmlSupport, skipEPCISNamespaceWriter);

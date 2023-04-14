@@ -35,8 +35,10 @@ import jakarta.xml.bind.Unmarshaller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import javax.xml.stream.XMLInputFactory;
@@ -60,6 +62,12 @@ public class XmlToJsonConverter implements EventsConverter {
       DefaultJsonSchemaNamespaceURIResolver.getContext();
 
   private Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+
+  // Jackson instance to convert the unmarshalled event to JSON
+  private final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .registerModule(new JavaTimeModule())
+          .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
   public XmlToJsonConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
@@ -135,14 +143,11 @@ public class XmlToJsonConverter implements EventsConverter {
       // Clear the namespaces before reading the document
       namespaceResolver.resetAllNamespaces();
 
-      // Jackson instance to convert the unmarshalled event to JSON
-      final ObjectMapper objectMapper =
-          new ObjectMapper()
-              .registerModule(new JavaTimeModule())
-              .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-
       // Map to store the attributes from the XML Header so can be added to final JSON
       final Map<String, String> contextAttributes = new HashMap<>();
+
+      // Track event sequence
+      final AtomicInteger sequenceInEventList = new AtomicInteger(0);
 
       // Create an instance of XMLStreamReader to read the events one-by-one
       final XMLInputFactory inputFactory = XMLInputFactory.newInstance();
@@ -203,7 +208,12 @@ public class XmlToJsonConverter implements EventsConverter {
           // Check if Object has some value
           if (event != null) {
             // map event
-            if (epcisEventMapper.isPresent()) {
+            if (epcisEventMapper.isPresent()
+                && EPCISEvent.class.isAssignableFrom(event.getClass())) {
+              final EPCISEvent ev = (EPCISEvent) event;
+              ev.setContextInfo(List.of(namespaceResolver.getAllNamespaces()));
+              ev.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
+
               event = epcisEventMapper.get().apply(event);
             }
             // Create the JSON using Jackson ObjectMapper based on type of incoming event type and

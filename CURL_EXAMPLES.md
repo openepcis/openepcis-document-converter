@@ -2,7 +2,7 @@
 
 ## ObjectEvent with unknown GCP-Length 
 
-### Working EPCIS 2.0 XML to JSON (GPC-Length implied by URN Format)
+### Working EPCIS 2.0 XML to JSON (GCP-Length implied by URN Format)
 
 ````shell
 curl -X 'POST' \

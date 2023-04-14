@@ -18,6 +18,7 @@ An open-source application that transforms EPCIS documents from XML to JSON/JSON
        - [JSON to EPCIS 2.0 XML convert CBV to Web URI and EPC to GS1 Digital Link](#json-to-epcis-20-xml-convert-cbv-to-web-uri-and-epc-to-gs1-digital-link)
        - [JSON to EPCIS 1.2 XML convert CBV and EPC to URN Format](#json-to-epcis-12-xml-convert-cbv-and-epc-to-urn-format)
        - [EPCIS 1.2 XML to EPCIS 2.0 JSON convert EPC to GS1 Digital Link WebURI Format](#epcis-12-xml-to-epcis-20-json-convert-epc-to-gs1-digital-link-weburi-format)
+     - [Additional cURL Examples](#additional-curl-examples)
    - [Web Application](#web-pplication)
    - [Swagger-UI](#swagger-ui)
 4. [Dependencies](#dependencies)
@@ -240,6 +241,11 @@ curl -X 'POST' \
     </EPCISBody>
 </epcis:EPCISDocument>'
 ````
+
+#### Additional cURL Examples
+
+In order not to bloat up this README we have added a few more examples [here](CURL_EXAMPLES.md).
+
 ### Web Application
 
 By providing either an XML or JSON/JSON-LD EPCIS document as input, users can easily access and obtain the transformed EPCIS document using the web application.

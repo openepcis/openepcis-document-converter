@@ -244,7 +244,10 @@ curl -X 'POST' \
 
 #### Additional cURL Examples
 
-In order not to bloat up this README we have added a few more examples [here](CURL_EXAMPLES.md).
+In order not to bloat up this README we have added a few more examples:
+
+- [curl examples](CURL_EXAMPLES.md)
+- [testdata-generator pipeline](TESTDATA_GENERATOR.md)
 
 ### Web Application
 

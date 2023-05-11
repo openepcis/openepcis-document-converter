@@ -620,7 +620,108 @@ This will result in the ObjectEvents that were created by the testdata-generator
     <summary>Expand: ObjectEvents converted to EPCIS 1.2 XML</summary>
 
 ```xml
-
+<?xml version="1.0" encoding="UTF-8"?>
+<epcis:EPCISDocument creationDate="2023-05-11T09:38:11.831338230Z" schemaVersion="1.2" xmlns:epcis="urn:epcglobal:epcis:xsd:1" xmlns:xalan="http://xml.apache.org/xslt">
+   <EPCISBody>
+      <EventList>
+         <ObjectEvent>
+            <eventTime>2022-10-20T08:57:01.449Z</eventTime>
+            <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+            <epcList>
+               <epc>urn:epc:id:sgtin:4068194.000000.821241</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.82246655</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.8097</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.4677</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.3089298</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.2480</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.586230</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.01</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.346</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.96</epc>
+            </epcList>
+            <action>ADD</action>
+            <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+            <disposition>urn:epcglobal:cbv:disp:active</disposition>
+         </ObjectEvent>
+         <ObjectEvent>
+            <eventTime>2022-10-14T12:36:58.562Z</eventTime>
+            <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+            <epcList>
+               <epc>urn:epc:id:sgtin:4068194.000000.82199600</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.1962</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.623</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.5088419769</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.9435704697</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.40018</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.82009</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.959</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.550070</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.270123196</epc>
+            </epcList>
+            <action>ADD</action>
+            <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+            <disposition>urn:epcglobal:cbv:disp:active</disposition>
+         </ObjectEvent>
+         <ObjectEvent>
+            <eventTime>2022-10-07T18:40:10.665Z</eventTime>
+            <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+            <epcList>
+               <epc>urn:epc:id:sgtin:4068194.000000.3837303777</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.796220</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.46532</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.15935</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.6976164665</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.6786182</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.890030</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.9098993363</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.0287777945</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.9237879</epc>
+            </epcList>
+            <action>ADD</action>
+            <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+            <disposition>urn:epcglobal:cbv:disp:active</disposition>
+         </ObjectEvent>
+         <ObjectEvent>
+            <eventTime>2022-10-24T13:55:57.865Z</eventTime>
+            <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+            <epcList>
+               <epc>urn:epc:id:sgtin:4068194.000000.691956932</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.32</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.68416155</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.723225887</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.1415918</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.19</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.32626</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.9369707</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.5018958207</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.084</epc>
+            </epcList>
+            <action>ADD</action>
+            <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+            <disposition>urn:epcglobal:cbv:disp:active</disposition>
+         </ObjectEvent>
+         <ObjectEvent>
+            <eventTime>2022-10-03T11:02:31.814Z</eventTime>
+            <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+            <epcList>
+               <epc>urn:epc:id:sgtin:4068194.000000.21</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.5871937</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.07881517</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.981394850</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.60821249</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.860161</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.06</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.265713</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.97</epc>
+               <epc>urn:epc:id:sgtin:4068194.000000.50378178</epc>
+            </epcList>
+            <action>ADD</action>
+            <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+            <disposition>urn:epcglobal:cbv:disp:active</disposition>
+         </ObjectEvent>
+      </EventList>
+   </EPCISBody>
+</epcis:EPCISDocument>
 ```
 
 </details>

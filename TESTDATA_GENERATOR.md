@@ -20,14 +20,14 @@ First we need the 2 containers up and running - one for the testdata generator s
 
 ```
 podman pull docker.io/openepcis/testdata-generator
-podman pull docker.io/openepcis/openepcis/tools-ui
+podman pull docker.io/openepcis/tools-ui
 ```
 
 ##### Update with Docker:
 
 ```
 docker pull openepcis/testdata-generator
-docker pull openepcis/openepcis/tools-ui
+docker pull openepcis/tools-ui
 ```
 
 ### Start Testdata Generator Service docker container

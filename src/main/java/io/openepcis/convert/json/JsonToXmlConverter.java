@@ -324,9 +324,9 @@ public class JsonToXmlConverter implements EventsConverter {
           Object xmlSupport = event.xmlSupport();
           if (epcisEventMapper.isPresent()
               && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
+            final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
             final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
-            epcisEvent.setContextInfo(
-                List.of(defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()));
+            epcisEvent.setContextInfo(List.of(swappedNamespace));
             epcisEvent.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
             xmlSupport = epcisEventMapper.get().apply(xmlSupport);
           }

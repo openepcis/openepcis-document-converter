@@ -17,6 +17,7 @@ package io.openepcis.convert.xml;
 
 import static io.openepcis.constants.EPCIS.PROTECTED_TERMS_OF_CONTEXT;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -67,7 +69,9 @@ public class XmlToJsonConverter implements EventsConverter {
   private final ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new JavaTimeModule())
-          .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+          .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+          .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
   public XmlToJsonConverter(final JAXBContext jaxbContext) {
     this.jaxbContext = jaxbContext;
@@ -208,10 +212,11 @@ public class XmlToJsonConverter implements EventsConverter {
           // Check if Object has some value
           if (event != null) {
             // map event
-            if (epcisEventMapper.isPresent()
-                && EPCISEvent.class.isAssignableFrom(event.getClass())) {
+            if (epcisEventMapper.isPresent() && EPCISEvent.class.isAssignableFrom(event.getClass())) {
               final EPCISEvent ev = (EPCISEvent) event;
-              ev.setContextInfo(List.of(namespaceResolver.getAllNamespaces()));
+              //Change the key value to keep key as localname and value as namespaceURI
+              final Map<String, String> swappedMap = namespaceResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+              ev.setContextInfo(List.of(swappedMap));
               ev.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
 
               event = epcisEventMapper.get().apply(event);
@@ -312,8 +317,7 @@ public class XmlToJsonConverter implements EventsConverter {
       eventHandler.end();
 
     } catch (Exception e) {
-      throw new FormatConverterException(
-          "Exception occurred during the conversion of the conversion of XML to JSON-LD", e);
+      throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage());
     }
   }
 

@@ -28,11 +28,15 @@ import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
+import org.apache.commons.io.IOUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -91,29 +95,11 @@ public class VersionTransformer {
       final EPCISFormat toMediaType,
       final EPCISVersion toVersion)
       throws UnsupportedOperationException, IOException {
-    // pre scan 1024 bytes to detect version
-    final byte[] preScan = new byte[1024];
-    final int len = inputDocument.read(preScan);
-    final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
 
-    if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
-      throw new UnsupportedOperationException("unable to detect EPCIS schemaVersion");
-    }
-
-    EPCISVersion fromVersion;
-
-    if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"1.2\"")
-        || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='1.2'")
-        || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"1.2\"")) {
-      fromVersion = EPCISVersion.VERSION_1_2_0;
-    } else if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"2.0\"")
-        || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='2.0'")
-        || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"2.0\"")) {
-      fromVersion = EPCISVersion.VERSION_2_0_0;
-    } else {
-      throw new FormatConverterException(
-          "Provided document contains unsupported EPCIS document version");
-    }
+    final Map<String, Object> result = versionDetector(inputDocument);
+    final EPCISVersion fromVersion = (EPCISVersion) result.get("version");
+    final byte[] preScan = (byte[]) result.get("preScan");
+    final int len = (int) result.get("len");
 
     final PipedOutputStream pipedOutputStream = new PipedOutputStream();
     final PipedInputStream pipe = new PipedInputStream(pipedOutputStream);
@@ -132,6 +118,49 @@ public class VersionTransformer {
         });
 
     return convert(pipe, fromMediaType, fromVersion, toMediaType, toVersion);
+  }
+
+  /**
+   * Method with autodetect EPCIS version from inputStream
+   *
+   * @param epcisDocument EPCIS document in application/xml or application/json format as a InputStream
+   * @return returns the detected version with read prescan details for merging back again.
+   * @throws IOException if unable to read the document
+   */
+  public final Map<String, Object> versionDetector(final InputStream epcisDocument)
+          throws IOException {
+    // pre scan 1024 bytes to detect version
+    final byte[] preScan = new byte[1024];
+    final int len = epcisDocument.read(preScan);
+    final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
+
+    if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
+      throw new UnsupportedOperationException(
+              "Unable to detect EPCIS schemaVersion for given document, please check the document again");
+    }
+
+    EPCISVersion fromVersion;
+
+    if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"1.2\"")
+            || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='1.2'")
+            || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"1.2\"")) {
+      fromVersion = EPCISVersion.VERSION_1_2_0;
+    } else if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"2.0\"")
+            || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='2.0'")
+            || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"2.0\"")) {
+      fromVersion = EPCISVersion.VERSION_2_0_0;
+    } else {
+      throw new FormatConverterException(
+              "Provided document contains unsupported EPCIS document version");
+    }
+
+    final Map<String, Object> result = new HashMap<>();
+
+    result.put("version", fromVersion);
+    result.put("preScan", preScan);
+    result.put("len", len);
+
+    return result;
   }
 
   /**

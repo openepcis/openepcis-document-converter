@@ -42,7 +42,9 @@ import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import javax.enterprise.context.RequestScoped;
+import java.util.stream.Collectors;
+
+import jakarta.enterprise.context.RequestScoped;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -214,8 +216,9 @@ public class JsonToXmlConverter implements EventsConverter {
         if (epcisEventMapper.isPresent()
             && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
           final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
-          epcisEvent.setContextInfo(
-              List.of(defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()));
+          //Change the key value to keep key as localname and value as namespaceURI
+          final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+          epcisEvent.setContextInfo(List.of(swappedNamespace));
           epcisEvent.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
           xmlSupport = epcisEventMapper.get().apply(xmlSupport);
         }
@@ -321,9 +324,9 @@ public class JsonToXmlConverter implements EventsConverter {
           Object xmlSupport = event.xmlSupport();
           if (epcisEventMapper.isPresent()
               && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
+            final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
             final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
-            epcisEvent.setContextInfo(
-                List.of(defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()));
+            epcisEvent.setContextInfo(List.of(swappedNamespace));
             epcisEvent.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
             xmlSupport = epcisEventMapper.get().apply(xmlSupport);
           }

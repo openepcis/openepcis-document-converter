@@ -44,4 +44,9 @@ public class EventListCollector implements EPCISEventCollector<List<String>> {
   public void collectSingleEvent(Object event) {
     events.add(event.toString());
   }
+
+  @Override
+  public boolean isEPCISDocument() {
+    return false;
+  }
 }

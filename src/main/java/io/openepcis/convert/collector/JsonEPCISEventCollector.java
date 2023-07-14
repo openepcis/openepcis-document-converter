@@ -43,11 +43,11 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
 
-  @Getter @Setter private static boolean isEPCISDocument;
+  private boolean isEPCISDocument;
 
-  @Getter @Setter private static String subscriptionID;
+  private String subscriptionID;
 
-  @Getter @Setter private static String queryName;
+  private String queryName;
 
   private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
       DefaultJsonSchemaNamespaceURIResolver.getContext();
@@ -257,5 +257,25 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       throw new FormatConverterException(
           "Exception during XML-JSON-LD single event conversion : " + e);
     }
+  }
+
+  @Override
+  public void setIsEPCISDocument(boolean isEPCISDocument) {
+    this.isEPCISDocument = isEPCISDocument;
+  }
+
+  @Override
+  public void setSubscriptionID(String subscriptionID) {
+    this.subscriptionID = subscriptionID;
+  }
+
+  @Override
+  public void setQueryName(String queryName) {
+    this.queryName = queryName;
+  }
+
+  @Override
+  public boolean isEPCISDocument() {
+    return this.isEPCISDocument;
   }
 }

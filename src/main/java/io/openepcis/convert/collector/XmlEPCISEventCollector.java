@@ -41,11 +41,11 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   private final XMLEventWriter xmlEventWriter;
   private final XMLEventFactory events;
 
-  @Getter @Setter private static boolean isEPCISDocument;
+  private boolean isEPCISDocument;
 
-  @Getter @Setter private static String subscriptionID;
+  private String subscriptionID;
 
-  @Getter @Setter private static String queryName;
+  private String queryName;
 
   private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
@@ -212,5 +212,25 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
           "Exception during JSON-XML conversion, Error occurred during the addition of events to XMLEventWriter: "
               + e);
     }
+  }
+
+  @Override
+  public void setIsEPCISDocument(boolean isEPCISDocument) {
+    this.isEPCISDocument = isEPCISDocument;
+  }
+
+  @Override
+  public void setSubscriptionID(String subscriptionID) {
+    this.subscriptionID = subscriptionID;
+  }
+
+  @Override
+  public void setQueryName(String queryName) {
+    this.queryName = queryName;
+  }
+
+  @Override
+  public boolean isEPCISDocument() {
+    return this.isEPCISDocument;
   }
 }

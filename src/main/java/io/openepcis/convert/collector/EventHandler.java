@@ -112,4 +112,26 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
       collector.endSingleEvent();
     }
   }
+
+  public void setIsEPCISDocument(boolean isEPCISDocument){
+    if(collector != null) {
+      collector.setIsEPCISDocument(isEPCISDocument);
+    }
+  }
+
+  public void setSubscriptionID(String subscriptionID){
+    if(collector != null) {
+      collector.setSubscriptionID(subscriptionID);
+    }
+  }
+
+  public void setQueryName(String queryName){
+    if(collector != null) {
+      collector.setQueryName(queryName);
+    }
+  }
+
+  public boolean isEPCISDocument() {
+    return collector != null && collector.isEPCISDocument();
+  }
 }

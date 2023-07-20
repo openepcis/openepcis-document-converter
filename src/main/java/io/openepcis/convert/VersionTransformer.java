@@ -135,7 +135,7 @@ public class VersionTransformer {
     final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
 
     if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
-      throw new UnsupportedOperationException(
+      throw new FormatConverterException(
               "Unable to detect EPCIS schemaVersion for given document, please check the document again");
     }
 

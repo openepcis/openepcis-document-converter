@@ -15,6 +15,9 @@
  */
 package io.openepcis.convert.collector;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Map;
 
 /**
@@ -43,4 +46,13 @@ public interface EPCISEventCollector<R> {
 
   // Method to close all wrapper object for single event
   default void endSingleEvent() {}
+
+
+  default void setIsEPCISDocument(boolean isEPCISDocument){}
+
+  default void setSubscriptionID(String subscriptionID){}
+
+  default void setQueryName(String queryName){}
+
+  boolean isEPCISDocument();
 }

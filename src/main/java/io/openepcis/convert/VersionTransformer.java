@@ -30,7 +30,6 @@ import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
-import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -248,11 +247,7 @@ public class VersionTransformer {
                 && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
                 && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
             // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
-            return convert(
-                    toXml(inputDocument),
-                    EPCISFormat.XML,
-                    EPCISVersion.VERSION_2_0_0,
-                    EPCISVersion.VERSION_1_2_0);
+            return xmlVersionTransformer.xmlConverter(toXml(inputDocument), EPCISVersion.VERSION_2_0_0, EPCISVersion.VERSION_1_2_0);
         } else if (EPCISFormat.XML.equals(fromMediaType)
                 && EPCISFormat.JSON_LD.equals(toMediaType)
                 && fromVersion.equals(EPCISVersion.VERSION_2_0_0)

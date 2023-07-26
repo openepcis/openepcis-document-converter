@@ -4,7 +4,6 @@ import io.openepcis.constants.EPCIS;
 import io.openepcis.convert.EventsConverter;
 import io.openepcis.convert.collector.EPCISEventCollector;
 import io.openepcis.convert.collector.EventHandler;
-import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.util.IndentingXMLStreamWriter;
 import io.openepcis.convert.util.NonEPCISNamespaceXMLStreamWriter;

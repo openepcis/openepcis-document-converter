@@ -55,13 +55,13 @@ public class VersionTransformer {
 
     private Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
 
-    public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) throws JAXBException {
+    public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
         this.executorService = executorService;
         this.xmlVersionTransformer = XmlVersionTransformer.newInstance(this.executorService);
         this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
         this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
         this.jsonEventValueTransformer = new JSONEventValueTransformer();
-        this.xmlEventValueTransformer = new XMLEventValueTransformer();
+        this.xmlEventValueTransformer = new XMLEventValueTransformer(jaxbContext);
     }
 
     private VersionTransformer(VersionTransformer parent, Function<Object, Object> eventMapper) {

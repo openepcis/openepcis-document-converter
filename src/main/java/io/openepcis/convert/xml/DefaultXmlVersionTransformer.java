@@ -57,7 +57,7 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
                       .getResourceAsStream("xalan-conversion/convert-2.0-to-1.2.xsl")));
     } catch (TransformerConfigurationException e) {
       throw new FormatConverterException(
-          "Creation of Transformer instance failed : " + e.getMessage());
+          "Creation of Transformer instance failed : " + e.getMessage(), e);
     }
   }
 

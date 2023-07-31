@@ -196,7 +196,7 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
             eventHandler.end();
 
         } catch (Exception e) {
-            throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage());
+            throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);
         }
 
     }

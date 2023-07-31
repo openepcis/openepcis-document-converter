@@ -204,7 +204,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
       }
 
     } catch (Exception e) {
-      throw new FormatConverterException("Exception during the reading of JSON-LD file : " + e);
+      throw new FormatConverterException("Exception during the reading of JSON-LD file : " + e, e);
     }
     // Close JSONParser after reading all events
   }

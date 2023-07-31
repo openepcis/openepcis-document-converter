@@ -44,7 +44,7 @@ public class XMLFormatter {
           new StreamSource(new StringReader(xml)), new StreamResult(stringWriter));
       return stringWriter.toString();
     } catch (Exception e) {
-      throw new FormatConverterException("Formatting of XML failed : " + e.getMessage() + e);
+      throw new FormatConverterException("Formatting of XML failed : " + e.getMessage() + e, e);
     }
   }
 }

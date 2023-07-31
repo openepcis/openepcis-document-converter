@@ -135,7 +135,7 @@ public class EventValidator implements EPCISEventValidator {
       } catch (IOException | ProcessingException e) {
         throw new FormatConverterException(
             "Exception occurred during the validation of converted JSON event against the JSON-Schema : "
-                + e);
+                + e, e);
       }
     }
   }

@@ -62,7 +62,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
     } catch (IOException e) {
       throw new FormatConverterException(
           "Exception during XML-JSON-LD conversion, Error occurred during the creation of JsonGenerator object "
-              + e);
+              + e, e);
     }
   }
 
@@ -82,7 +82,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
     } catch (IOException e) {
       throw new FormatConverterException(
           "Exception during XML-JSON-LD conversion, Error occurred during writing of the events to JsonGenerator: "
-              + e);
+              + e, e);
     }
   }
 
@@ -115,7 +115,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
                 } catch (IOException e1) {
                   throw new FormatConverterException(
                       "Exception during XML-JSON-LD conversion, Error occurred during the addition of Namespaces: "
-                          + e1);
+                          + e1, e1);
                 }
               });
       jsonGenerator.writeEndArray();
@@ -135,7 +135,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
             } catch (IOException e) {
               throw new FormatConverterException(
                   "Exception during XML-JSON-LD conversion, Error occurred during the addition of attributes: "
-                      + e);
+                      + e, e);
             }
           });
 
@@ -166,7 +166,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
     } catch (IOException e) {
       throw new FormatConverterException(
           "Exception during XML-JSON-LD conversion, Error occurred during the creation of JSON-LD events file: "
-              + e);
+              + e, e);
     }
   }
 
@@ -186,7 +186,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
     } catch (IOException e) {
       throw new FormatConverterException(
           "Exception during XML-JSON-LD conversion, Error occurred during the closing of JSON-LD events file: "
-              + e);
+              + e, e);
     } finally {
       try {
         jsonGenerator.close();
@@ -219,7 +219,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
                 } catch (IOException e1) {
                   throw new FormatConverterException(
                       "Exception during XML-JSON-LD single event conversion, Error occurred during the addition of Namespaces: "
-                          + e1);
+                          + e1, e1);
                 }
               });
       jsonGenerator.writeEndArray();
@@ -231,7 +231,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeRaw(",");
     } catch (IOException e) {
       throw new FormatConverterException(
-          "Exception during XML-JSON-LD single event conversion : " + e);
+          "Exception during XML-JSON-LD single event conversion : " + e, e);
     }
   }
 
@@ -243,7 +243,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
     } catch (IOException e) {
       throw new FormatConverterException(
           "Exception during XML-JSON-LD single event conversion, Error occurred during writing of the events to JsonGenerator: "
-              + e);
+              + e, e);
     }
   }
 
@@ -255,7 +255,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.flush();
     } catch (IOException e) {
       throw new FormatConverterException(
-          "Exception during XML-JSON-LD single event conversion : " + e);
+          "Exception during XML-JSON-LD single event conversion : " + e, e);
     }
   }
 

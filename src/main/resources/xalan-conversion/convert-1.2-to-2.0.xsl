@@ -2,6 +2,7 @@
 <xsl:stylesheet version="2.0"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:epcis="urn:epcglobal:epcis:xsd:2">
+    <xsl:strip-space elements="*"/>
     <xsl:output method="xml" encoding="UTF-8" indent="yes" omit-xml-declaration="no" />
 
     <!-- entry-point for root element(s) -->

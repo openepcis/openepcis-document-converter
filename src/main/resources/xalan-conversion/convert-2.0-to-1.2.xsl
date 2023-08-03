@@ -103,7 +103,7 @@
 			<xsl:apply-templates mode="copy-nodes" select="recordTime"/>
 		</xsl:if>
 		<xsl:apply-templates mode="copy-nodes" select="eventTimeZoneOffset"/>
-		<xsl:if test="eventID or errorDeclaration or extension">
+		<xsl:if test="eventID or errorDeclaration">
 			<baseExtension>
 				<xsl:apply-templates mode="copy-nodes" select="eventID"/>
 				<!-- adding errorDeclaration explicitly because it must respect sequence of elements in EPCIS 1.2 -->
@@ -150,7 +150,7 @@
 				<xsl:if test="ilmd">
 					<xsl:apply-templates mode="copy-nodes" select="ilmd"/>
 				</xsl:if>
-				<xsl:if test="extension/extension or persistentDisposition or sensorElementList">
+				<xsl:if test="extension or persistentDisposition or sensorElementList">
 					<extension>
 						<!-- copy attributes -->
 						<xsl:apply-templates mode="copy-nodes" select="extension/extension/@*"/>
@@ -164,10 +164,11 @@
 						</xsl:if>
 						<!-- adding extension explicitly because it's excluded from copy-nodes mode -->
 						<xsl:apply-templates mode="copy-nodes" select="extension/extension/*"/>
+
+						<!-- adding extension explicitly because it's excluded from copy-nodes mode -->
+						<xsl:apply-templates mode="copy-nodes" select="extension/*"/>
 					</extension>
 				</xsl:if>
-				<!-- adding extension explicitly because it's excluded from copy-nodes mode -->
-				<xsl:apply-templates mode="copy-nodes" select="extension/*"/>
 			</extension>
 		</xsl:if>
 		<!-- adding extension explicitly because it's excluded from copy-nodes mode -->

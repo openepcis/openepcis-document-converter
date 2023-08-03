@@ -260,13 +260,7 @@ public class VersionTransformer {
                 && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
             // If fromMedia is xml and toMedia is json and fromVersion is 1.2, toVersion 2.0 then convert
             // xml->2.0 and then to JSON
-            final InputStream convertedXml =
-                    convert(
-                            inputDocument,
-                            EPCISFormat.XML,
-                            EPCISVersion.VERSION_1_2_0,
-                            EPCISVersion.VERSION_2_0_0);
-            return toJson(convertedXml);
+           return toJson(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0));
         } else if (EPCISFormat.JSON_LD.equals(fromMediaType)
                 && EPCISFormat.JSON_LD.equals(toMediaType)
                 && fromVersion.equals(EPCISVersion.VERSION_2_0_0)

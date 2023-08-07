@@ -15,6 +15,8 @@
  */
 package io.openepcis.convert;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
@@ -28,8 +30,10 @@ import io.openepcis.convert.util.ChannelUtil;
 import io.openepcis.convert.xml.XMLEventValueTransformer;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
+import io.openepcis.model.rest.ProblemResponseBody;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,7 +47,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+@Slf4j
 public class VersionTransformer {
+
+    private final ObjectMapper objectMapper =
+        new ObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
     private final ExecutorService executorService;
     private final XmlVersionTransformer xmlVersionTransformer;
@@ -289,13 +299,10 @@ public class VersionTransformer {
                             xmlOutputStream.close();
                         } catch (Exception e) {
                             try {
-                                xmlOutputStream.write(e.getMessage().getBytes());
+                                xmlOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                                 xmlOutputStream.close();
-                            } finally {
-                                throw new FormatConverterException(
-                                        "Exception occurred during the conversion of JSON 2.0 document to XML 2.0 document  : "
-                                                + e.getMessage(),
-                                        e);
+                            } catch (IOException ioe) {
+                                log.warn("Couldn't write or close the stream", ioe);
                             }
                         }
                     });
@@ -324,13 +331,10 @@ public class VersionTransformer {
                             xmlToJsonConverter.convert(inputDocument, handler);
                         } catch (Exception e) {
                             try {
-                                jsonOutputStream.write(e.getMessage().getBytes());
+                                jsonOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                                 jsonOutputStream.close();
-                            } finally {
-                                throw new FormatConverterException(
-                                        "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
-                                                + e.getMessage(),
-                                        e);
+                            }  catch (IOException ioe) {
+                                log.warn("Couldn't write or close the stream", ioe);
                             }
                         }
                     });
@@ -358,13 +362,10 @@ public class VersionTransformer {
                             jsonEventValueTransformer.convert(inputDocument, handler);
                         } catch (Exception e) {
                             try {
-                                jsonOutputStream.write(e.getMessage().getBytes());
+                                jsonOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                                 jsonOutputStream.close();
-                            } finally {
-                                throw new FormatConverterException(
-                                        "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document  : "
-                                                + e.getMessage(),
-                                        e);
+                            } catch (IOException ioe) {
+                                log.warn("Couldn't write or close the stream", ioe);
                             }
                         }
                     });
@@ -393,13 +394,10 @@ public class VersionTransformer {
                             xmlOutputStream.close();
                         } catch (Exception e) {
                             try {
-                                xmlOutputStream.write(e.getMessage().getBytes());
+                                xmlOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                                 xmlOutputStream.close();
-                            } finally {
-                                throw new FormatConverterException(
-                                        "Exception occurred during the conversion of XML document to XML document  : "
-                                                + e.getMessage(),
-                                        e);
+                            } catch (IOException ioe) {
+                                log.warn("Couldn't write or close the stream", ioe);
                             }
                         }
                     });

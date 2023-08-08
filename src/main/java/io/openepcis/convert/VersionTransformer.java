@@ -27,6 +27,7 @@ import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.json.JSONEventValueTransformer;
 import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.util.ChannelUtil;
+import io.openepcis.convert.xml.ProblemResponseBodyMarshaller;
 import io.openepcis.convert.xml.XMLEventValueTransformer;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
@@ -299,10 +300,12 @@ public class VersionTransformer {
                             xmlOutputStream.close();
                         } catch (Exception e) {
                             try {
-                                xmlOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
+                                ProblemResponseBodyMarshaller.getMarshaller().marshal(ProblemResponseBody.fromException(e), xmlOutputStream);
                                 xmlOutputStream.close();
                             } catch (IOException ioe) {
                                 log.warn("Couldn't write or close the stream", ioe);
+                            } catch (JAXBException ex) {
+                                throw new RuntimeException(ex);
                             }
                         }
                     });
@@ -394,10 +397,12 @@ public class VersionTransformer {
                             xmlOutputStream.close();
                         } catch (Exception e) {
                             try {
-                                xmlOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
+                                ProblemResponseBodyMarshaller.getMarshaller().marshal(ProblemResponseBody.fromException(e), xmlOutputStream);
                                 xmlOutputStream.close();
                             } catch (IOException ioe) {
                                 log.warn("Couldn't write or close the stream", ioe);
+                            } catch (JAXBException ex) {
+                                throw new RuntimeException(ex);
                             }
                         }
                     });

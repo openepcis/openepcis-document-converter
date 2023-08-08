@@ -15,8 +15,6 @@
  */
 package io.openepcis.convert.exception;
 
-import io.openepcis.model.rest.ProblemResponseBody;
-
 import java.io.Serial;
 
 /**

@@ -124,9 +124,8 @@ public abstract class XMLEventParser {
             final EPCISEvent ev = (EPCISEvent) event;
             //Change the key value to keep key as localname and value as namespaceURI
             final Map<String, String> swappedMap = namespaceResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-            ev.setContextInfo(List.of(swappedMap));
+            ev.setContextInfo(!swappedMap.isEmpty() ? List.of(swappedMap) : null);
             ev.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
-
             event = epcisEventMapper.get().apply(event);
         }
         return event;

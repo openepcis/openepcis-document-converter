@@ -232,7 +232,9 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
           }
         }
         // Move to the next event/element in InputStream
-        xmlStreamReader.next();
+        if (!(xmlStreamReader.isStartElement() && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName()))) {
+          xmlStreamReader.next();
+        }
       }
 
       // Call the EventHandle End method to end all the header objects created in the Start method

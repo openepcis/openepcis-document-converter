@@ -98,6 +98,28 @@ public class VersionTransformer {
         this(Executors.newWorkStealingPool());
     }
 
+    // TODO
+    // refactor whole class to use only this builder based signature
+    // most the existing methods are for convenience only
+    // (e.g. skip fromVersion and detect it, skip toVersion to keep fromVersion)
+    // The Conversion class is just a base simple skeleton, may have to be changed into staged aka step builder pattern.
+    // lombok @Builder is most probably too generic for our purposes.
+    // reason for this: it seems like we might be having more features in the future to control conversion behaviour.
+    // the list of arguments will most probably be increasing, and the builder approach is looking cleaner for a large number of arguments
+    public final InputStream convert(
+            final InputStream inputDocument,
+            final Conversion conversion)
+            throws UnsupportedOperationException, IOException {
+        return convert(inputDocument, conversion.fromMediaType(), conversion.fromVersion(), conversion.fromMediaType(), conversion.toVersion(), conversion.generateGS1CompliantDocument());
+    }
+    public final InputStream convert(
+            final InputStream inputStream,
+            final Function<Conversion.Builder, Conversion> builder
+    ) throws UnsupportedOperationException, IOException {
+        return convert(inputStream, builder.apply(Conversion.builder()));
+    }
+
+
     /**
      * Method with autodetect EPCIS version from inputStream
      *

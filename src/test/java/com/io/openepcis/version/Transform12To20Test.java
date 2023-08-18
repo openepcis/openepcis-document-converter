@@ -45,7 +45,7 @@ public class Transform12To20Test {
                 "1.2/EPCIS/XML/Capture/Documents/AggregationEvent_all_possible_fields.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputDocument, EPCISFormat.XML, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0);
+            inputDocument, EPCISFormat.XML, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, false);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -63,7 +63,8 @@ public class Transform12To20Test {
                 "1.2/EPCIS/XML/Capture/Documents/TransformationEvent_all_possible_fields.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputDocument, EPCISFormat.XML, EPCISFormat.XML, EPCISVersion.VERSION_2_0_0);
+            inputDocument, EPCISFormat.XML, EPCISFormat.XML, EPCISVersion.VERSION_2_0_0,
+            false);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -85,7 +86,8 @@ public class Transform12To20Test {
             EPCISFormat.XML,
             EPCISVersion.VERSION_1_2_0,
             EPCISFormat.XML,
-            EPCISVersion.VERSION_2_0_0);
+            EPCISVersion.VERSION_2_0_0,
+            false);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

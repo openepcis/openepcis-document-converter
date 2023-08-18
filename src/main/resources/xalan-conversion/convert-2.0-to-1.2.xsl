@@ -6,9 +6,9 @@
 	<xsl:output method="xml" encoding="UTF-8" indent="yes" omit-xml-declaration="no" xalan:indent-amount="4"/>
 
 	<!-- configure inclusion of elements that have been introduced with EPCIS 2.0 -->
-	<xsl:variable name="includeAssociationEvent" select ="'yes'" />
-	<xsl:variable name="includePersistentDisposition" select ="'yes'" />
-	<xsl:variable name="includeSensorElementList" select ="'yes'" />
+	<xsl:param name="includeAssociationEvent" select ="'yes'" />
+	<xsl:param name="includePersistentDisposition" select ="'yes'" />
+	<xsl:param name="includeSensorElementList" select ="'yes'" />
 
 	<!-- entry-point for root element(s) -->
 	<xsl:template match="/*">

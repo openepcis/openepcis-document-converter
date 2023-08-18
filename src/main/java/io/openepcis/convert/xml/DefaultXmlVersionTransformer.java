@@ -65,18 +65,21 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    * Public method invoked by the calling application by indicating the type of conversion i.e. from
    * XML 1.2 -> XML 2.0 or vice versa.
    *
-   * @param inputStream Stream of EPCIS 1.2/2.0 XML document.
-   * @param fromVersion Indicating the version of the provided input EPCIS XML document.
-   * @param toVersion Indicating the version to which provided input EPCIS XML document needs to be
-   *     converted to.
+   * @param inputStream                  Stream of EPCIS 1.2/2.0 XML document.
+   * @param fromVersion                  Indicating the version of the provided input EPCIS XML document.
+   * @param toVersion                    Indicating the version to which provided input EPCIS XML document needs to be
+   *                                     converted to.
+   * @param generateGS1CompliantDocument
+   *
    * @return returns the InputStream of EPCIS 1.2/2.0 XML document.
+   *
    * @throws UnsupportedOperationException if user is trying to convert different version other than
-   *     specified then throw the error
-   * @throws IOException If any exception occur during the conversion then throw the error
+   *                                       specified then throw the error
+   * @throws IOException                   If any exception occur during the conversion then throw the error
    */
   @Override
   public final InputStream xmlConverter(
-      final InputStream inputStream, final EPCISVersion fromVersion, final EPCISVersion toVersion)
+      final InputStream inputStream, final EPCISVersion fromVersion, final EPCISVersion toVersion, final boolean generateGS1CompliantDocument)
       throws UnsupportedOperationException, IOException {
     if (fromVersion.equals(toVersion)) {
       // if input document version and conversion version are equal then return same document.
@@ -88,7 +91,7 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
     } else if (fromVersion.equals(EPCISVersion.VERSION_2_0_0)
         && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
       // If input document version is 2.0 and conversion version is 1.2, convert from XML 2.0 -> 1.2
-      return convert20To12(inputStream);
+      return convert20To12(inputStream, generateGS1CompliantDocument);
     } else {
       throw new UnsupportedOperationException(
           "Requested conversion is not supported, Please check provided MediaType/Version and try again");
@@ -131,13 +134,20 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
   /**
    * Convert EPCIS 2.0 XML document to EPCIS 1.2 XML document
    *
-   * @param inputDocument EPCIS 2.0 document as a InputStream
+   * @param inputDocument                EPCIS 2.0 document as a InputStream
+   * @param generateGS1CompliantDocument
+   *
    * @return converted EPCIS 1.2 XML document as a InputStream
+   *
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  private InputStream convert20To12(final InputStream inputDocument) throws IOException {
+  private InputStream convert20To12(final InputStream inputDocument, final boolean generateGS1CompliantDocument) throws IOException {
     final PipedOutputStream outTransform = new PipedOutputStream();
     final InputStream convertedDocument = new PipedInputStream(outTransform);
+
+    from20T012.setParameter("includeAssociationEvent", generateGS1CompliantDocument ? "no" : "yes");
+    from20T012.setParameter("includePersistentDisposition", generateGS1CompliantDocument ? "no" : "yes");
+    from20T012.setParameter("includeSensorElementList", generateGS1CompliantDocument ? "no" : "yes");
 
     executorService.execute(
         () -> {

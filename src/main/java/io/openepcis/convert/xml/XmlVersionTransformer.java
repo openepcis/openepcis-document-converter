@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 
 public interface XmlVersionTransformer {
   public InputStream xmlConverter(
-      InputStream inputStream, EPCISVersion fromVersion, EPCISVersion toVersion)
+      InputStream inputStream, EPCISVersion fromVersion, EPCISVersion toVersion, final boolean generateGS1CompliantDocument)
       throws UnsupportedOperationException, IOException;
 
   static XmlVersionTransformer newInstance() {

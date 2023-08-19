@@ -156,7 +156,7 @@ public class XmlToJsonTest {
             .convert(
                 inputStream,
                 Conversion
-                    .newBuilder()
+                    .builder()
                       .fromMediaType(EPCISFormat.XML)
                       .fromVersion(EPCISVersion.VERSION_2_0_0)
                       .toMediaType(EPCISFormat.JSON_LD)
@@ -181,7 +181,7 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, Conversion
-                .newBuilder()
+                .builder()
                 .fromMediaType(EPCISFormat.XML)
                 .toMediaType(EPCISFormat.JSON_LD)
                 .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -205,7 +205,7 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream,
             Conversion
-                .newBuilder()
+                .builder()
                   .fromMediaType(EPCISFormat.XML)
                   .toMediaType(EPCISFormat.JSON_LD)
                   .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -229,7 +229,7 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream,
             Conversion
-                .newBuilder()
+                .builder()
                   .fromMediaType(EPCISFormat.XML)
                   .toMediaType(EPCISFormat.JSON_LD)
                   .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -254,7 +254,7 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream,
             Conversion
-                .newBuilder()
+                .builder()
                   .fromMediaType(EPCISFormat.XML)
                   .toMediaType(EPCISFormat.JSON_LD)
                   .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -279,7 +279,7 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream,
             Conversion
-                .newBuilder()
+                .builder()
                   .fromMediaType(EPCISFormat.XML)
                   .toMediaType(EPCISFormat.JSON_LD)
                   .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -342,7 +342,7 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream,
             Conversion
-                .newBuilder()
+                .builder()
                   .fromMediaType(EPCISFormat.XML)
                   .toMediaType(EPCISFormat.JSON_LD)
                   .toVersion(EPCISVersion.VERSION_2_0_0)

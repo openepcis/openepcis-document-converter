@@ -47,7 +47,7 @@ public class Transform12To20Test {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
-            Conversion.newBuilder()
+            Conversion.builder()
                 .fromMediaType(EPCISFormat.XML)
                 .fromVersion(EPCISVersion.VERSION_1_2_0)
                 .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -71,7 +71,7 @@ public class Transform12To20Test {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
-            Conversion.newBuilder()
+            Conversion.builder()
                 .fromMediaType(EPCISFormat.XML)
                 .toMediaType(EPCISFormat.XML)
                 .toVersion(EPCISVersion.VERSION_2_0_0)
@@ -95,13 +95,12 @@ public class Transform12To20Test {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
-            Conversion.newBuilder()
-                .fromMediaType(EPCISFormat.XML)
-                .fromVersion(EPCISVersion.VERSION_1_2_0)
-                .toMediaType(EPCISFormat.XML)
-                .toVersion(EPCISVersion.VERSION_2_0_0)
-                .generateGS1CompliantDocument(false)
-                .build());
+            Conversion.of(
+                EPCISFormat.XML,
+                EPCISVersion.VERSION_1_2_0,
+                EPCISFormat.XML,
+                EPCISVersion.VERSION_2_0_0,
+                false));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

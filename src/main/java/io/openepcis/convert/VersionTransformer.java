@@ -98,35 +98,12 @@ public class VersionTransformer {
         this(Executors.newWorkStealingPool());
     }
 
-    // TODO
-    // refactor whole class to use only this builder based signature
-    // most the existing methods are for convenience only
-    // (e.g. skip fromVersion and detect it, skip toVersion to keep fromVersion)
-    // The Conversion class is just a base simple skeleton, may have to be changed into staged aka step builder pattern.
-    // lombok @Builder is most probably too generic for our purposes.
-    // reason for this: it seems like we might be having more features in the future to control conversion behaviour.
-    // the list of arguments will most probably be increasing, and the builder approach is looking cleaner for a large number of arguments
-    public final InputStream convert(
-            final InputStream inputDocument,
-            final Conversion conversion)
-            throws UnsupportedOperationException, IOException {
-        return convert(inputDocument, conversion.fromMediaType(), conversion.fromVersion(), conversion.fromMediaType(), conversion.toVersion(), conversion.generateGS1CompliantDocument());
-    }
-    public final InputStream convert(
-            final InputStream inputStream,
-            final Function<Conversion.Builder, Conversion> builder
-    ) throws UnsupportedOperationException, IOException {
-        return convert(inputStream, builder.apply(Conversion.builder()));
-    }
-
-
     /**
      * Method with autodetect EPCIS version from inputStream
      *
      * @param inputDocument EPCIS document in either application/xml or application/json format as a
      *                      InputStream
-     * @param fromMediaType MediaType of the input EPCIS document, also format to which the output
-     *                      document will also be converted i.e. application/xml or application/json
+     * @param conversion Conversion object with required fields.
      * @return returns the converted EPCIS document as InputStream which can be used for further
      * processing
      * @throws UnsupportedOperationException if user is trying to convert different version other than
@@ -134,17 +111,16 @@ public class VersionTransformer {
      */
     public final InputStream convert(
             final InputStream inputDocument,
-            final EPCISFormat fromMediaType,
-            final EPCISFormat toMediaType,
-            final EPCISVersion toVersion,
-            final boolean generateGS1CompliantDocument)
+            final Conversion conversion)
             throws UnsupportedOperationException, IOException {
 
-        if (fromMediaType.getMediaType().equals(EPCISFormat.JSON_LD.getMediaType())) {
-            return convert(inputDocument, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0, toMediaType, toVersion, generateGS1CompliantDocument);
-        } else {
-            final Map<String, Object> result = versionDetector(inputDocument);
-            final EPCISVersion fromVersion = (EPCISVersion) result.get("version");
+        // Checking if mediaType is JSON_LD, and detecting version conditionally
+        Map<String, Object> result = conversion.getFromMediaType().getMediaType().equals(EPCISFormat.JSON_LD.getMediaType()) ? null : versionDetector(inputDocument);
+        EPCISVersion fromVersion = result == null ? EPCISVersion.VERSION_2_0_0 : (EPCISVersion) result.get("version");
+
+        InputStream inputStream = inputDocument;
+        // If version detected, result won't be null, thus do InputStream operations
+        if (result != null) {
             final byte[] preScan = (byte[]) result.get("preScan");
             final int len = (int) result.get("len");
 
@@ -152,20 +128,31 @@ public class VersionTransformer {
             final PipedInputStream pipe = new PipedInputStream(pipedOutputStream);
             pipedOutputStream.write(preScan, 0, len);
 
-            executorService.execute(
-                    () -> {
-                        try {
-                            ChannelUtil.copy(inputDocument, pipedOutputStream);
-                        } catch (Exception e) {
-                            throw new FormatConverterException(
-                                    "Exception occurred during reading of schema version from input document : "
-                                            + e.getMessage(),
-                                    e);
-                        }
-                    });
-
-            return convert(pipe, fromMediaType, fromVersion, toMediaType, toVersion, generateGS1CompliantDocument);
+            executorService.execute(() -> {
+                try {
+                    ChannelUtil.copy(inputDocument, pipedOutputStream);
+                } catch (Exception e) {
+                    throw new FormatConverterException(
+                        "Exception occurred during reading of schema version from input document : "
+                            + e.getMessage(),
+                        e);
+                }
+            });
+            inputStream = pipe;
         }
+
+
+        Conversion conversionToPerform = Conversion
+            .newBuilder()
+                .fromMediaType(conversion.getFromMediaType())
+                .fromVersion(fromVersion)
+                // if toMediaType is not present, use fromMediaType
+                .toMediaType(conversion.getToMediaType())
+                .toVersion(conversion.getToVersion())
+                .generateGS1CompliantDocument(conversion.isGenerateGS1CompliantDocument())
+            .build();
+
+        return performConversion(inputStream, conversionToPerform);
 
     }
 
@@ -218,89 +205,53 @@ public class VersionTransformer {
      *
      * @param inputDocument EPCIS document in either application/xml or application/json format as a
      *                      InputStream
-     * @param mediaType     MediaType of the input EPCIS document, also format to which the output
-     *                      document will also be converted i.e. application/xml or application/json
-     * @param fromVersion   Version of the provided input EPCIS document i.e. 1.2/2.0
-     * @param toVersion     Version to which provided document need to be converted to 1.2/2.0
-     * @return returns the converted EPCIS document as InputStream which can be used for further
-     * processing
-     * @throws UnsupportedOperationException if user is trying to convert different version other than
-     *                                       specified then throw the error
-     * @throws IOException                   If any exception occur during the conversion then throw the error
-     */
-    public final InputStream convert(
-            final InputStream inputDocument,
-            final EPCISFormat mediaType,
-            final EPCISVersion fromVersion,
-            final EPCISVersion toVersion,
-            final boolean generateGS1CompliantDocument)
-            throws UnsupportedOperationException, IOException {
-        return convert(inputDocument, mediaType, fromVersion, mediaType, toVersion, generateGS1CompliantDocument);
-    }
-
-    /**
-     * API method to accept EPCIS document input and transform it to corresponding document based on
-     * user specification.
-     *
-     * @param inputDocument EPCIS document in either application/xml or application/json format as a
-     *                      InputStream
-     * @param fromMediaType MediaType of the input EPCIS document i.e. application/xml or
-     *                      application/json
-     * @param fromVersion   Version of the provided input EPCIS document i.e. 1.2/2.0
-     * @param toMediaType   MediaType of the converted EPCIS document i.e. application/xml or
-     *                      application/json
-     * @param toVersion     Version to which provided document need to be converted to 1.2/2.0
      * @return returns the converted document as InputStream which can be used for further processing
      * @throws UnsupportedOperationException if user is trying to convert different version other than
      *                                       specified then throw the error
      * @throws IOException                   If any exception occur during the conversion then throw the error
      */
-    public final InputStream convert(
+    public final InputStream performConversion(
             final InputStream inputDocument,
-            final EPCISFormat fromMediaType,
-            final EPCISVersion fromVersion,
-            final EPCISFormat toMediaType,
-            final EPCISVersion toVersion,
-            final boolean generateGS1CompliantDocument)
+            final Conversion conversion)
             throws UnsupportedOperationException, IOException {
         // If input fromVersion and the required output toVersion is same then return the same input.
-        if (EPCISFormat.XML.equals(fromMediaType) && EPCISFormat.XML.equals(toMediaType)) {
+        if (EPCISFormat.XML.equals(conversion.getFromMediaType()) && EPCISFormat.XML.equals(conversion.getToMediaType())) {
 
-            if(toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
-                InputStream streamWithPreferences  = fromVersion.equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, generateGS1CompliantDocument));
-                return xmlVersionTransformer.xmlConverter(streamWithPreferences, EPCISVersion.VERSION_2_0_0, toVersion, generateGS1CompliantDocument);
+            if(conversion.getToVersion().equals(EPCISVersion.VERSION_1_2_0)) {
+                InputStream streamWithPreferences  = conversion.getFromVersion().equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, conversion.isGenerateGS1CompliantDocument()));
+                return xmlVersionTransformer.xmlConverter(streamWithPreferences, EPCISVersion.VERSION_2_0_0, conversion.getToVersion(), conversion.isGenerateGS1CompliantDocument());
             } else {
-                return fromVersion.equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, generateGS1CompliantDocument));
+                return conversion.getFromVersion().equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, conversion.isGenerateGS1CompliantDocument()));
             }
-        } else if (EPCISFormat.JSON_LD.equals(fromMediaType)
-                && EPCISFormat.XML.equals(toMediaType)
-                && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
-                && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
+        } else if (EPCISFormat.JSON_LD.equals(conversion.getFromMediaType())
+                && EPCISFormat.XML.equals(conversion.getToMediaType())
+                && conversion.getFromVersion().equals(EPCISVersion.VERSION_2_0_0)
+                && conversion.getToVersion().equals(EPCISVersion.VERSION_2_0_0)) {
             // If fromMedia is json and toMedia is xml and both versions are 2.0
             return toXml(inputDocument);
-        } else if (EPCISFormat.JSON_LD.equals(fromMediaType)
-                && EPCISFormat.XML.equals(toMediaType)
-                && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
-                && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
+        } else if (EPCISFormat.JSON_LD.equals(conversion.getFromMediaType())
+                && EPCISFormat.XML.equals(conversion.getToMediaType())
+                && conversion.getFromVersion().equals(EPCISVersion.VERSION_2_0_0)
+                && conversion.getToVersion().equals(EPCISVersion.VERSION_1_2_0)) {
             // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
-            return xmlVersionTransformer.xmlConverter(toXml(inputDocument), EPCISVersion.VERSION_2_0_0, EPCISVersion.VERSION_1_2_0, generateGS1CompliantDocument);
-        } else if (EPCISFormat.XML.equals(fromMediaType)
-                && EPCISFormat.JSON_LD.equals(toMediaType)
-                && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
-                && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
+            return xmlVersionTransformer.xmlConverter(toXml(inputDocument), EPCISVersion.VERSION_2_0_0, EPCISVersion.VERSION_1_2_0, conversion.isGenerateGS1CompliantDocument());
+        } else if (EPCISFormat.XML.equals(conversion.getFromMediaType())
+                && EPCISFormat.JSON_LD.equals(conversion.getToMediaType())
+                && conversion.getFromVersion().equals(EPCISVersion.VERSION_2_0_0)
+                && conversion.getToVersion().equals(EPCISVersion.VERSION_2_0_0)) {
             // If fromMedia is xml and toMedia is json and both versions are 2.0 convert xml->json
             return toJson(inputDocument);
-        } else if (EPCISFormat.XML.equals(fromMediaType)
-                && EPCISFormat.JSON_LD.equals(toMediaType)
-                && fromVersion.equals(EPCISVersion.VERSION_1_2_0)
-                && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
+        } else if (EPCISFormat.XML.equals(conversion.getFromMediaType())
+                && EPCISFormat.JSON_LD.equals(conversion.getToMediaType())
+                && conversion.getFromVersion().equals(EPCISVersion.VERSION_1_2_0)
+                && conversion.getToVersion().equals(EPCISVersion.VERSION_2_0_0)) {
             // If fromMedia is xml and toMedia is json and fromVersion is 1.2, toVersion 2.0 then convert
             // xml->2.0 and then to JSON
-           return toJson(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, generateGS1CompliantDocument));
-        } else if (EPCISFormat.JSON_LD.equals(fromMediaType)
-                && EPCISFormat.JSON_LD.equals(toMediaType)
-                && fromVersion.equals(EPCISVersion.VERSION_2_0_0)
-                && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
+           return toJson(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, conversion.isGenerateGS1CompliantDocument()));
+        } else if (EPCISFormat.JSON_LD.equals(conversion.getFromMediaType())
+                && EPCISFormat.JSON_LD.equals(conversion.getToMediaType())
+                && conversion.getFromVersion().equals(EPCISVersion.VERSION_2_0_0)
+                && conversion.getToVersion().equals(EPCISVersion.VERSION_2_0_0)) {
             // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
             return fromJsonToJson(inputDocument);
         } else {

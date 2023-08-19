@@ -2,84 +2,89 @@ package io.openepcis.convert;
 
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
-import lombok.AccessLevel;
-import lombok.Builder;
+import lombok.Getter;
 
-@Builder(builderClassName = "Builder")
+@Getter
 public class Conversion {
 
-    private final EPCISFormat fromMediaType;
-    private final EPCISVersion fromVersion;
-    private final EPCISFormat toMediaType;
-    private final EPCISVersion toVersion;
-    private final boolean generateGS1CompliantDocument;
+    private EPCISFormat fromMediaType;
+    private EPCISVersion fromVersion;
+    private EPCISFormat toMediaType;
+    private EPCISVersion toVersion;
+    private boolean generateGS1CompliantDocument;
 
-    /**
-     * @param fromMediaType                MediaType of the input EPCIS document i.e. application/xml or
-     *                                     application/json
-     * @param fromVersion                  Version of the provided input EPCIS document i.e. 1.2/2.0
-     * @param toMediaType                  MediaType of the converted EPCIS document i.e. application/xml or
-     *                                     application/json
-     * @param toVersion                    Version to which provided document need to be converted to 1.2/2.0
-     * @param generateGS1CompliantDocument generate GS1 compliant output only
-     */
-    private Conversion(final EPCISFormat fromMediaType,
-                       final EPCISVersion fromVersion,
-                       final EPCISFormat toMediaType,
-                       final EPCISVersion toVersion,
-                       boolean generateGS1CompliantDocument
-    ) {
-        // TODO verify setup from/to depending on what is missing (==null)
-        this.fromMediaType = fromMediaType;
-        this.fromVersion = fromVersion;
-        this.toMediaType = toMediaType != null ? toMediaType : fromMediaType != null ? fromMediaType : EPCISFormat.JSON_LD;
-        this.toVersion = toVersion != null ? toVersion : fromVersion != null ? fromVersion : EPCISVersion.VERSION_2_0_0;
-        this.generateGS1CompliantDocument = generateGS1CompliantDocument;
+    private Conversion() {
     }
 
-    public static final Conversion of(
-            final EPCISFormat fromMediaType,
-            final EPCISVersion fromVersion,
-            final EPCISFormat toMediaType,
-            final EPCISVersion toVersion,
-            boolean generateGS1CompliantDocument
-    ) {
-        return new Conversion(fromMediaType, fromVersion, toMediaType, toVersion, generateGS1CompliantDocument);
+    public static FromMediaTypeStage newBuilder() {
+        return new Stages();
     }
 
-    public static final Conversion of(
-            final EPCISFormat fromMediaType,
-            final EPCISVersion fromVersion,
-            final EPCISFormat toMediaType,
-            final EPCISVersion toVersion
-    ) {
-        return of(fromMediaType, fromVersion, toMediaType, toVersion, true);
+    public interface FromMediaTypeStage {
+        ToVersionStage fromMediaType(EPCISFormat fromMediaType);
     }
 
-
-    public EPCISFormat fromMediaType() {
-        return fromMediaType;
+    public interface ToVersionStage {
+        ToVersionStage fromVersion(EPCISVersion fromVersion);
+        GS1ComplianceStage toVersion(EPCISVersion toVersion);
+        ToVersionStage toMediaType(EPCISFormat toMediaType);
     }
 
-    public EPCISFormat toMediaType() {
-        return toMediaType;
+    public interface GS1ComplianceStage {
+        BuildStage generateGS1CompliantDocument(boolean generateGS1CompliantDocument);
+    }
+    public interface BuildStage {
+        Conversion build();
     }
 
-    public EPCISVersion fromVersion() {
-        return fromVersion;
-    }
+    private static class Stages implements FromMediaTypeStage, ToVersionStage, BuildStage, GS1ComplianceStage {
 
-    public EPCISVersion toVersion() {
-        return toVersion;
-    }
+        private EPCISFormat fromMediaType;
+        private EPCISVersion fromVersion;
+        private EPCISFormat toMediaType;
+        private EPCISVersion toVersion;
+        private boolean generateGS1CompliantDocument;
 
-    public boolean generateGS1CompliantDocument() {
-        return generateGS1CompliantDocument;
-    }
+        @Override
+        public ToVersionStage fromMediaType(EPCISFormat fromMediaType) {
+            this.fromMediaType = fromMediaType;
+            return this;
+        }
 
-    public static Builder builder() {
-        // setup with defaults
-        return new Builder().generateGS1CompliantDocument(true);
-    }
+        @Override
+        public ToVersionStage fromVersion(EPCISVersion fromVersion) {
+            this.fromVersion = fromVersion;
+            return this;
+        }
 
+        @Override
+        public ToVersionStage toMediaType(EPCISFormat toMediaType) {
+            this.toMediaType = toMediaType;
+            return this;
+        }
+
+        @Override
+        public GS1ComplianceStage toVersion(EPCISVersion toVersion) {
+            this.toVersion = toVersion;
+            return this;
+        }
+
+        @Override
+        public BuildStage generateGS1CompliantDocument(boolean generateGS1CompliantDocument) {
+            this.generateGS1CompliantDocument = generateGS1CompliantDocument;
+            return this;
+        }
+
+        @Override
+        public Conversion build() {
+            Conversion conversion = new Conversion();
+            conversion.fromMediaType = this.fromMediaType;
+            conversion.fromVersion = this.fromVersion;
+            conversion.toMediaType = toMediaType != null ? toMediaType : this.fromMediaType != null ? this.fromMediaType : EPCISFormat.JSON_LD;
+            conversion.toVersion = toVersion != null ? toVersion : this.fromVersion != null ? this.fromVersion : EPCISVersion.VERSION_2_0_0;
+            conversion.generateGS1CompliantDocument = this.generateGS1CompliantDocument;
+
+            return conversion;
+        }
+    }
 }

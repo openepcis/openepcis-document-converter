@@ -17,6 +17,7 @@ package com.io.openepcis.convert;
 
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
+import io.openepcis.convert.Conversion;
 import io.openepcis.convert.VersionTransformer;
 import io.openepcis.convert.collector.EventHandler;
 import io.openepcis.convert.collector.XmlEPCISEventCollector;
@@ -118,7 +119,13 @@ public class JsonToXmlTest {
                 "2.0/EPCIS/JSON/Capture/Documents/AssociationEvent_all_possible_fields.json");
     final InputStream convertedDocument =
         new VersionTransformer()
-            .convert(inputStream, EPCISFormat.JSON_LD, EPCISFormat.XML, EPCISVersion.VERSION_1_2_0, false);
+            .convert(inputStream,
+                Conversion.builder()
+                    .fromMediaType(EPCISFormat.JSON_LD)
+                    .toMediaType(EPCISFormat.XML)
+                    .toVersion(EPCISVersion.VERSION_1_2_0)
+                    .generateGS1CompliantDocument(false)
+                    .build());
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -137,11 +144,12 @@ public class JsonToXmlTest {
         new VersionTransformer()
             .convert(
                 inputStream,
-                EPCISFormat.JSON_LD,
-                EPCISVersion.VERSION_2_0_0,
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_1_2_0,
-                false);
+                Conversion.of(
+                    EPCISFormat.JSON_LD,
+                    EPCISVersion.VERSION_2_0_0,
+                    EPCISFormat.XML,
+                    EPCISVersion.VERSION_1_2_0,
+                    false));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -161,11 +169,12 @@ public class JsonToXmlTest {
         new VersionTransformer()
             .convert(
                 inputStream,
-                EPCISFormat.JSON_LD,
-                EPCISVersion.VERSION_2_0_0,
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_2_0_0,
-                false);
+                Conversion.of(
+                    EPCISFormat.JSON_LD,
+                    EPCISVersion.VERSION_2_0_0,
+                    EPCISFormat.XML,
+                    EPCISVersion.VERSION_2_0_0,
+                    false));
     Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
     try {
       convertedDocument.close();
@@ -223,11 +232,12 @@ public class JsonToXmlTest {
         new VersionTransformer()
             .convert(
                 inputStream,
-                EPCISFormat.JSON_LD,
-                EPCISVersion.VERSION_2_0_0,
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_2_0_0,
-                false);
+                Conversion.of(
+                    EPCISFormat.JSON_LD,
+                    EPCISVersion.VERSION_2_0_0,
+                    EPCISFormat.XML,
+                    EPCISVersion.VERSION_2_0_0,
+                    false));
     Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
     try {
       convertedDocument.close();

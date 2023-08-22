@@ -3,6 +3,8 @@ package io.openepcis.convert;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 
+import java.util.Optional;
+
 public class Conversion {
 
 
@@ -10,7 +12,7 @@ public class Conversion {
     private EPCISVersion fromVersion;
     private EPCISFormat toMediaType;
     private EPCISVersion toVersion;
-    private boolean generateGS1CompliantDocument;
+    private Boolean generateGS1CompliantDocument = null;
 
 
     private Conversion() {
@@ -20,7 +22,7 @@ public class Conversion {
                                       final EPCISVersion fromVersion,
                                       final EPCISFormat toMediaType,
                                       final EPCISVersion toVersion,
-                                      final boolean generateGS1CompliantDocument
+                                      final Boolean generateGS1CompliantDocument
     ) {
         final Conversion conversion = new Conversion();
         conversion.fromMediaType = fromMediaType;
@@ -54,8 +56,8 @@ public class Conversion {
         return toVersion;
     }
 
-    public boolean generateGS1CompliantDocument() {
-        return generateGS1CompliantDocument;
+    public Optional<Boolean> generateGS1CompliantDocument() {
+        return Optional.ofNullable(generateGS1CompliantDocument);
     }
 
     public static StartStage builder() {
@@ -102,7 +104,7 @@ public class Conversion {
         private EPCISVersion fromVersion;
         private EPCISFormat toMediaType;
         private EPCISVersion toVersion;
-        private boolean generateGS1CompliantDocument = true;
+        private Boolean generateGS1CompliantDocument = null;
 
         @Override
         public FromMediaTypeStage fromMediaType(EPCISFormat fromMediaType) {
@@ -112,6 +114,7 @@ public class Conversion {
 
         @Override
         public BuildStage generateGS1CompliantDocument(boolean generateGS1CompliantDocument) {
+            this.generateGS1CompliantDocument = Boolean.valueOf(generateGS1CompliantDocument);
             return this;
         }
 

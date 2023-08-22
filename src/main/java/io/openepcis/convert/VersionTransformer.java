@@ -147,7 +147,7 @@ public class VersionTransformer {
                 fromVersion,
                 conversion.toMediaType(),
                 conversion.toVersion(),
-                conversion.generateGS1CompliantDocument()
+                conversion.generateGS1CompliantDocument().orElse(null)
         );
 
         return performConversion(inputStream, conversionToPerform);
@@ -216,10 +216,10 @@ public class VersionTransformer {
         if (EPCISFormat.XML.equals(conversion.fromMediaType()) && EPCISFormat.XML.equals(conversion.toMediaType())) {
 
             if (conversion.toVersion().equals(EPCISVersion.VERSION_1_2_0)) {
-                InputStream streamWithPreferences = conversion.fromVersion().equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, conversion.generateGS1CompliantDocument()));
-                return xmlVersionTransformer.xmlConverter(streamWithPreferences, EPCISVersion.VERSION_2_0_0, conversion.toVersion(), conversion.generateGS1CompliantDocument());
+                InputStream streamWithPreferences = conversion.fromVersion().equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, conversion));
+                return xmlVersionTransformer.xmlConverter(streamWithPreferences, conversion);
             } else {
-                return conversion.fromVersion().equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, conversion.generateGS1CompliantDocument()));
+                return conversion.fromVersion().equals(EPCISVersion.VERSION_2_0_0) ? fromXmlToXml(inputDocument) : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, conversion));
             }
         } else if (EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
                 && EPCISFormat.XML.equals(conversion.toMediaType())
@@ -232,7 +232,7 @@ public class VersionTransformer {
                 && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
                 && EPCISVersion.VERSION_1_2_0.equals(conversion.toVersion())) {
             // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
-            return xmlVersionTransformer.xmlConverter(toXml(inputDocument), EPCISVersion.VERSION_2_0_0, EPCISVersion.VERSION_1_2_0, conversion.generateGS1CompliantDocument());
+            return xmlVersionTransformer.xmlConverter(toXml(inputDocument), conversion);
         } else if (EPCISFormat.XML.equals(conversion.fromMediaType())
                 && EPCISFormat.JSON_LD.equals(conversion.toMediaType())
                 && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
@@ -245,7 +245,7 @@ public class VersionTransformer {
                 && EPCISVersion.VERSION_2_0_0.equals(conversion.toVersion())) {
             // If fromMedia is xml and toMedia is json and fromVersion is 1.2, toVersion 2.0 then convert
             // xml->2.0 and then to JSON
-            return toJson(xmlVersionTransformer.xmlConverter(inputDocument, EPCISVersion.VERSION_1_2_0, EPCISVersion.VERSION_2_0_0, conversion.generateGS1CompliantDocument()));
+            return toJson(xmlVersionTransformer.xmlConverter(inputDocument, conversion));
         } else if (EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
                 && EPCISFormat.JSON_LD.equals(conversion.toMediaType())
                 && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())

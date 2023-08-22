@@ -16,14 +16,18 @@
 package io.openepcis.convert.xml;
 
 import io.openepcis.constants.EPCISVersion;
+import io.openepcis.convert.Conversion;
+import io.openepcis.convert.VersionTransformerFeature;
 import io.openepcis.convert.exception.FormatConverterException;
-import java.io.*;
-import java.util.concurrent.ExecutorService;
+
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+import java.io.*;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Class for handling the conversion of EPCIS 1.2 document in XML format to EPCIS 2.0 XML document
@@ -66,11 +70,7 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    * XML 1.2 -> XML 2.0 or vice versa.
    *
    * @param inputStream                  Stream of EPCIS 1.2/2.0 XML document.
-   * @param fromVersion                  Indicating the version of the provided input EPCIS XML document.
-   * @param toVersion                    Indicating the version to which provided input EPCIS XML document needs to be
-   *                                     converted to.
-   * @param generateGS1CompliantDocument
-   *
+   * @param conversion                   Conversion setting
    * @return returns the InputStream of EPCIS 1.2/2.0 XML document.
    *
    * @throws UnsupportedOperationException if user is trying to convert different version other than
@@ -79,19 +79,19 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    */
   @Override
   public final InputStream xmlConverter(
-      final InputStream inputStream, final EPCISVersion fromVersion, final EPCISVersion toVersion, final boolean generateGS1CompliantDocument)
+          final InputStream inputStream, final Conversion conversion)
       throws UnsupportedOperationException, IOException {
-    if (fromVersion.equals(toVersion)) {
+    if (conversion.fromVersion().equals(conversion.toVersion())) {
       // if input document version and conversion version are equal then return same document.
       return inputStream;
-    } else if (fromVersion.equals(EPCISVersion.VERSION_1_2_0)
-        && toVersion.equals(EPCISVersion.VERSION_2_0_0)) {
+    } else if (EPCISVersion.VERSION_1_2_0.equals(conversion.fromVersion())
+        && EPCISVersion.VERSION_2_0_0.equals(conversion.toVersion())) {
       // If input document version is 1.2 and conversion version is 2.0, convert from XML 1.2 -> 2.0
       return convert12To20(inputStream);
-    } else if (fromVersion.equals(EPCISVersion.VERSION_2_0_0)
-        && toVersion.equals(EPCISVersion.VERSION_1_2_0)) {
+    } else if (EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
+        && EPCISVersion.VERSION_1_2_0.equals(conversion.toVersion())) {
       // If input document version is 2.0 and conversion version is 1.2, convert from XML 2.0 -> 1.2
-      return convert20To12(inputStream, generateGS1CompliantDocument);
+      return convert20To12(inputStream, VersionTransformerFeature.enabledFeatures(conversion));
     } else {
       throw new UnsupportedOperationException(
           "Requested conversion is not supported, Please check provided MediaType/Version and try again");
@@ -120,12 +120,14 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
             try {
               outTransform.write(e.getMessage().getBytes());
               outTransform.close();
-            } finally {
-              throw new FormatConverterException(
-                  "Exception occurred during conversion of EPCIS XML document from 1.2 to 2.0 : "
-                      + e.getMessage(),
-                  e);
+            } catch (IOException ioException) {
+              // ignore
             }
+            throw new FormatConverterException(
+                    "Exception occurred during conversion of EPCIS XML document from 1.2 to 2.0 : "
+                            + e.getMessage(),
+                    e);
+
           }
         });
     return convertedDocument;
@@ -134,20 +136,20 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
   /**
    * Convert EPCIS 2.0 XML document to EPCIS 1.2 XML document
    *
-   * @param inputDocument                EPCIS 2.0 document as a InputStream
-   * @param generateGS1CompliantDocument
+   * @param inputDocument               EPCIS 2.0 document as a InputStream
+   * @param enabledFeatures             list of enabled VersionTransformer features
    *
    * @return converted EPCIS 1.2 XML document as a InputStream
    *
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  private InputStream convert20To12(final InputStream inputDocument, final boolean generateGS1CompliantDocument) throws IOException {
+  private InputStream convert20To12(final InputStream inputDocument, final List<VersionTransformerFeature> enabledFeatures) throws IOException {
     final PipedOutputStream outTransform = new PipedOutputStream();
     final InputStream convertedDocument = new PipedInputStream(outTransform);
 
-    from20T012.setParameter("includeAssociationEvent", generateGS1CompliantDocument ? "no" : "yes");
-    from20T012.setParameter("includePersistentDisposition", generateGS1CompliantDocument ? "no" : "yes");
-    from20T012.setParameter("includeSensorElementList", generateGS1CompliantDocument ? "no" : "yes");
+    from20T012.setParameter("includeAssociationEvent", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_ASSOCIATION_EVENT) ? "yes" : "no");
+    from20T012.setParameter("includePersistentDisposition", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_PERSISTENT_DISPOSITION) ? "yes" : "no");
+    from20T012.setParameter("includeSensorElementList", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_SENSOR_ELEMENT_LIST) ? "yes" : "no");
 
     executorService.execute(
         () -> {
@@ -160,13 +162,14 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
             try {
               outTransform.write(e.getMessage().getBytes());
               outTransform.close();
-            } finally {
-              throw new FormatConverterException(
+          } catch (IOException ioException) {
+            // ignore
+          }
+          throw new FormatConverterException(
                   "Exception occurred during conversion of EPCIS XML document from 2.0 to 1.2, Failed to convert : "
                       + e.getMessage(),
                   e);
             }
-          }
         });
     return convertedDocument;
   }

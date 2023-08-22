@@ -140,16 +140,17 @@ public class JsonToXmlTest {
         getClass()
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/JSON/Capture/Documents/SensorData_and_extension.json");
-    final InputStream convertedDocument =
-        new VersionTransformer()
-            .convert(
-                inputStream,
-                Conversion.of(
-                    EPCISFormat.JSON_LD,
-                    EPCISVersion.VERSION_2_0_0,
-                    EPCISFormat.XML,
-                    EPCISVersion.VERSION_1_2_0,
-                    false));
+
+
+    var conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.JSON_LD)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_1_2_0)
+        .generateGS1CompliantDocument(false)
+        .build();
+
+    final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -165,16 +166,16 @@ public class JsonToXmlTest {
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/JSON/Capture/Documents/Namespaces_at_different_level.json");
-    final InputStream convertedDocument =
-        new VersionTransformer()
-            .convert(
-                inputStream,
-                Conversion.of(
-                    EPCISFormat.JSON_LD,
-                    EPCISVersion.VERSION_2_0_0,
-                    EPCISFormat.XML,
-                    EPCISVersion.VERSION_2_0_0,
-                    false));
+
+    var conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.JSON_LD)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .generateGS1CompliantDocument(false)
+        .build();
+
+    final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
     Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
     try {
       convertedDocument.close();
@@ -228,16 +229,15 @@ public class JsonToXmlTest {
         getClass()
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
-    final InputStream convertedDocument =
-        new VersionTransformer()
-            .convert(
-                inputStream,
-                Conversion.of(
-                    EPCISFormat.JSON_LD,
-                    EPCISVersion.VERSION_2_0_0,
-                    EPCISFormat.XML,
-                    EPCISVersion.VERSION_2_0_0,
-                    false));
+    var conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.JSON_LD)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .generateGS1CompliantDocument(false)
+        .build();
+
+    final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
     Assert.assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
     try {
       convertedDocument.close();

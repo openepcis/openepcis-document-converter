@@ -92,15 +92,16 @@ public class Transform12To20Test {
             .getClassLoader()
             .getResourceAsStream(
                 "1.2/EPCIS/XML/Capture/Documents/All_eventTypes_in_single_document.xml");
-    final InputStream convertedDocument =
-        versionTransformer.convert(
-            inputDocument,
-            Conversion.of(
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_1_2_0,
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_2_0_0,
-                false));
+
+    var conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_1_2_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .generateGS1CompliantDocument(false)
+        .build();
+
+    final InputStream convertedDocument = versionTransformer.convert(inputDocument, conversion);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

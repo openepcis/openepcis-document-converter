@@ -92,15 +92,16 @@ public class Transform20To12Test {
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/Combination_of_different_event.xml");
-    final InputStream convertedDocument =
-        versionTransformer.convert(
-            inputDocument,
-            Conversion.of(
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_2_0_0,
-                EPCISFormat.XML,
-                EPCISVersion.VERSION_1_2_0,
-                false));
+
+    var conversion = Conversion.builder()
+                          .fromMediaType(EPCISFormat.XML)
+                          .fromVersion(EPCISVersion.VERSION_2_0_0)
+                          .toMediaType(EPCISFormat.XML)
+                          .toVersion(EPCISVersion.VERSION_1_2_0)
+                          .generateGS1CompliantDocument(false)
+                        .build();
+
+    final InputStream convertedDocument = versionTransformer.convert(inputDocument, conversion);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

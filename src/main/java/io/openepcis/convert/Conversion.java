@@ -16,7 +16,7 @@ public class Conversion {
     private Conversion() {
     }
 
-    public static Conversion of(final EPCISFormat fromMediaType,
+     static Conversion of(final EPCISFormat fromMediaType,
                                       final EPCISVersion fromVersion,
                                       final EPCISFormat toMediaType,
                                       final EPCISVersion toVersion,

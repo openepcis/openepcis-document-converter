@@ -98,6 +98,10 @@ public class VersionTransformer {
         this(Executors.newWorkStealingPool());
     }
 
+    public final InputStream convert(final InputStream inputStream, final Function<Conversion.StartStage, Conversion.BuildStage> fn) throws UnsupportedOperationException, IOException {
+        return convert(inputStream, fn.apply(Conversion.builder()).build());
+    }
+
     /**
      * Method with autodetect EPCIS version from inputStream
      *

@@ -24,14 +24,15 @@ import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.json.JsonToXmlConverter;
 import io.openepcis.convert.util.XMLFormatter;
 import io.openepcis.convert.validator.EventValidator;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public class JsonToXmlTest {
 
@@ -120,12 +121,11 @@ public class JsonToXmlTest {
     final InputStream convertedDocument =
         new VersionTransformer()
             .convert(inputStream,
-                Conversion.builder()
+                b -> b
                     .fromMediaType(EPCISFormat.JSON_LD)
                     .toMediaType(EPCISFormat.XML)
                     .toVersion(EPCISVersion.VERSION_1_2_0)
-                    .generateGS1CompliantDocument(false)
-                    .build());
+                    .generateGS1CompliantDocument(false));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

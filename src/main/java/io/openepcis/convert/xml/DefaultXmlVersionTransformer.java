@@ -28,6 +28,7 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
 /**
  * Class for handling the conversion of EPCIS 1.2 document in XML format to EPCIS 2.0 XML document
@@ -63,6 +64,11 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
       throw new FormatConverterException(
           "Creation of Transformer instance failed : " + e.getMessage(), e);
     }
+  }
+
+  @Override
+  public InputStream xmlConverter(InputStream inputStream, Function<Conversion.StartStage, Conversion.BuildStage> fn) throws UnsupportedOperationException, IOException {
+    return xmlConverter(inputStream, fn.apply(Conversion.builder()).build());
   }
 
   /**

@@ -24,8 +24,14 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 public interface XmlVersionTransformer {
+
+  public InputStream xmlConverter(
+          InputStream inputStream, final Function<Conversion.StartStage, Conversion.BuildStage> fn)
+          throws UnsupportedOperationException, IOException;
+
   public InputStream xmlConverter(
           InputStream inputStream, Conversion conversion)
       throws UnsupportedOperationException, IOException;

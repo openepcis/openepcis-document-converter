@@ -66,6 +66,8 @@ public class Conversion {
 
     public interface StartStage  {
         FromMediaTypeStage fromMediaType(EPCISFormat fromMediaType);
+        StartStage generateGS1CompliantDocument(Boolean generateGS1CompliantDocument);
+        BuildStage toVersion(EPCISVersion toVersion);
     }
 
     public interface FromMediaTypeStage  {
@@ -95,7 +97,6 @@ public class Conversion {
 
     public interface BuildStage {
         Conversion build();
-        BuildStage generateGS1CompliantDocument(boolean generateGS1CompliantDocument);
     }
 
     private static class Stages implements StartStage, FromMediaTypeStage, FromVersionStage, ToMediaTypeStage, BuildStage {
@@ -113,7 +114,7 @@ public class Conversion {
         }
 
         @Override
-        public BuildStage generateGS1CompliantDocument(boolean generateGS1CompliantDocument) {
+        public StartStage generateGS1CompliantDocument(final Boolean generateGS1CompliantDocument) {
             this.generateGS1CompliantDocument = Boolean.valueOf(generateGS1CompliantDocument);
             return this;
         }

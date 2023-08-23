@@ -19,13 +19,14 @@ import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.Conversion;
 import io.openepcis.convert.VersionTransformer;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public class Transform20To12Test {
 
@@ -48,10 +49,10 @@ public class Transform20To12Test {
         versionTransformer.convert(
             inputDocument,
             Conversion.builder()
+                .generateGS1CompliantDocument(false)
                 .fromMediaType(EPCISFormat.XML)
                 .fromVersion(EPCISVersion.VERSION_2_0_0)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
-                .generateGS1CompliantDocument(false)
                 .build());
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
@@ -72,10 +73,10 @@ public class Transform20To12Test {
         versionTransformer.convert(
             inputDocument,
             Conversion.builder()
+                .generateGS1CompliantDocument(false)
                 .fromMediaType(EPCISFormat.XML)
                 .toMediaType(EPCISFormat.XML)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
-                .generateGS1CompliantDocument(false)
                 .build());
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
@@ -94,12 +95,12 @@ public class Transform20To12Test {
                 "2.0/EPCIS/XML/Capture/Documents/Combination_of_different_event.xml");
 
     var conversion = Conversion.builder()
-                          .fromMediaType(EPCISFormat.XML)
-                          .fromVersion(EPCISVersion.VERSION_2_0_0)
-                          .toMediaType(EPCISFormat.XML)
-                          .toVersion(EPCISVersion.VERSION_1_2_0)
-                          .generateGS1CompliantDocument(false)
-                        .build();
+        .generateGS1CompliantDocument(false)
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_1_2_0)
+        .build();
 
     final InputStream convertedDocument = versionTransformer.convert(inputDocument, conversion);
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);

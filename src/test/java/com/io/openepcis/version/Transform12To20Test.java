@@ -48,10 +48,10 @@ public class Transform12To20Test {
         versionTransformer.convert(
             inputDocument,
             Conversion.builder()
+                .generateGS1CompliantDocument(false)
                 .fromMediaType(EPCISFormat.XML)
                 .fromVersion(EPCISVersion.VERSION_1_2_0)
                 .toVersion(EPCISVersion.VERSION_2_0_0)
-                .generateGS1CompliantDocument(false)
                 .build());
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
@@ -72,10 +72,10 @@ public class Transform12To20Test {
         versionTransformer.convert(
             inputDocument,
             Conversion.builder()
+                .generateGS1CompliantDocument(false)
                 .fromMediaType(EPCISFormat.XML)
                 .toMediaType(EPCISFormat.XML)
                 .toVersion(EPCISVersion.VERSION_2_0_0)
-                .generateGS1CompliantDocument(false)
                 .build());
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
@@ -94,11 +94,11 @@ public class Transform12To20Test {
                 "1.2/EPCIS/XML/Capture/Documents/All_eventTypes_in_single_document.xml");
 
     var conversion = Conversion.builder()
+        .generateGS1CompliantDocument(false)
         .fromMediaType(EPCISFormat.XML)
         .fromVersion(EPCISVersion.VERSION_1_2_0)
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_2_0_0)
-        .generateGS1CompliantDocument(false)
         .build();
 
     final InputStream convertedDocument = versionTransformer.convert(inputDocument, conversion);

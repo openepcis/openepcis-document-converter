@@ -67,7 +67,6 @@ public class Conversion {
     public interface StartStage  {
         FromMediaTypeStage fromMediaType(EPCISFormat fromMediaType);
         StartStage generateGS1CompliantDocument(Boolean generateGS1CompliantDocument);
-        BuildStage toVersion(EPCISVersion toVersion);
     }
 
     public interface FromMediaTypeStage  {

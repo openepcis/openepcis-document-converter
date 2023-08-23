@@ -156,11 +156,11 @@ public class XmlToJsonTest {
             .convert(
                 inputStream,
                 b -> b
-                      .fromMediaType(EPCISFormat.XML)
+                    .generateGS1CompliantDocument(false)
+                    .fromMediaType(EPCISFormat.XML)
                       .fromVersion(EPCISVersion.VERSION_2_0_0)
                       .toMediaType(EPCISFormat.JSON_LD)
-                      .toVersion(EPCISVersion.VERSION_2_0_0)
-                      .generateGS1CompliantDocument(true));
+                      .toVersion(EPCISVersion.VERSION_2_0_0));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -179,10 +179,10 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream, b -> b
+                .generateGS1CompliantDocument(false)
                 .fromMediaType(EPCISFormat.XML)
                 .toMediaType(EPCISFormat.JSON_LD)
-                .toVersion(EPCISVersion.VERSION_2_0_0)
-                .generateGS1CompliantDocument(true));
+                .toVersion(EPCISVersion.VERSION_2_0_0));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -244,10 +244,10 @@ public class XmlToJsonTest {
         versionTransformer.convert(
             inputStream,
                   b -> b
-                  .fromMediaType(EPCISFormat.XML)
-                  .toMediaType(EPCISFormat.JSON_LD)
-                  .toVersion(EPCISVersion.VERSION_2_0_0)
-                  .generateGS1CompliantDocument(true));
+                      .generateGS1CompliantDocument(false)
+                      .fromMediaType(EPCISFormat.XML)
+                      .toMediaType(EPCISFormat.JSON_LD)
+                      .toVersion(EPCISVersion.VERSION_2_0_0));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

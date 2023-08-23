@@ -122,10 +122,10 @@ public class JsonToXmlTest {
         new VersionTransformer()
             .convert(inputStream,
                 b -> b
+                    .generateGS1CompliantDocument(false)
                     .fromMediaType(EPCISFormat.JSON_LD)
                     .toMediaType(EPCISFormat.XML)
-                    .toVersion(EPCISVersion.VERSION_1_2_0)
-                    .generateGS1CompliantDocument(false));
+                    .toVersion(EPCISVersion.VERSION_1_2_0));
     Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -143,11 +143,11 @@ public class JsonToXmlTest {
 
 
     var conversion = Conversion.builder()
+        .generateGS1CompliantDocument(false)
         .fromMediaType(EPCISFormat.JSON_LD)
         .fromVersion(EPCISVersion.VERSION_2_0_0)
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_1_2_0)
-        .generateGS1CompliantDocument(false)
         .build();
 
     final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
@@ -168,11 +168,11 @@ public class JsonToXmlTest {
                 "2.0/EPCIS/JSON/Capture/Documents/Namespaces_at_different_level.json");
 
     var conversion = Conversion.builder()
+        .generateGS1CompliantDocument(false)
         .fromMediaType(EPCISFormat.JSON_LD)
         .fromVersion(EPCISVersion.VERSION_2_0_0)
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_2_0_0)
-        .generateGS1CompliantDocument(false)
         .build();
 
     final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
@@ -230,11 +230,11 @@ public class JsonToXmlTest {
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
     var conversion = Conversion.builder()
+        .generateGS1CompliantDocument(false)
         .fromMediaType(EPCISFormat.JSON_LD)
         .fromVersion(EPCISVersion.VERSION_2_0_0)
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_2_0_0)
-        .generateGS1CompliantDocument(false)
         .build();
 
     final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);

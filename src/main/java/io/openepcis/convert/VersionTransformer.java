@@ -408,10 +408,10 @@ public class VersionTransformer {
             throws UnsupportedOperationException, IOException {
         return convert(inputDocument,
                 Conversion.builder()
-                        .fromMediaType(fromMediaType)
+                    .generateGS1CompliantDocument(generateGS1CompliantDocument)
+                    .fromMediaType(fromMediaType)
                         .toMediaType(toMediaType)
                         .toVersion(toVersion)
-                        .generateGS1CompliantDocument(generateGS1CompliantDocument)
                         .build());
     }
 
@@ -425,9 +425,9 @@ public class VersionTransformer {
             throws UnsupportedOperationException, IOException {
         return convert(inputDocument,
                 Conversion.builder()
-                        .fromMediaType(mediaType)
+                    .generateGS1CompliantDocument(generateGS1CompliantDocument)
+                    .fromMediaType(mediaType)
                         .toVersion(toVersion)
-                        .generateGS1CompliantDocument(generateGS1CompliantDocument)
                         .build());
     }
 

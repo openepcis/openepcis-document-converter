@@ -141,7 +141,7 @@
 			</xsl:otherwise>
 		</xsl:choose>
 		<xsl:apply-templates mode="copy-nodes" select="action|bizStep|disposition|readPoint|bizLocation|bizTransactionList"/>
-		<xsl:if test="extension or quantityList or sourceList or destinationList or persistentDisposition or sensorElementList or ilmd">
+		<xsl:if test="extension or quantityList or sourceList or destinationList or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes') or ilmd">
 			<extension>
 				<!-- copy attributes -->
 				<xsl:apply-templates mode="copy-nodes" select="extension/@*"/>
@@ -150,7 +150,7 @@
 				<xsl:if test="ilmd">
 					<xsl:apply-templates mode="copy-nodes" select="ilmd"/>
 				</xsl:if>
-				<xsl:if test="extension or persistentDisposition or sensorElementList">
+				<xsl:if test="extension or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes')">
 					<extension>
 						<!-- copy attributes -->
 						<xsl:apply-templates mode="copy-nodes" select="extension/extension/@*"/>
@@ -190,12 +190,12 @@
 			</xsl:otherwise>
 		</xsl:choose>
 		<xsl:apply-templates mode="copy-nodes" select="action|bizStep|disposition|readPoint|bizLocation|bizTransactionList"/>
-		<xsl:if test="extension or childQuantityList or sourceList or destinationList or persistentDisposition or sensorElementList">
+		<xsl:if test="extension or childQuantityList or sourceList or destinationList or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes')">
 			<extension>
 				<!-- copy attributes -->
 				<xsl:apply-templates mode="copy-nodes" select="extension/@*"/>
 				<xsl:apply-templates mode="copy-nodes" select="childQuantityList|sourceList|destinationList"/>
-				<xsl:if test="extension/extension or persistentDisposition or sensorElementList">
+				<xsl:if test="extension/extension or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes')">
 					<extension>
 						<!-- copy attributes -->
 						<xsl:apply-templates mode="copy-nodes" select="extension/extension/@*"/>
@@ -230,7 +230,7 @@
 		<xsl:if test="ilmd">
 			<xsl:apply-templates mode="copy-nodes" select="ilmd"/>
 		</xsl:if>
-		<xsl:if test="extension or persistentDisposition or sensorElementList">
+		<xsl:if test="extension or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes')">
 			<extension>
 				<!-- copy attributes -->
 				<xsl:apply-templates mode="copy-nodes" select="extension/@*"/>
@@ -274,12 +274,12 @@
 			</xsl:otherwise>
 		</xsl:choose>
 		<xsl:apply-templates mode="copy-nodes" select="action|bizStep|disposition|readPoint|bizLocation"/>
-		<xsl:if test="extension or quantityList or sourceList or destinationList or persistentDisposition or sensorElementList">
+		<xsl:if test="extension or quantityList or sourceList or destinationList or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes')">
 			<extension>
 				<!-- copy attributes -->
 				<xsl:apply-templates mode="copy-nodes" select="extension/@*"/>
 				<xsl:apply-templates mode="copy-nodes" select="quantityList|sourceList|destinationList"/>
-				<xsl:if test="extension/extension or persistentDisposition or sensorElementList">
+				<xsl:if test="extension/extension or (persistentDisposition and $includePersistentDisposition = 'yes') or (sensorElementList and $includeSensorElementList = 'yes')">
 					<extension>
 						<!-- only include sensorElementList if configured -->
 						<xsl:if test="sensorElementList and $includeSensorElementList = 'yes'">

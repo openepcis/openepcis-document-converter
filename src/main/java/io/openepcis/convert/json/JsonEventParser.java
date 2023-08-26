@@ -85,7 +85,7 @@ public abstract class JsonEventParser {
             //Change the key value to keep key as localname and value as namespaceURI
             final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
             event.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
-            event.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
+            event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
             return (EPCISEvent) epcisEventMapper.get().apply(event);
         }
         return event;
@@ -184,7 +184,7 @@ public abstract class JsonEventParser {
                         final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
                         final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
                         epcisEvent.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
-                        epcisEvent.setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
+                        epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
                         xmlSupport = epcisEventMapper.get().apply(xmlSupport);
                     }
 

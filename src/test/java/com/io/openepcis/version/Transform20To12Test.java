@@ -19,28 +19,27 @@ import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.Conversion;
 import io.openepcis.convert.VersionTransformer;
+import jakarta.xml.bind.JAXBException;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class Transform20To12Test {
 
-  private VersionTransformer versionTransformer;
-  private InputStream inputDocument;
-
-  @Before
-  public void before() throws Exception {
+  private final VersionTransformer versionTransformer;
+  public Transform20To12Test() throws JAXBException {
     versionTransformer = new VersionTransformer();
   }
 
+
   @Test
   public void convertDirectTest() throws IOException {
-    inputDocument =
+    InputStream inputDocument =
         getClass()
             .getClassLoader()
             .getResourceAsStream(
@@ -54,7 +53,7 @@ public class Transform20To12Test {
                 .fromVersion(EPCISVersion.VERSION_2_0_0)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
                 .build());
-    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
     } catch (IOException ignore) {
@@ -64,7 +63,7 @@ public class Transform20To12Test {
 
   @Test
   public void convertWithScanTest() throws IOException {
-    inputDocument =
+    InputStream inputDocument =
         getClass()
             .getClassLoader()
             .getResourceAsStream(
@@ -78,7 +77,7 @@ public class Transform20To12Test {
                 .toMediaType(EPCISFormat.XML)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
                 .build());
-    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
     } catch (IOException ignore) {
@@ -88,7 +87,7 @@ public class Transform20To12Test {
 
   @Test
   public void convertWithAllInfoTest() throws IOException {
-    inputDocument =
+    InputStream inputDocument =
         getClass()
             .getClassLoader()
             .getResourceAsStream(
@@ -103,7 +102,7 @@ public class Transform20To12Test {
         .build();
 
     final InputStream convertedDocument = versionTransformer.convert(inputDocument, conversion);
-    Assert.assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
+    assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
     } catch (IOException ignore) {

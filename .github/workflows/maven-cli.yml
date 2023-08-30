@@ -32,4 +32,4 @@ jobs:
             --no-transfer-progress \
             --batch-mode \
             -Dsonar.host.url=$CG_SONAR_HOST_URL -Dsonar.login=$CG_SONAR_LOGIN \
-            clean verify sonar:sonar > log.txt
+            clean verify sonar:sonar

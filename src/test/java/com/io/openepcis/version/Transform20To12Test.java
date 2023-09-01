@@ -20,6 +20,7 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.convert.Conversion;
 import io.openepcis.convert.VersionTransformer;
 import jakarta.xml.bind.JAXBException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 public class Transform20To12Test {
 
   private final VersionTransformer versionTransformer;
@@ -39,22 +41,23 @@ public class Transform20To12Test {
 
 
   @Test
-  @Disabled
   public void convertDirectTest() throws IOException {
     InputStream inputDocument =
         getClass()
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/ObjectEvent_all_possible_fields.xml");
+    log.info("got inputDocument " + (inputDocument != null));
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
             Conversion.builder()
-                .generateGS1CompliantDocument(false)
+                .generateGS1CompliantDocument(true)
                 .fromMediaType(EPCISFormat.XML)
                 .fromVersion(EPCISVersion.VERSION_2_0_0)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
                 .build());
+    log.info("got convertedDocument "+ (convertedDocument != null));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

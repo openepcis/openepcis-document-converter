@@ -4,7 +4,9 @@ import io.openepcis.model.rest.ProblemResponseBody;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ProblemResponseBodyMarshaller {
 
     private static Marshaller marshaller;
@@ -15,7 +17,7 @@ public class ProblemResponseBodyMarshaller {
             marshaller = context.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
         } catch (JAXBException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 

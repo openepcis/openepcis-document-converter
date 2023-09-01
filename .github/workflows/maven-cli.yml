@@ -30,5 +30,6 @@ jobs:
             -s .mvn/settings.xml \
             --no-transfer-progress \
             --batch-mode \
-            -Dsonar.host.url=$CG_SONAR_HOST_URL -Dsonar.login=$CG_SONAR_LOGIN \
+            -Dsonar.host.url=${{ secrets.CG_SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.CG_SONAR_LOGIN }} \
             clean verify sonar:sonar

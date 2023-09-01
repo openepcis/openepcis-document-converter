@@ -39,7 +39,7 @@ public class Transform12To20Test {
   }
 
   @Test
-  public void convertDirectTest() throws IOException {
+  void convertDirectTest() throws IOException {
     InputStream inputDocument =
         getClass()
             .getClassLoader()
@@ -63,7 +63,7 @@ public class Transform12To20Test {
   }
 
   @Test
-  public void convertWithScanTest() throws IOException {
+  void convertWithScanTest() throws IOException {
     InputStream inputDocument =
         getClass()
             .getClassLoader()
@@ -87,7 +87,7 @@ public class Transform12To20Test {
   }
 
   @Test
-  public void convertWithAllInfoTest() throws IOException {
+  void convertWithAllInfoTest() throws IOException {
     InputStream inputDocument =
         getClass()
             .getClassLoader()

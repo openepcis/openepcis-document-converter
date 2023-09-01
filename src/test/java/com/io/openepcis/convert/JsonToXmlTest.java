@@ -39,7 +39,7 @@ public class JsonToXmlTest {
 
 
   @Test
-  public void jsonToXmlObjectEventTest() throws Exception {
+  void jsonToXmlObjectEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -53,7 +53,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void jsonToXmlAggregationEventTest() throws Exception {
+  void jsonToXmlAggregationEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -68,7 +68,7 @@ public class JsonToXmlTest {
 
   // Test to only validate the converted XML events
   @Test
-  public void jsonToXmlTransactionEventTest() throws Exception {
+  void jsonToXmlTransactionEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -82,7 +82,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void jsonToXmlTransformationEventTest() throws Exception {
+  void jsonToXmlTransformationEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -97,7 +97,7 @@ public class JsonToXmlTest {
 
   // Test the conversion of single EPCIS event in JSON -> XML
   @Test
-  public void jsonToXmlTestSingleEvent() throws Exception {
+  void jsonToXmlTestSingleEvent() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -110,7 +110,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void jsonToXmlVersionTransformerTest() throws Exception {
+  void jsonToXmlVersionTransformerTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -134,7 +134,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void jsonToXmlVersionTransformerEventTest() throws Exception {
+  void jsonToXmlVersionTransformerEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -160,7 +160,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void xmlConversionTest() throws Exception {
+  void xmlConversionTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -189,7 +189,7 @@ public class JsonToXmlTest {
      Tests for EPCISQueryDocument conversion from JSON to XML
   */
   @Test
-  public void combinationOfDifferentEventsTest() throws Exception {
+  void combinationOfDifferentEventsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -202,7 +202,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void jumbledFieldsOrderTest() throws Exception {
+  void jumbledFieldsOrderTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -215,7 +215,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void objectEventWithAllPossibleFieldsTest() throws Exception {
+  void objectEventWithAllPossibleFieldsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -228,7 +228,7 @@ public class JsonToXmlTest {
   }
 
   @Test
-  public void sensorDataWithCombinedEventsTest() throws Exception {
+  void sensorDataWithCombinedEventsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()

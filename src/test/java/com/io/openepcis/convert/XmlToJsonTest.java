@@ -42,7 +42,7 @@ public class XmlToJsonTest {
 
   // Test case for Valid XML to JSON-LD conversion
   @Test
-  public void objectEventTest() throws Exception {
+  void objectEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -56,7 +56,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void aggregationEventTest() throws Exception {
+  void aggregationEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -70,7 +70,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void transformationEventTest() throws Exception {
+  void transformationEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -85,7 +85,7 @@ public class XmlToJsonTest {
 
   // Test case for Invalid values for EventHandler
   @Test
-  public void invalidDocumentTest() throws Exception {
+  void invalidDocumentTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -101,7 +101,7 @@ public class XmlToJsonTest {
 
   // Test case for Invalid JSON file contents
   @Test
-  public void fileNotPresentTest() throws Exception {
+  void fileNotPresentTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -115,7 +115,7 @@ public class XmlToJsonTest {
 
   // Test to only validate the converted JSON events against JSON-Schema
   @Test
-  public void validationTest() throws Exception {
+  void validationTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -124,7 +124,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void combinationOfEventsTest() throws Exception {
+  void combinationOfEventsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -140,7 +140,7 @@ public class XmlToJsonTest {
 
   // Test the single event
   @Test
-  public void singleEventTest() throws Exception {
+  void singleEventTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -153,7 +153,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void sensorElementsWithConvertMethodTest() throws Exception {
+  void sensorElementsWithConvertMethodTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -177,7 +177,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void jsonConversionScanTest() throws Exception {
+  void jsonConversionScanTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -199,7 +199,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void curieStringJsonConversionTest() throws Exception {
+  void curieStringJsonConversionTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -220,7 +220,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void withSensorDataJsonTest() throws Exception {
+  void withSensorDataJsonTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -241,7 +241,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void document12WithErrorTest() throws Exception {
+  void document12WithErrorTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -264,7 +264,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void jsonConversionTest() throws Exception {
+  void jsonConversionTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()
@@ -289,7 +289,7 @@ public class XmlToJsonTest {
      Tests for EPCISQueryDocument conversion from JSON to XML
   */
   @Test
-  public void combinationOfDifferentEventsTest() throws Exception {
+  void combinationOfDifferentEventsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -302,7 +302,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void jumbledFieldsOrderTest() throws Exception {
+  void jumbledFieldsOrderTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -315,7 +315,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void objectEventWithAllPossibleFieldsTest() throws Exception {
+  void objectEventWithAllPossibleFieldsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
         getClass()
@@ -328,7 +328,7 @@ public class XmlToJsonTest {
   }
 
   @Test
-  public void sensorDataWithCombinedEventsTest() throws Exception {
+  void sensorDataWithCombinedEventsTest() throws Exception {
     InputStream inputStream =
         getClass()
             .getClassLoader()

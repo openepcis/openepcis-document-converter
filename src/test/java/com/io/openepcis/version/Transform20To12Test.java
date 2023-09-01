@@ -47,7 +47,6 @@ public class Transform20To12Test {
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/ObjectEvent_all_possible_fields.xml");
-    log.info("got inputDocument " + (inputDocument != null));
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
@@ -57,7 +56,6 @@ public class Transform20To12Test {
                 .fromVersion(EPCISVersion.VERSION_2_0_0)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
                 .build());
-    log.info("got convertedDocument "+ (convertedDocument != null));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -67,22 +65,23 @@ public class Transform20To12Test {
   }
 
   @Test
-  @Disabled
   public void convertWithScanTest() throws IOException {
     InputStream inputDocument =
         getClass()
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/AssociationEvent_all_possible_fields.xml");
+    log.info("got inputDocument " + (inputDocument != null));
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputDocument,
             Conversion.builder()
-                .generateGS1CompliantDocument(false)
+                .generateGS1CompliantDocument(true)
                 .fromMediaType(EPCISFormat.XML)
                 .toMediaType(EPCISFormat.XML)
                 .toVersion(EPCISVersion.VERSION_1_2_0)
                 .build());
+    log.info("got convertedDocument "+ (convertedDocument != null));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

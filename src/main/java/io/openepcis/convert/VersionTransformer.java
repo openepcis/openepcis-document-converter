@@ -36,10 +36,7 @@ import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +48,10 @@ import java.util.function.Function;
 @Slf4j
 public class VersionTransformer {
 
+    public static final String PRE_SCAN = "preScan";
+    public static final String LEN = "len";
+    public static final String VERSION = "version";
+    public static final String COULD_NOT_WRITE_OR_CLOSE_THE_STREAM = "Could not write or close the stream";
     private final ObjectMapper objectMapper =
             new ObjectMapper()
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL)
@@ -119,21 +120,22 @@ public class VersionTransformer {
             throws UnsupportedOperationException, IOException {
 
         // Checking if mediaType is JSON_LD, and detecting version conditionally
-        Map<String, Object> result = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? null : versionDetector(inputDocument);
-        EPCISVersion fromVersion = result == null ? EPCISVersion.VERSION_2_0_0 : (EPCISVersion) result.get("version");
+        Map<String, Object> result = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? null : versionDetector(inputDocument, conversion);
+        EPCISVersion fromVersion = result == null ? EPCISVersion.VERSION_2_0_0 : (EPCISVersion) result.get(VERSION);
 
         InputStream inputStream = inputDocument;
         // If version detected, result won't be null, thus do InputStream operations
-        if (result != null) {
-            final byte[] preScan = (byte[]) result.get("preScan");
-            final int len = (int) result.get("len");
-
-            final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-            final PipedInputStream pipe = new PipedInputStream(pipedOutputStream);
-            pipedOutputStream.write(preScan, 0, len);
+        if (result != null && result.containsKey(PRE_SCAN) && result.containsKey(LEN)) {
+            final PipedInputStream pipe = new PipedInputStream();
 
             executorService.execute(() -> {
-                try {
+                final byte[] preScan = (byte[]) result.get(PRE_SCAN);
+                final int len = (int) result.get(LEN);
+                final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+                try (pipedOutputStream) {
+                    pipe.connect(pipedOutputStream);
+                    pipedOutputStream.write(preScan, 0, len);
+                    pipedOutputStream.flush();
                     ChannelUtil.copy(inputDocument, pipedOutputStream);
                 } catch (Exception e) {
                     throw new FormatConverterException(
@@ -165,8 +167,14 @@ public class VersionTransformer {
      * @return returns the detected version with read prescan details for merging back again.
      * @throws IOException if unable to read the document
      */
-    public final Map<String, Object> versionDetector(final InputStream epcisDocument)
+    public final Map<String, Object> versionDetector(final InputStream epcisDocument, final Conversion conversion)
             throws IOException {
+        final Map<String, Object> result = new HashMap<>();
+
+        if (conversion.fromVersion() != null) {
+            result.put(VERSION, conversion.fromVersion());
+            return result;
+        }
         // pre scan 1024 bytes to detect version
         final byte[] preScan = new byte[1024];
         final int len = epcisDocument.read(preScan);
@@ -192,11 +200,9 @@ public class VersionTransformer {
                     "Provided document contains unsupported EPCIS document version");
         }
 
-        final Map<String, Object> result = new HashMap<>();
-
-        result.put("version", fromVersion);
-        result.put("preScan", preScan);
-        result.put("len", len);
+        result.put(VERSION, fromVersion);
+        result.put(PRE_SCAN, preScan);
+        result.put(LEN, len);
 
         return result;
     }
@@ -281,7 +287,7 @@ public class VersionTransformer {
                                 ProblemResponseBodyMarshaller.getMarshaller().marshal(ProblemResponseBody.fromException(e), xmlOutputStream);
                                 xmlOutputStream.close();
                             } catch (IOException ioe) {
-                                log.warn("Couldn't write or close the stream", ioe);
+                                log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
                             } catch (JAXBException ex) {
                                 throw new RuntimeException(ex);
                             }
@@ -315,7 +321,7 @@ public class VersionTransformer {
                                 jsonOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                                 jsonOutputStream.close();
                             } catch (IOException ioe) {
-                                log.warn("Couldn't write or close the stream", ioe);
+                                log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
                             }
                         }
                     });
@@ -346,7 +352,7 @@ public class VersionTransformer {
                                 jsonOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                                 jsonOutputStream.close();
                             } catch (IOException ioe) {
-                                log.warn("Couldn't write or close the stream", ioe);
+                                log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
                             }
                         }
                     });
@@ -378,7 +384,7 @@ public class VersionTransformer {
                                 ProblemResponseBodyMarshaller.getMarshaller().marshal(ProblemResponseBody.fromException(e), xmlOutputStream);
                                 xmlOutputStream.close();
                             } catch (IOException ioe) {
-                                log.warn("Couldn't write or close the stream", ioe);
+                                log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
                             } catch (JAXBException ex) {
                                 throw new RuntimeException(ex);
                             }

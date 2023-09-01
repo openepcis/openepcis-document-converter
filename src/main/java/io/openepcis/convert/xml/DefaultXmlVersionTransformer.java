@@ -20,6 +20,7 @@ import io.openepcis.convert.Conversion;
 import io.openepcis.convert.VersionTransformerFeature;
 import io.openepcis.convert.exception.FormatConverterException;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
@@ -28,6 +29,7 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 /**
@@ -46,6 +48,8 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
     this.executorService = executorService;
     try {
       TransformerFactory transformerFactory = TransformerFactory.newInstance();
+      transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+      transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 
       from12To20 =
           transformerFactory.newTransformer(
@@ -111,21 +115,22 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    * @return converted EPCIS 2.0 XML document as a InputStream
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  private InputStream convert12To20(final InputStream inputDocument) throws IOException {
-    final PipedOutputStream outTransform = new PipedOutputStream();
-    final InputStream convertedDocument = new PipedInputStream(outTransform);
+  private InputStream convert12To20(final InputStream inputDocument) {
+    final PipedInputStream convertedDocument = new PipedInputStream();
+    final AtomicBoolean pipeConnected = new AtomicBoolean(false);
 
     executorService.execute(
         () -> {
-          try {
+          final PipedOutputStream outTransform = new PipedOutputStream();
+          try (outTransform) {
+            outTransform.connect(convertedDocument);
+            pipeConnected.set(true);
             from12To20.transform(
                 new StreamSource(inputDocument),
                 new StreamResult(new BufferedOutputStream(outTransform)));
-            outTransform.close();
           } catch (Exception e) {
             try {
               outTransform.write(e.getMessage().getBytes());
-              outTransform.close();
             } catch (IOException ioException) {
               // ignore
             }
@@ -136,6 +141,9 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
 
           }
         });
+    while (!pipeConnected.get()) {
+      Thread.yield();
+    }
     return convertedDocument;
   }
 
@@ -149,9 +157,9 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
    *
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  private InputStream convert20To12(final InputStream inputDocument, final List<VersionTransformerFeature> enabledFeatures) throws IOException {
-    final PipedOutputStream outTransform = new PipedOutputStream();
-    final InputStream convertedDocument = new PipedInputStream(outTransform);
+  private InputStream convert20To12(final InputStream inputDocument, final List<VersionTransformerFeature> enabledFeatures) {
+    final PipedInputStream convertedDocument = new PipedInputStream();
+    final AtomicBoolean pipeConnected = new AtomicBoolean(false);
 
     from20T012.setParameter("includeAssociationEvent", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_ASSOCIATION_EVENT) ? "yes" : "no");
     from20T012.setParameter("includePersistentDisposition", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_PERSISTENT_DISPOSITION) ? "yes" : "no");
@@ -159,15 +167,16 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
 
     executorService.execute(
         () -> {
-          try {
+          final PipedOutputStream outTransform = new PipedOutputStream();
+          try (outTransform) {
+            outTransform.connect(convertedDocument);
+            pipeConnected.set(true);
             from20T012.transform(
                 new StreamSource(inputDocument),
                 new StreamResult(new BufferedOutputStream(outTransform)));
-            outTransform.close();
           } catch (Exception e) {
             try {
               outTransform.write(e.getMessage().getBytes());
-              outTransform.close();
           } catch (IOException ioException) {
             // ignore
           }
@@ -177,6 +186,9 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
                   e);
             }
         });
+    while (!pipeConnected.get()) {
+      Thread.yield();
+    }
     return convertedDocument;
   }
 }

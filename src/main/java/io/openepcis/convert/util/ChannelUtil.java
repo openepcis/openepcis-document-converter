@@ -29,9 +29,9 @@ import lombok.NoArgsConstructor;
 public class ChannelUtil {
 
   public static void copy(InputStream inputStream, OutputStream outputStream) throws IOException {
-    final ReadableByteChannel src = Channels.newChannel(inputStream);
-    final WritableByteChannel dest = Channels.newChannel(outputStream);
-    try {
+    try (    final ReadableByteChannel src = Channels.newChannel(inputStream);
+             final WritableByteChannel dest = Channels.newChannel(outputStream);
+    ) {
       final ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
       while (src.read(buffer) != -1) {
         buffer.flip();
@@ -42,8 +42,6 @@ public class ChannelUtil {
       while (buffer.hasRemaining()) {
         dest.write(buffer);
       }
-    } finally {
-      dest.close();
     }
   }
 }

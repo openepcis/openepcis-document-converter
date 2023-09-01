@@ -15,9 +15,6 @@
  */
 package io.openepcis.convert.collector;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.Map;
 
 /**

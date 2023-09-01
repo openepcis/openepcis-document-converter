@@ -114,7 +114,7 @@ public class Conversion {
 
         @Override
         public StartStage generateGS1CompliantDocument(final Boolean generateGS1CompliantDocument) {
-            this.generateGS1CompliantDocument = Boolean.valueOf(generateGS1CompliantDocument);
+            this.generateGS1CompliantDocument = generateGS1CompliantDocument;
             return this;
         }
 

@@ -113,24 +113,28 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
     }
   }
 
+  @Override
   public void setIsEPCISDocument(boolean isEPCISDocument){
     if(collector != null) {
       collector.setIsEPCISDocument(isEPCISDocument);
     }
   }
 
+  @Override
   public void setSubscriptionID(String subscriptionID){
     if(collector != null) {
       collector.setSubscriptionID(subscriptionID);
     }
   }
 
+  @Override
   public void setQueryName(String queryName){
     if(collector != null) {
       collector.setQueryName(queryName);
     }
   }
 
+  @Override
   public boolean isEPCISDocument() {
     return collector != null && collector.isEPCISDocument();
   }

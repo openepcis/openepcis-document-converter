@@ -1,4 +1,5 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Java CI with Maven](https://github.com/openepcis/openepcis-document-converter/actions/workflows/maven-cli.yml/badge.svg)](https://github.com/openepcis/openepcis-document-converter/actions/workflows/maven-cli.yml)
 # OpenEPCIS document format converter
 
 An open-source application that transforms EPCIS documents from XML to JSON/JSON-LD format quickly and effortlessly. Visit [openepcis.io](https://openepcis.io) to find more usesul resources on EPCIS and EPCIS 2.0 Linked Data. Another documentation page is available from [https://openepcis.io/docs/format-converter/](https://openepcis.io/docs/format-converter/).

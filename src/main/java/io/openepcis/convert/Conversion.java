@@ -15,6 +15,8 @@ public class Conversion {
     private Boolean generateGS1CompliantDocument = null;
 
 
+    public static final Conversion UNKNOWN = Conversion.of(null, null, null, null);
+
     private Conversion() {
     }
 

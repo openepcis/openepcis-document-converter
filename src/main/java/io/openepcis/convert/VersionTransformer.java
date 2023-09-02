@@ -160,10 +160,23 @@ public class VersionTransformer {
 
     }
 
+
+    /**
+     * Method with autodetect EPCIS version from inputStream without knowing about Conversion
+     *
+     * @param epcisDocument EPCIS document in application/xml or application/json format as a InputStream
+     * @return returns the detected version with read prescan details for merging back again.
+     * @throws IOException if unable to read the document
+     */
+    public final Map<String, Object> versionDetector(final InputStream epcisDocument) throws IOException {
+        return versionDetector(epcisDocument, Conversion.UNKNOWN);
+    }
+
     /**
      * Method with autodetect EPCIS version from inputStream
      *
      * @param epcisDocument EPCIS document in application/xml or application/json format as a InputStream
+     * @param conversion Conversion operation
      * @return returns the detected version with read prescan details for merging back again.
      * @throws IOException if unable to read the document
      */

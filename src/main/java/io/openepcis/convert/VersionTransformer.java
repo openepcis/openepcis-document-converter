@@ -26,7 +26,6 @@ import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.json.JSONEventValueTransformer;
 import io.openepcis.convert.json.JsonToXmlConverter;
-import io.openepcis.convert.util.ChannelUtil;
 import io.openepcis.convert.xml.ProblemResponseBodyMarshaller;
 import io.openepcis.convert.xml.XMLEventValueTransformer;
 import io.openepcis.convert.xml.XmlToJsonConverter;
@@ -106,46 +105,43 @@ public class VersionTransformer {
     /**
      * Method with autodetect EPCIS version from inputStream
      *
-     * @param inputDocument EPCIS document in either application/xml or application/json format as a
-     *                      InputStream
-     * @param conversion    Conversion object with required fields.
+     * @param in         EPCIS document in either application/xml or application/json format as a
+     *                   InputStream
+     * @param conversion Conversion object with required fields.
      * @return returns the converted EPCIS document as InputStream which can be used for further
      * processing
      * @throws UnsupportedOperationException if user is trying to convert different version other than
      *                                       specified then throw the error
      */
     public final InputStream convert(
-            final InputStream inputDocument,
+            final InputStream in,
             final Conversion conversion)
             throws UnsupportedOperationException, IOException {
 
+        final BufferedInputStream inputDocument = new BufferedInputStream(in, 8192);
+
         // Checking if mediaType is JSON_LD, and detecting version conditionally
-        Map<String, Object> result = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? null : versionDetector(inputDocument, conversion);
-        EPCISVersion fromVersion = result == null ? EPCISVersion.VERSION_2_0_0 : (EPCISVersion) result.get(VERSION);
+        EPCISVersion fromVersion = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? EPCISVersion.VERSION_2_0_0 :
+                versionDetector(inputDocument, conversion);
 
         InputStream inputStream = inputDocument;
         // If version detected, result won't be null, thus do InputStream operations
-        if (result != null && result.containsKey(PRE_SCAN) && result.containsKey(LEN)) {
-            final PipedInputStream pipe = new PipedInputStream();
+        final PipedInputStream pipe = new PipedInputStream();
 
-            executorService.execute(() -> {
-                final byte[] preScan = (byte[]) result.get(PRE_SCAN);
-                final int len = (int) result.get(LEN);
-                final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-                try (pipedOutputStream) {
-                    pipe.connect(pipedOutputStream);
-                    pipedOutputStream.write(preScan, 0, len);
-                    pipedOutputStream.flush();
-                    ChannelUtil.copy(inputDocument, pipedOutputStream);
-                } catch (Exception e) {
-                    throw new FormatConverterException(
-                            "Exception occurred during reading of schema version from input document : "
-                                    + e.getMessage(),
-                            e);
-                }
-            });
-            inputStream = pipe;
-        }
+        executorService.execute(() -> {
+            final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+            try (pipedOutputStream) {
+                pipe.connect(pipedOutputStream);
+                long transferred = inputDocument.transferTo(pipedOutputStream);
+                log.debug("transferred {} bytes", transferred);
+            } catch (Exception e) {
+                throw new FormatConverterException(
+                        "Exception occurred during reading of schema version from input document : "
+                                + e.getMessage(),
+                        e);
+            }
+        });
+        inputStream = pipe;
 
 
         final Conversion conversionToPerform = Conversion.of(
@@ -168,7 +164,7 @@ public class VersionTransformer {
      * @return returns the detected version with read prescan details for merging back again.
      * @throws IOException if unable to read the document
      */
-    public final Map<String, Object> versionDetector(final InputStream epcisDocument) throws IOException {
+    public final EPCISVersion versionDetector(final BufferedInputStream epcisDocument) throws IOException {
         return versionDetector(epcisDocument, Conversion.UNKNOWN);
     }
 
@@ -176,21 +172,20 @@ public class VersionTransformer {
      * Method with autodetect EPCIS version from inputStream
      *
      * @param epcisDocument EPCIS document in application/xml or application/json format as a InputStream
-     * @param conversion Conversion operation
+     * @param conversion    Conversion operation
      * @return returns the detected version with read prescan details for merging back again.
      * @throws IOException if unable to read the document
      */
-    public final Map<String, Object> versionDetector(final InputStream epcisDocument, final Conversion conversion)
+    public final EPCISVersion versionDetector(final BufferedInputStream epcisDocument, final Conversion conversion)
             throws IOException {
-        final Map<String, Object> result = new HashMap<>();
-
         if (conversion.fromVersion() != null) {
-            result.put(VERSION, conversion.fromVersion());
-            return result;
+            return conversion.fromVersion();
         }
+        epcisDocument.mark(1024);
         // pre scan 1024 bytes to detect version
         final byte[] preScan = new byte[1024];
         final int len = epcisDocument.read(preScan);
+        epcisDocument.reset();
         final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
 
         if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
@@ -213,11 +208,7 @@ public class VersionTransformer {
                     "Provided document contains unsupported EPCIS document version");
         }
 
-        result.put(VERSION, fromVersion);
-        result.put(PRE_SCAN, preScan);
-        result.put(LEN, len);
-
-        return result;
+        return fromVersion;
     }
 
     /**
@@ -427,8 +418,8 @@ public class VersionTransformer {
             throws UnsupportedOperationException, IOException {
         return convert(inputDocument,
                 Conversion.builder()
-                    .generateGS1CompliantDocument(generateGS1CompliantDocument)
-                    .fromMediaType(fromMediaType)
+                        .generateGS1CompliantDocument(generateGS1CompliantDocument)
+                        .fromMediaType(fromMediaType)
                         .toMediaType(toMediaType)
                         .toVersion(toVersion)
                         .build());
@@ -444,8 +435,8 @@ public class VersionTransformer {
             throws UnsupportedOperationException, IOException {
         return convert(inputDocument,
                 Conversion.builder()
-                    .generateGS1CompliantDocument(generateGS1CompliantDocument)
-                    .fromMediaType(mediaType)
+                        .generateGS1CompliantDocument(generateGS1CompliantDocument)
+                        .fromMediaType(mediaType)
                         .toVersion(toVersion)
                         .build());
     }

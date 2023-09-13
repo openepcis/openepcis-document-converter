@@ -26,6 +26,7 @@ import io.openepcis.convert.collector.XmlEPCISEventCollector;
 import io.openepcis.convert.exception.FormatConverterException;
 import io.openepcis.convert.json.JSONEventValueTransformer;
 import io.openepcis.convert.json.JsonToXmlConverter;
+import io.openepcis.convert.util.ChannelUtil;
 import io.openepcis.convert.xml.ProblemResponseBodyMarshaller;
 import io.openepcis.convert.xml.XMLEventValueTransformer;
 import io.openepcis.convert.xml.XmlToJsonConverter;
@@ -37,8 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,9 +47,6 @@ import java.util.function.Function;
 @Slf4j
 public class VersionTransformer {
 
-    public static final String PRE_SCAN = "preScan";
-    public static final String LEN = "len";
-    public static final String VERSION = "version";
     public static final String COULD_NOT_WRITE_OR_CLOSE_THE_STREAM = "Could not write or close the stream";
     private final ObjectMapper objectMapper =
             new ObjectMapper()
@@ -96,7 +92,7 @@ public class VersionTransformer {
     }
 
     public VersionTransformer() throws JAXBException {
-        this(Executors.newWorkStealingPool());
+        this(Executors.newFixedThreadPool(8));
     }
 
     public final InputStream convert(final InputStream inputStream, final Function<Conversion.StartStage, Conversion.BuildStage> fn) throws UnsupportedOperationException, IOException {
@@ -119,24 +115,28 @@ public class VersionTransformer {
             final Conversion conversion)
             throws UnsupportedOperationException, IOException {
 
+        log.info("start convert");
         final BufferedInputStream inputDocument = new BufferedInputStream(in);
-
+        log.info("created BufferedInputStream");
         // Checking if mediaType is JSON_LD, and detecting version conditionally
         EPCISVersion fromVersion = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? EPCISVersion.VERSION_2_0_0 :
                 versionDetector(inputDocument, conversion);
-
+        log.info("version detected");
         InputStream inputStream = inputDocument;
         // If version detected, result won't be null, thus do InputStream operations
         final PipedInputStream pipe = new PipedInputStream();
         final AtomicBoolean pipeConnected = new AtomicBoolean(false);
+        log.info("calling executorService");
 
         executorService.execute(() -> {
             final PipedOutputStream pipedOutputStream = new PipedOutputStream();
             try (pipedOutputStream) {
+                log.info("connecting pipe");
                 pipe.connect(pipedOutputStream);
                 pipeConnected.set(true);
-                long transferred = inputDocument.transferTo(pipedOutputStream);
-                log.debug("transferred {} bytes", transferred);
+                log.info("pipe connected");
+
+                ChannelUtil.copy(inputDocument, pipedOutputStream);
             } catch (Exception e) {
                 throw new FormatConverterException(
                         "Exception occurred during reading of schema version from input document : "
@@ -157,7 +157,7 @@ public class VersionTransformer {
                 conversion.toVersion(),
                 conversion.generateGS1CompliantDocument().orElse(null)
         );
-
+        log.info("performing conversion");
         return performConversion(inputStream, conversionToPerform);
 
     }

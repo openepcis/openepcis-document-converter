@@ -115,27 +115,19 @@ public class VersionTransformer {
             final Conversion conversion)
             throws UnsupportedOperationException, IOException {
 
-        log.info("start convert");
         final BufferedInputStream inputDocument = new BufferedInputStream(in);
-        log.info("created BufferedInputStream");
         // Checking if mediaType is JSON_LD, and detecting version conditionally
         EPCISVersion fromVersion = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? EPCISVersion.VERSION_2_0_0 :
                 versionDetector(inputDocument, conversion);
-        log.info("version detected");
         InputStream inputStream = inputDocument;
         // If version detected, result won't be null, thus do InputStream operations
         final PipedInputStream pipe = new PipedInputStream();
         final AtomicBoolean pipeConnected = new AtomicBoolean(false);
-        log.info("calling executorService");
-
         executorService.execute(() -> {
             final PipedOutputStream pipedOutputStream = new PipedOutputStream();
             try (pipedOutputStream) {
-                log.info("connecting pipe");
                 pipe.connect(pipedOutputStream);
                 pipeConnected.set(true);
-                log.info("pipe connected");
-
                 ChannelUtil.copy(inputDocument, pipedOutputStream);
             } catch (Exception e) {
                 throw new FormatConverterException(
@@ -157,9 +149,7 @@ public class VersionTransformer {
                 conversion.toVersion(),
                 conversion.generateGS1CompliantDocument().orElse(null)
         );
-        log.info("performing conversion");
         return performConversion(inputStream, conversionToPerform);
-
     }
 
 

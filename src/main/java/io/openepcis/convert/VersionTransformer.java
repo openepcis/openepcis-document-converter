@@ -119,7 +119,7 @@ public class VersionTransformer {
             final Conversion conversion)
             throws UnsupportedOperationException, IOException {
 
-        final BufferedInputStream inputDocument = new BufferedInputStream(in, 8192);
+        final BufferedInputStream inputDocument = new BufferedInputStream(in);
 
         // Checking if mediaType is JSON_LD, and detecting version conditionally
         EPCISVersion fromVersion = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? EPCISVersion.VERSION_2_0_0 :
@@ -190,7 +190,7 @@ public class VersionTransformer {
         epcisDocument.mark(1024);
         // pre scan 1024 bytes to detect version
         final byte[] preScan = new byte[1024];
-        final int len = epcisDocument.read(preScan);
+        epcisDocument.read(preScan, 0, preScan.length);
         epcisDocument.reset();
         final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
 

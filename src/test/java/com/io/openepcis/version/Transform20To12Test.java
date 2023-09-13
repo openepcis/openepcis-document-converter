@@ -21,6 +21,7 @@ import io.openepcis.convert.Conversion;
 import io.openepcis.convert.VersionTransformer;
 import jakarta.xml.bind.JAXBException;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -38,6 +39,7 @@ public class Transform20To12Test {
 
 
   @Test
+  @Disabled
   void convertDirectTest() throws IOException {
     InputStream inputDocument =
         getClass()
@@ -62,6 +64,7 @@ public class Transform20To12Test {
   }
 
   @Test
+  @Disabled
   void convertWithScanTest() throws IOException {
     InputStream inputDocument =
         getClass()

@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 @Slf4j
@@ -127,11 +128,13 @@ public class VersionTransformer {
         InputStream inputStream = inputDocument;
         // If version detected, result won't be null, thus do InputStream operations
         final PipedInputStream pipe = new PipedInputStream();
+        final AtomicBoolean pipeConnected = new AtomicBoolean(false);
 
         executorService.execute(() -> {
             final PipedOutputStream pipedOutputStream = new PipedOutputStream();
             try (pipedOutputStream) {
                 pipe.connect(pipedOutputStream);
+                pipeConnected.set(true);
                 long transferred = inputDocument.transferTo(pipedOutputStream);
                 log.debug("transferred {} bytes", transferred);
             } catch (Exception e) {
@@ -141,6 +144,9 @@ public class VersionTransformer {
                         e);
             }
         });
+        while (!pipeConnected.get()) {
+            Thread.yield();
+        }
         inputStream = pipe;
 
 

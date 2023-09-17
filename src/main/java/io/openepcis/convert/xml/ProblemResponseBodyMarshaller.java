@@ -24,4 +24,8 @@ public class ProblemResponseBodyMarshaller {
     public static Marshaller getMarshaller() {
         return marshaller;
     }
+
+    public static void setMarshaller(Marshaller marshaller) {
+        ProblemResponseBodyMarshaller.marshaller = marshaller;
+    }
 }

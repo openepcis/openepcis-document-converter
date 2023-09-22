@@ -38,10 +38,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 @Slf4j
@@ -61,7 +63,7 @@ public class VersionTransformer {
 
     private final XMLEventValueTransformer xmlEventValueTransformer;
 
-    private Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+    private Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
 
     public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
         this.executorService = executorService;
@@ -72,7 +74,7 @@ public class VersionTransformer {
         this.xmlEventValueTransformer = new XMLEventValueTransformer(jaxbContext);
     }
 
-    private VersionTransformer(VersionTransformer parent, Function<Object, Object> eventMapper) {
+    private VersionTransformer(VersionTransformer parent, BiFunction<Object,List<Object>, Object> eventMapper) {
         this.executorService = parent.executorService;
         this.xmlVersionTransformer = parent.xmlVersionTransformer;
         this.jsonToXmlConverter = parent.jsonToXmlConverter.mapWith(eventMapper);
@@ -399,7 +401,7 @@ public class VersionTransformer {
         }
     }
 
-    public final VersionTransformer mapWith(final Function<Object, Object> mapper) {
+    public final VersionTransformer mapWith(final BiFunction<Object, List<Object>, Object> mapper) {
         return new VersionTransformer(this, mapper);
     }
 

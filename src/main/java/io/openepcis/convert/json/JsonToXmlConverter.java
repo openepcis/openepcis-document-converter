@@ -43,9 +43,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -75,7 +77,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
   }
 
   private JsonToXmlConverter(
-      final JsonToXmlConverter parent, Function<Object, Object> epcisEventMapper) {
+      final JsonToXmlConverter parent, BiFunction<Object,List<Object>, Object> epcisEventMapper) {
     this(parent.jaxbContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
@@ -209,7 +211,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
     // Close JSONParser after reading all events
   }
 
-  public final JsonToXmlConverter mapWith(final Function<Object, Object> mapper) {
+  public final JsonToXmlConverter mapWith(final BiFunction<Object, List<Object>,Object> mapper) {
     return new JsonToXmlConverter(this, mapper);
   }
 }

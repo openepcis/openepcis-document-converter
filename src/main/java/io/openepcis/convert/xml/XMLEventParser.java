@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -50,7 +51,7 @@ public abstract class XMLEventParser {
     protected final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
             DefaultJsonSchemaNamespaceURIResolver.getContext();
 
-    protected Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+    protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
 
     protected static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
@@ -124,9 +125,9 @@ public abstract class XMLEventParser {
             final EPCISEvent ev = (EPCISEvent) event;
             //Change the key value to keep key as localname and value as namespaceURI
             final Map<String, String> swappedMap = namespaceResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-            ev.setContextInfo(!swappedMap.isEmpty() ? List.of(swappedMap) : null);
+            // ev.setContextInfo(!swappedMap.isEmpty() ? List.of(swappedMap) : null);
             ev.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
-            event = epcisEventMapper.get().apply(event);
+            event = epcisEventMapper.get().apply(event, List.of(swappedMap));
         }
         return event;
     }

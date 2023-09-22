@@ -37,9 +37,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class XMLEventValueTransformer extends XMLEventParser implements EventsConverter {
@@ -50,7 +52,7 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
     }
 
     private XMLEventValueTransformer(
-            final XMLEventValueTransformer parent, Function<Object, Object> epcisEventMapper) {
+            final XMLEventValueTransformer parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
         this(parent.jaxbContext);
         this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
     }
@@ -202,7 +204,7 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
         }
 
     }
-    public XMLEventValueTransformer mapWith(Function<Object, Object> mapper) {
+    public XMLEventValueTransformer mapWith(BiFunction<Object, List<Object>, Object> mapper) {
         return new XMLEventValueTransformer(this, mapper);
     }
 

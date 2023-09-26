@@ -184,7 +184,6 @@ public abstract class JsonEventParser {
                             && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
                         final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
                         final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
-                        // epcisEvent.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
                         epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
                         xmlSupport = epcisEventMapper.get().apply(xmlSupport, List.of(swappedNamespace));
                     }

@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Class for handling the conversion of EPCIS 2.0 events in XML format to EPCIS 2.0 JSON format. It

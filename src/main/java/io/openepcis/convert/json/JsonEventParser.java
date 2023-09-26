@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,7 +56,7 @@ public abstract class JsonEventParser {
     protected final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
             DefaultJsonSchemaNamespaceURIResolver.getContext();
 
-    protected Optional<Function<Object, Object>> epcisEventMapper = Optional.empty();
+    protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
 
     // Variable to ensure whether provided InputStream is EPCIS document or single event
     boolean isDocument = false;
@@ -84,9 +85,9 @@ public abstract class JsonEventParser {
         if (epcisEventMapper.isPresent()) {
             //Change the key value to keep key as localname and value as namespaceURI
             final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-            event.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
+            //event.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
             event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
-            return (EPCISEvent) epcisEventMapper.get().apply(event);
+            return (EPCISEvent) epcisEventMapper.get().apply(event, List.of(swappedNamespace));
         }
         return event;
     }
@@ -183,9 +184,8 @@ public abstract class JsonEventParser {
                             && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
                         final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
                         final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
-                        epcisEvent.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
                         epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
-                        xmlSupport = epcisEventMapper.get().apply(xmlSupport);
+                        xmlSupport = epcisEventMapper.get().apply(xmlSupport, List.of(swappedNamespace));
                     }
 
                     if(isMarshallingRequired) {

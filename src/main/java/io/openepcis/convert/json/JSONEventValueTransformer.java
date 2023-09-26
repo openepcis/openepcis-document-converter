@@ -30,9 +30,11 @@ import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class JSONEventValueTransformer extends JsonEventParser implements EventsConverter {
@@ -40,7 +42,7 @@ public class JSONEventValueTransformer extends JsonEventParser implements Events
     public JSONEventValueTransformer() {
     }
 
-    private JSONEventValueTransformer(Function<Object, Object> epcisEventMapper) {
+    private JSONEventValueTransformer(BiFunction<Object, List<Object>, Object> epcisEventMapper) {
         this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
     }
 
@@ -108,7 +110,7 @@ public class JSONEventValueTransformer extends JsonEventParser implements Events
         // Close JSONParser after reading all events
     }
 
-    public final JSONEventValueTransformer mapWith(final Function<Object, Object> mapper) {
+    public final JSONEventValueTransformer mapWith(final BiFunction<Object, List<Object>,Object> mapper) {
         return new JSONEventValueTransformer(mapper);
     }
 

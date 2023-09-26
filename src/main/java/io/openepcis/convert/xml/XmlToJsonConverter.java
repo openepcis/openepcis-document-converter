@@ -36,10 +36,11 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * Class for handling the conversion of EPCIS 2.0 events in XML format to EPCIS 2.0 JSON format. It
@@ -63,7 +64,7 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
   }
 
   private XmlToJsonConverter(
-      final XmlToJsonConverter parent, Function<Object, Object> epcisEventMapper) {
+      final XmlToJsonConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
     this(parent.jaxbContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
@@ -245,7 +246,7 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
     }
   }
 
-  public final XmlToJsonConverter mapWith(final Function<Object, Object> mapper) {
+  public final XmlToJsonConverter mapWith(final BiFunction<Object, List<Object>, Object> mapper) {
     return new XmlToJsonConverter(this, mapper);
   }
 }

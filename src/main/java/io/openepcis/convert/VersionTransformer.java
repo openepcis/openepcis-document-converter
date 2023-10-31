@@ -32,13 +32,11 @@ import io.openepcis.convert.xml.XMLEventValueTransformer;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
 import io.openepcis.model.rest.ProblemResponseBody;
-import io.openepcis.validation.xml.PreScanUtil;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -181,40 +179,15 @@ public class VersionTransformer {
             return conversion.fromVersion();
         }
 
-        // TODO: optimize prescan with regex matcher
-        String preScanVersion = null;
-        if (EPCISFormat.XML.equals(conversion.fromMediaType())) {
-            preScanVersion = PreScanUtil.scanFirstTag(epcisDocument);
-        } else {
-            epcisDocument.mark(1024);
-            // pre scan 1024 bytes to detect version
-            final byte[] preScan = new byte[1024];
-            epcisDocument.read(preScan, 0, preScan.length);
-            epcisDocument.reset();
-            preScanVersion = new String(preScan, StandardCharsets.UTF_8);
-        }
+        final String preScanVersion = AttributePreScanUtil.scanSchemaVersion(epcisDocument);
 
-        if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
+        if (preScanVersion.isEmpty()) {
             throw new FormatConverterException(
                     "Unable to detect EPCIS schemaVersion for given document, please check the document again");
         }
 
-        EPCISVersion fromVersion;
-
-        if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"1.2\"")
-                || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='1.2'")
-                || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"1.2\"")) {
-            fromVersion = EPCISVersion.VERSION_1_2_0;
-        } else if (preScanVersion.contains(EPCIS.SCHEMA_VERSION + "=\"2.0\"")
-                || preScanVersion.contains(EPCIS.SCHEMA_VERSION + "='2.0'")
-                || preScanVersion.replace(" ", "").contains("\"" + EPCIS.SCHEMA_VERSION + "\":\"2.0\"")) {
-            fromVersion = EPCISVersion.VERSION_2_0_0;
-        } else {
-            throw new FormatConverterException(
-                    "Provided document contains unsupported EPCIS document version");
-        }
-
-        return fromVersion;
+        return EPCISVersion.fromString(preScanVersion).orElseThrow(() -> new FormatConverterException(
+                String.format("Provided document contains unsupported EPCIS document version %s", preScanVersion)));
     }
 
     /**

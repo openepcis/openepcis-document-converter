@@ -32,6 +32,7 @@ import io.openepcis.convert.xml.XMLEventValueTransformer;
 import io.openepcis.convert.xml.XmlToJsonConverter;
 import io.openepcis.convert.xml.XmlVersionTransformer;
 import io.openepcis.model.rest.ProblemResponseBody;
+import io.openepcis.validation.xml.PreScanUtil;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
@@ -179,12 +180,20 @@ public class VersionTransformer {
         if (conversion.fromVersion() != null) {
             return conversion.fromVersion();
         }
-        epcisDocument.mark(1024);
-        // pre scan 1024 bytes to detect version
-        final byte[] preScan = new byte[1024];
-        epcisDocument.read(preScan, 0, preScan.length);
-        epcisDocument.reset();
-        final String preScanVersion = new String(preScan, StandardCharsets.UTF_8);
+
+        // TODO: optimize prescan with regex matcher
+        String preScanVersion = null;
+        if (EPCISFormat.XML.equals(conversion.fromMediaType())) {
+            preScanVersion = PreScanUtil.scanFirstTag(epcisDocument);
+        } else {
+            epcisDocument.mark(1024);
+            // pre scan 1024 bytes to detect version
+            final byte[] preScan = new byte[1024];
+            epcisDocument.read(preScan, 0, preScan.length);
+            epcisDocument.reset();
+            preScanVersion = new String(preScan, StandardCharsets.UTF_8);
+        }
+        System.out.println(preScanVersion);
 
         if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
             throw new FormatConverterException(

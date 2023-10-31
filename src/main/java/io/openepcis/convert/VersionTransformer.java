@@ -193,7 +193,6 @@ public class VersionTransformer {
             epcisDocument.reset();
             preScanVersion = new String(preScan, StandardCharsets.UTF_8);
         }
-        System.out.println(preScanVersion);
 
         if (!preScanVersion.contains(EPCIS.SCHEMA_VERSION)) {
             throw new FormatConverterException(

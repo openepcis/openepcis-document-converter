@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 public class AttributePreScanUtil {
 
-  private static final String SCHEMA_VERSION_REGEX ="schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)";
+  private static final String SCHEMA_VERSION_REGEX ="schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)[\"?'?]";
   private static final Pattern SCHEMA_VERSION_PATTERN = Pattern.compile(SCHEMA_VERSION_REGEX);
   private static final int READ_LIMIT = 4096;
   public static final String scanSchemaVersion(final BufferedInputStream input) throws IOException {

@@ -93,6 +93,8 @@
         </dependency>
 
         <!-- To validate generated JSON event against JSON Schema-->
+        <!-- https://mvnrepository.com/artifact/io.rest-assured/json-schema-validator -->
+        <!-- https://mvnrepository.com/artifact/io.rest-assured/json-schema-validator -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>json-schema-validator</artifactId>

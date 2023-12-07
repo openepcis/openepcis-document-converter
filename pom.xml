@@ -94,7 +94,7 @@
 
         <!-- To validate generated JSON event against JSON Schema-->
         <dependency>
-            <groupId>com.github.java-json-tools</groupId>
+            <groupId>io.rest-assured</groupId>
             <artifactId>json-schema-validator</artifactId>
         </dependency>
         <dependency>

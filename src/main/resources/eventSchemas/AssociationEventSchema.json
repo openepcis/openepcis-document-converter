@@ -1,15 +1,15 @@
 {
   "type": "object",
-  "id": "urn:jsonschema:io:openepcis:model:jaxb:AssociationEvent",
+  "ref": "urn:jsonschema:io:openepcis:model:jaxb:AssociationEvent",
   "required": [
-    "isA",
+    "type",
     "eventTime",
     "eventTimeZoneOffset",
     "action",
     "parentID"
   ],
   "properties": {
-    "isA": {
+    "type": {
       "type": "string"
     },
     "eventTime": {
@@ -29,7 +29,7 @@
     },
     "errorDeclaration": {
       "type": "object",
-      "id": "urn:jsonschema:io:openepcis:model:jaxb:ErrorDeclaration",
+      "ref": "urn:jsonschema:io:openepcis:model:jaxb:ErrorDeclaration",
       "properties": {
         "declarationTime": {
           "type": "string",
@@ -61,7 +61,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "id": "urn:jsonschema:io:openepcis:model:core:QuantityList",
+        "ref": "urn:jsonschema:io:openepcis:model:core:QuantityList",
         "properties": {
           "epcClass": {
             "type": "string"
@@ -91,7 +91,7 @@
     },
     "readPoint": {
       "type": "object",
-      "id": "urn:jsonschema:io:openepcis:model:core:ReadPoint",
+      "ref": "urn:jsonschema:io:openepcis:model:core:ReadPoint",
       "properties": {
         "id": {
           "type": "string"
@@ -100,7 +100,7 @@
     },
     "bizLocation": {
       "type": "object",
-      "id": "urn:jsonschema:io:openepcis:model:core:BizLocation",
+      "ref": "urn:jsonschema:io:openepcis:model:core:BizLocation",
       "properties": {
         "id": {
           "type": "string"
@@ -111,7 +111,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "id": "urn:jsonschema:io:openepcis:model:core:BizTransactionList",
+        "ref": "urn:jsonschema:io:openepcis:model:core:BizTransactionList",
         "properties": {
           "type": {
             "type": "string"
@@ -126,7 +126,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "id": "urn:jsonschema:io:openepcis:model:core:SourceList",
+        "ref": "urn:jsonschema:io:openepcis:model:core:SourceList",
         "properties": {
           "type": {
             "type": "string"
@@ -141,7 +141,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "id": "urn:jsonschema:io:openepcis:model:core:DestinationList",
+        "ref": "urn:jsonschema:io:openepcis:model:core:DestinationList",
         "properties": {
           "type": {
             "type": "string"
@@ -156,11 +156,11 @@
       "type": "array",
       "items": {
         "type": "object",
-        "id": "urn:jsonschema:io:openepcis:model:core:SensorElementList",
+        "ref": "urn:jsonschema:io:openepcis:model:core:SensorElementList",
         "properties": {
           "sensorMetadata": {
             "type": "object",
-            "id": "urn:jsonschema:io:openepcis:model:core:SensorMetadata",
+            "ref": "urn:jsonschema:io:openepcis:model:core:SensorMetadata",
             "properties": {
               "time": {
                 "type": "string",
@@ -200,7 +200,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "id": "urn:jsonschema:io:openepcis:model:core:SensorReport",
+              "ref": "urn:jsonschema:io:openepcis:model:core:SensorReport",
               "properties": {
                 "type": {
                   "type": "string",
@@ -283,7 +283,7 @@
     },
     "persistentDisposition": {
       "type": "object",
-      "id": "urn:jsonschema:io:openepcis:model:core:PersistentDisposition",
+      "ref": "urn:jsonschema:io:openepcis:model:core:PersistentDisposition",
       "properties": {
         "set": {
           "type": "array",

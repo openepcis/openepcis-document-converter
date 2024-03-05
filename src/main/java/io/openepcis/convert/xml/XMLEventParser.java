@@ -26,6 +26,7 @@ import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
@@ -41,6 +42,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.openepcis.constants.EPCIS.PROTECTED_NAMESPACE_OF_CONTEXT;
 import static io.openepcis.constants.EPCIS.PROTECTED_TERMS_OF_CONTEXT;
 
 @Slf4j
@@ -156,7 +158,8 @@ public abstract class XMLEventParser {
                             // by
                             // default
                             if (!PROTECTED_TERMS_OF_CONTEXT.contains(
-                                    xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
+                                    xmlStreamReader.getNamespacePrefix(namespaceIndex)) &&
+                                    !PROTECTED_NAMESPACE_OF_CONTEXT.contains(xmlStreamReader.getNamespaceURI(namespaceIndex))) {
                                 namespaceResolver.populateDocumentNamespaces(
                                         xmlStreamReader.getNamespaceURI(namespaceIndex),
                                         xmlStreamReader.getNamespacePrefix(namespaceIndex));

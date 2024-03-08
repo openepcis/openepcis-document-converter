@@ -25,8 +25,6 @@ import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -194,6 +192,25 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       } catch (Exception e) {
         // do nothing
       }
+    }
+  }
+
+  //If exception occur during the stream then add this exception
+  @Override
+  public void onError(final Throwable t){
+    try {
+      jsonGenerator.writeEndArray(); // End the eventList array
+      jsonGenerator.writeEndObject(); // End epcisBody
+
+      //If there is error then add the error message to JSON
+      jsonGenerator.writeObjectField("Exception", t.getMessage());
+
+      jsonGenerator.writeEndObject(); // End whole json file
+
+      jsonGenerator.flush(); //flush
+      jsonGenerator.close();
+    } catch (IOException ex) {
+      throw new FormatConverterException("Exception occurred during EPCIS document wrapper creation : creation of EPCIS document failed " + ex.getMessage(), ex);
     }
   }
 

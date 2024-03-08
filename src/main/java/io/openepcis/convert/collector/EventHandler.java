@@ -138,4 +138,12 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
   public boolean isEPCISDocument() {
     return collector != null && collector.isEPCISDocument();
   }
+
+  //If there are any exception during the conversion set them and end the process
+  @Override
+  public void onError(final Throwable t){
+    if(collector != null){
+      collector.onError(t);
+    }
+  }
 }

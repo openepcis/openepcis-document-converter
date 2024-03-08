@@ -52,4 +52,6 @@ public interface EPCISEventCollector<R> {
   default void setQueryName(String queryName){}
 
   boolean isEPCISDocument();
+
+  default void onError(Throwable t){}
 }

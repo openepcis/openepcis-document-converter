@@ -97,25 +97,30 @@ public abstract class XMLEventParser {
 
         Object event = null;
         // Based on eventType make unmarshaller call to respective event class
-        switch (epcisEvent) {
-            case EPCIS.OBJECT_EVENT ->
-                // Unmarshal the ObjectEvent and Convert it to JSON-LD
-                    event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
-            case EPCIS.AGGREGATION_EVENT ->
-                // Unmarshal the AggregationEvent and Convert it to JSON-LD
-                    event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
-            case EPCIS.TRANSACTION_EVENT ->
-                // Unmarshal the TransactionEvent and Convert it to JSON-LD
-                    event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
-            case EPCIS.TRANSFORMATION_EVENT ->
-                // Unmarshal the TransformationEvent and Convert it to JSON-LD
-                    event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
-            case EPCIS.ASSOCIATION_EVENT ->
-                // Unmarshal the AssociationEvent and Convert it to JSON-LD
-                    event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
-            default ->
-                // If NONE of the EPCIS event type matches then do not convert and make a note
-                    log.error("JSON event does not match any of EPCIS event : {} ", epcisEvent);
+
+        try {
+            switch (epcisEvent) {
+                case EPCIS.OBJECT_EVENT ->
+                    // Unmarshal the ObjectEvent and Convert it to JSON-LD
+                        event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
+                case EPCIS.AGGREGATION_EVENT ->
+                    // Unmarshal the AggregationEvent and Convert it to JSON-LD
+                        event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
+                case EPCIS.TRANSACTION_EVENT ->
+                    // Unmarshal the TransactionEvent and Convert it to JSON-LD
+                        event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
+                case EPCIS.TRANSFORMATION_EVENT ->
+                    // Unmarshal the TransformationEvent and Convert it to JSON-LD
+                        event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
+                case EPCIS.ASSOCIATION_EVENT ->
+                    // Unmarshal the AssociationEvent and Convert it to JSON-LD
+                        event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
+                default ->
+                    // If NONE of the EPCIS event type matches then do not convert and make a note
+                        log.error("JSON event does not match any of EPCIS event : {} ", epcisEvent);
+            }
+        }catch (Exception e){
+            log.error("XML to Java objects unmarshalling failed " + e);
         }
         return event;
     }

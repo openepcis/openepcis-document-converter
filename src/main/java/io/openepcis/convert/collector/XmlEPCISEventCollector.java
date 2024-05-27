@@ -119,11 +119,6 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
               ? events.createNamespace(EPCIS.EPCIS, EPCIS.EPCIS_2_0_XMLNS)
               : events.createNamespace(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS));
       xmlEventWriter.add(events.createNamespace(EPCIS.XSI, EPCIS.XML_SCHEMA_INSTANCE));
-      xmlEventWriter.add(events.createNamespace(EPCIS.CBV_MDA, EPCIS.CBV_MDA_URN));
-      xmlEventWriter.add(
-          events.createNamespace(
-              EPCIS.STANDARD_BUSINESS_DOCUMENT_HEADER_PREFIX,
-              EPCIS.STANDARD_BUSINESS_DOCUMENT_HEADER));
 
       // Add the values from JSON Context header stored in MAP to XML header
       for (Map.Entry<String, String> stringStringEntry : context.entrySet()) {

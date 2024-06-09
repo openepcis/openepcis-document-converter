@@ -1,0 +1,379 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Build Release with Maven
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-vue-js-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout git submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+  build-jar-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout git submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        id: builder
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+          server-id: openepcis-ossrh
+          server-username: OPENEPCIS_OSSRH_USERNAME
+          server-password: OPENEPCIS_OSSRH_PASSWORD
+
+      - name: Install gpg secret key
+        run: |
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+          gpg --batch --list-secret-keys --keyid-format LONG
+
+      - name: deploy testdata generator modules
+        env:
+          OPENEPCIS_OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          mvn \
+            -s .mvn/settings.xml \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
+            -Pci-build -Popenepcis-ossrh \
+            -B clean verify deploy
+
+      - name: 'Get Version Number'
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        run: |
+          echo "::set-env name=VERSION::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
+
+      - name: 'Publish Application JAR'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'quarkus-converter-service-app-${{env.VERSION}}-runner.jar'
+          path: 'service/quarkus-converter-service/target/quarkus-converter-service-app-runner.jar'
+
+      - name: 'Create Release'
+        if: contains(github.ref, 'v')
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          tag_name: ${{github.ref}}
+          release_name: Release ${{github.ref}}
+          body: |
+            Initial release
+          draft: false
+          prerelease: false
+
+
+      - name: 'Upload Release Quarkus REST Application Asset'
+        if: contains(github.ref, 'v')
+        id: upload--app-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: 'service/quarkus-converter-service/target/quarkus-converter-service-app-runner.jar'
+          asset_name: 'quarkus-converter-service-app-runner-${{env.GIT_TAG_NAME}}.jar'
+          asset_content_type: application/java-archive
+
+      - name: 'Write Upload URL To File'
+        if: contains(github.ref, 'v')
+        run: |
+          echo "${{steps.create_release.outputs.upload_url}}" > upload_url.txt
+      - name: 'Publish Upload URL'
+        if: contains(github.ref, 'v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'upload_url.txt'
+          path: 'upload_url.txt'
+
+  build-quarkus-container-images:
+    name: "Build Container Images"
+    needs: [ build-vue-js-job ]
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: checkout from git
+        uses: actions/checkout@v4
+
+      - name: 'Get Version from tag'
+        uses: olegtarasov/get-tag@v2.1.3
+        id: tagName
+        with:
+          tagRegex: "v(.*)"
+          tagRegexGroup: 1
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        id: builder
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+
+      - name: "Prepare Build"
+        run: >
+          mvn --no-transfer-progress --batch-mode clean package -DskipTests
+
+      - name: "Build linux/amd64 Image"
+        run: |
+          mvn --no-transfer-progress --batch-mode -Pci-build \
+            clean package -f ./service/quarkus-converter-service/pom.xml \
+            -Dquarkus.container-image.name=quarkus-converter-service \
+            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.registry=ghcr.io \
+            -Dquarkus.container-image.group=openepcis \
+            -Dquarkus.jib.base-jvm-image=eclipse-temurin:21-jre-alpine \
+            -Dquarkus.container-image.additional-tags=latest-amd64,${GIT_TAG_NAME}-amd64 \
+            -Dquarkus.jib.platforms=linux/amd64 
+
+      - name: "Build linux/arm64 Image"
+        run: |
+          mvn --no-transfer-progress --batch-mode -Pci-build \
+            clean package -f ./service/quarkus-converter-service/pom.xml \
+            -Dquarkus.container-image.name=quarkus-converter-service \
+            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.registry=ghcr.io \
+            -Dquarkus.container-image.group=openepcis \
+            -Dquarkus.jib.base-jvm-image=eclipse-temurin:21-jre-alpine \
+            -Dquarkus.container-image.additional-tags=latest-arm64,${GIT_TAG_NAME}-arm64 \
+            -Dquarkus.jib.platforms=linux/arm64/v8
+
+      - name: "push multi arch image"
+        run: |
+          docker push ghcr.io/openepcis/quarkus-converter-service:${GIT_TAG_NAME}-amd64;
+          docker push ghcr.io/openepcis/quarkus-converter-service:${GIT_TAG_NAME}-arm64;
+          docker push ghcr.io/openepcis/quarkus-converter-service:latest-amd64;
+          docker push ghcr.io/openepcis/quarkus-converter-service:latest-arm64;
+          export DOCKER_CLI_EXPERIMENTAL=enabled;
+          docker manifest create ghcr.io/openepcis/quarkus-converter-service:${GIT_TAG_NAME} \
+            --amend ghcr.io/openepcis/quarkus-converter-service:${GIT_TAG_NAME}-amd64 \
+            --amend ghcr.io/openepcis/quarkus-converter-service:${GIT_TAG_NAME}-arm64;
+          docker manifest push ghcr.io/openepcis/quarkus-converter-service:${GIT_TAG_NAME};
+          docker manifest create ghcr.io/openepcis/quarkus-converter-service:latest \
+            --amend ghcr.io/openepcis/quarkus-converter-service:latest-amd64 \
+            --amend ghcr.io/openepcis/quarkus-converter-service:latest-arm64;
+          docker manifest push ghcr.io/openepcis/quarkus-converter-service:latest;
+  
+  
+
+  build-quarkus-native-container-images:
+    if: false
+    name: "Build Native Container Image"
+    needs: [ build-vue-js-job ]
+
+    strategy:
+      matrix:
+        os: ['ubuntu-latest', 'ubuntu-22.04-arm64']
+        include:
+          - os: 'ubuntu-latest'
+            label: 'linux-amd64'
+            platform: "linux/amd64"
+            tags: "latest-amd64"
+            jib-platforms: "linux/amd64"
+          - os: 'ubuntu-22.04-arm64'
+            label: 'linux-arm64'
+            platform: "linux/arm64"
+            tags: "latest-arm64"
+            jib-platforms: "linux/arm64/v8"
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: checkout from git
+        uses: actions/checkout@v4
+
+      - name: 'Get Version from tag'
+        uses: olegtarasov/get-tag@v2.1.3
+        id: tagName
+        with:
+          tagRegex: "v(.*)"
+          tagRegexGroup: 1
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: 'Download VUE.JS Artifact'
+        if: contains(github.ref, 'v')
+        uses: actions/download-artifact@v4
+        with:
+          name: 'testdata-generator-ui-dist'
+          path: 'testdata-generator-ui/dist'
+
+      - name: "Prepare Build"
+        run: >
+          mvn --no-transfer-progress --batch-mode clean package -DskipTests
+
+      - name: "Build ${{matrix.platform}} native Image"
+        run: |
+          mvn --no-transfer-progress --batch-mode package -Dnative -DskipTests -f ./service/quarkus-converter-service/pom.xml \
+            -Dquarkus.native.container-build=true \
+            -Dquarkus.container-image.build=true \
+            -Dquarkus.container-image.name=quarkus-converter-service-native \
+            -Dquarkus.container-image.registry=ghcr.io \
+            -Dquarkus.container-image.group=openepcis \
+            -Dquarkus.container-image.additional-tags=${{matrix.tags}},${GIT_TAG_NAME}-${{matrix.label}} \
+            -Dquarkus.native.container-runtime-options="--platform=${{matrix.platform}}" \
+            -Dquarkus.jib.platforms=${{matrix.jib-platforms}}
+
+      - name: "push arch image"
+        run: |
+          docker push ghcr.io/openepcis/quarkus-converter-service-native:${GIT_TAG_NAME}-${{matrix.label}};
+          docker push ghcr.io/openepcis/quarkus-converter-service-native:${{matrix.tags}};
+
+  push-quarkus-native-container-images:
+    if: false
+    name: "Push Native Container Images"
+    needs: [build-quarkus-native-container-images]
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: 'Get Version from tag'
+        uses: olegtarasov/get-tag@v2.1.3
+        id: tagName
+        with:
+          tagRegex: "v(.*)"
+          tagRegexGroup: 1
+
+      - name: "push multi-arch image"
+        run: |
+          export DOCKER_CLI_EXPERIMENTAL=enabled;
+          docker manifest create ghcr.io/openepcis/quarkus-converter-service-native:${GIT_TAG_NAME} \
+            --amend ghcr.io/openepcis/quarkus-converter-service-native:${GIT_TAG_NAME}-linux-amd64 \
+            --amend ghcr.io/openepcis/quarkus-converter-service-native:${GIT_TAG_NAME}-linux-arm64;
+          docker manifest push ghcr.io/openepcis/quarkus-converter-service-native:${GIT_TAG_NAME};
+          docker manifest create ghcr.io/openepcis/quarkus-converter-service-native:latest \
+            --amend ghcr.io/openepcis/quarkus-converter-service-native:latest-amd64 \
+            --amend ghcr.io/openepcis/quarkus-converter-service-native:latest-arm64;
+          docker manifest push ghcr.io/openepcis/quarkus-converter-service-native:latest;
+
+  build-quarkus-native-executable:
+    if: false
+    name: "Build Quarkus Service Native Executable"
+    needs: [build-jar-job]
+
+    strategy:
+      matrix:
+        os: ['ubuntu-latest', 'ubuntu-22.04-arm64', 'macos-latest', 'windows-latest']
+        include:
+          - os: 'ubuntu-latest'
+            label: 'linux-amd64'
+            exe: ""
+          - os: 'ubuntu-22.04-arm64'
+            label: 'linux-arm64'
+            exe: ""
+          - os: 'macos-latest'
+            label: 'mac'
+            exe: ""
+          - os: 'windows-latest'
+            label: 'windows'
+            exe: ".exe"
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - name: setup up global git config
+        run: |
+          git config --global core.protectNTFS false
+          git config --global hooks.enforcecompatiblefilenames false
+
+      - name: checkout from git
+        uses: actions/checkout@v4
+
+      - name: 'Get Version from tag'
+        uses: olegtarasov/get-tag@v2.1.3
+        id: tagName
+        with:
+          tagRegex: "v(.*)"
+          tagRegexGroup: 1
+
+      - name: 'Download Release URL'
+        if: contains(github.ref, 'v')
+        uses: actions/download-artifact@v4
+        with:
+          name: 'upload_url.txt'
+
+      - name: 'Set Upload URL Env Var'
+        if: contains(github.ref, 'v')
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        run: |
+          echo "::set-env name=UPLOAD_URL::$(cat upload_url.txt)"
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          native-image-job-reports: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Prepare Build"
+        run: |
+          mvn --no-transfer-progress --batch-mode clean package -DskipTests
+
+      - name: "Build Native Quarkus Executable"
+        run: |
+          mvn --no-transfer-progress --batch-mode clean package -Pnative -DskipTests -f ./service/quarkus-converter-service/pom.xml
+
+      - name: 'Release Native Quarkus Executable'
+        if: success() && contains(github.ref, 'v')
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{env.UPLOAD_URL}}
+          asset_name: 'quarkus-converter-service-runner-${{env.GIT_TAG_NAME}}-${{matrix.label}}${{matrix.exe}}'
+          asset_path: 'service/quarkus-converter-service/target/quarkus-converter-service-app-runner${{matrix.exe}}'
+          asset_content_type: application/octet-stream

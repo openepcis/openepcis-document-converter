@@ -16,7 +16,7 @@ quarkus:
 
   container-image:
     group: openepcis
-    name: quarkus-converter-service
+    name: quarkus-converter-service-ce
     additional-tags:
       - latest
 
@@ -25,13 +25,21 @@ quarkus:
       group-id: joda-time
       artifact-id: joda-time
 
+  locales: en
+  default-locale: en-US
+  banner:
+    path: "openepcis-banner.txt"
+
+  package:
+    type: "uber-jar"
+
 mp:
   openapi:
     filter: "io.openepcis.resources.oas.EPCISExampleOASFilter"
     extensions:
       smallrye:
         info:
-          title: "OpenEPCIS Document Converter API"
+          title: "OpenEPCIS Document Converter API Community Edition"
           version: "1.0.0"
           description: "Convert EPCIS events with ease."
           contact:

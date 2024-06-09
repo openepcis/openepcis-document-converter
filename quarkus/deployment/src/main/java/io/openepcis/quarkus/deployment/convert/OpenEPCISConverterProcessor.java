@@ -25,7 +25,7 @@ import io.quarkus.smallrye.health.deployment.spi.HealthBuildItem;
 
 public class OpenEPCISConverterProcessor {
 
-  private static final String FEATURE = "opensearch-document-converter";
+  private static final String FEATURE = "openepcis-document-converter";
 
 
   @BuildStep

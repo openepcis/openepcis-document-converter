@@ -1,0 +1,43 @@
+quarkus:
+  swagger-ui:
+    always-include: true
+
+  http:
+    cors:
+      ~: true
+      methods: GET,POST
+      origins: "/.*/"
+    limits:
+      max-body-size: 10M
+    ssl:
+      certificate:
+        files: ssl/cert.pem
+        key-files: ssl/key.pem
+
+  container-image:
+    group: openepcis
+    name: quarkus-converter-service
+    additional-tags:
+      - latest
+
+  index-dependency:
+    joda-time:
+      group-id: joda-time
+      artifact-id: joda-time
+
+mp:
+  openapi:
+    filter: "io.openepcis.resources.oas.EPCISExampleOASFilter"
+    extensions:
+      smallrye:
+        info:
+          title: "OpenEPCIS Document Converter API"
+          version: "1.0.0"
+          description: "Convert EPCIS events with ease."
+          contact:
+            email: "info@openepcis.io"
+            name: "OpenEPCIS | benelog GmbH & Co. KG"
+            url: "https://openepcis.io"
+            license:
+              name: "Apache 2.0"
+              url: "http://www.apache.org/licenses/LICENSE-2.0.html"

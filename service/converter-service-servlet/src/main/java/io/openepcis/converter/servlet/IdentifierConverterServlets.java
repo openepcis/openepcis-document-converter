@@ -1,6 +1,6 @@
 package io.openepcis.converter.servlet;
 
-import io.openepcis.epc.converter.common.IdentifierConverterUtil;
+import io.openepcis.converter.common.IdentifierConverterUtil;
 import io.openepcis.model.rest.servlet.ServletSupport;
 import jakarta.inject.Inject;
 import jakarta.servlet.ServletException;

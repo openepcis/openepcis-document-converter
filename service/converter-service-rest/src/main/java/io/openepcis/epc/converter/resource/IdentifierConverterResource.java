@@ -3,6 +3,7 @@ package io.openepcis.epc.converter.resource;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.common.IdentifierConverterUtil;
 import io.openepcis.model.rest.ProblemResponseBody;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.smallrye.mutiny.Uni;
 
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+@RegisterForReflection
 @Path("/api")
 @Tag(
         name = "Identifier Converter",

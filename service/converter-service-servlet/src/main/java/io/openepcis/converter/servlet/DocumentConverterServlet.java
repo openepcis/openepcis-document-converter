@@ -4,7 +4,7 @@ import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
-import io.openepcis.epc.converter.common.GS1FormatSupport;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.model.epcis.format.FormatPreference;
 import io.openepcis.model.rest.servlet.ServletSupport;
 import jakarta.inject.Inject;

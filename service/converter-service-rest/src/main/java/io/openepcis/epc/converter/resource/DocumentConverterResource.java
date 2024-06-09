@@ -12,6 +12,7 @@ import io.openepcis.model.epcis.EPCISDocument;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.exception.UnsupportedMediaTypeException;
 import io.openepcis.model.rest.ProblemResponseBody;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
@@ -38,6 +39,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+@RegisterForReflection
 @Path("/api")
 @Tag(
         name = "Format Converter",

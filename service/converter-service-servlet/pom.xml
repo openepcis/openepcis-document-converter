@@ -104,6 +104,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.openepcis.quarkus</groupId>
+            <artifactId>quarkus-document-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- REST assured as dependencies for testing -->
         <dependency>
             <groupId>io.quarkus</groupId>

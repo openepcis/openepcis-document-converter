@@ -68,6 +68,7 @@
         <module>service/converter-service-restassured</module>
         <module>service/converter-service-rest</module>
         <module>service/converter-service-servlet</module>
+        <module>service/quarkus-converter-service</module>
     </modules>
 
     <dependencyManagement>

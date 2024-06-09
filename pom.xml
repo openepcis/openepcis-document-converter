@@ -26,8 +26,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>openepcis-document-converter</artifactId>
-    <name>openepcis-document-converter</name>
+    <artifactId>openepcis-document-converter-parent</artifactId>
+    <name>openepcis-document-converter-parent</name>
+    <packaging>pom</packaging>
     <description>Project to convert EPCIS events in XML format to JSON/JSON-LD and vice-versa. Also, supports the conversion of EPCIS 1.2 XML document to 2.0 XML document and vice
         versa.</description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
@@ -60,148 +61,78 @@
         <url>https://github.com/openepcis/openepcis-document-converter/tree/main</url>
     </scm>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-model-rest</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-model-epcis</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-document-validation-service</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.smallrye.reactive</groupId>
-            <artifactId>mutiny</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.enterprise</groupId>
-            <artifactId>jakarta.enterprise.cdi-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.ws.rs</groupId>
-            <artifactId>jakarta.ws.rs-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
+    <modules>
+        <module>core</module>
+        <module>quarkus/runtime</module>
+        <module>quarkus/deployment</module>
+        <module>service/converter-service-restassured</module>
+        <module>service/converter-service-rest</module>
+        <module>service/converter-service-servlet</module>
+    </modules>
 
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.openepcis.quarkus</groupId>
+                <artifactId>quarkus-openepcis-model</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis.quarkus</groupId>
+                <artifactId>quarkus-openepcis-model-deployment</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis.quarkus</groupId>
+                <artifactId>quarkus-document-converter</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>openepcis-document-converter</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>converter-service-restassured</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>converter-service-rest</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>converter-service-servlet</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>openepcis-document-converter-sax</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
 
-        <!-- JAXB Annotations Dependencies START -->
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.persistence</groupId>
-            <artifactId>org.eclipse.persistence.moxy</artifactId>
-        </dependency>
-        <!-- JAXB Annotations Dependencies END -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
+            <!-- Converting the EPCIS Identifiers URN <-> WebURI -->
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>openepcis-epc-digitallink-translator</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
 
-        <!-- Add constants as dependencies -->
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-epcis-constants</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-
-        <!-- Add constants as dependencies -->
+            <!-- repository common for URN to WebURI support -->
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>openepcis-repository-common</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
         <dependency>
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-test-resources</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
-
-
-    <build>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
-            </plugin>
-        </plugins>
-    </build>
-
-
-    <profiles>
-        <profile>
-            <id>coverage</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.jacoco</groupId>
-                        <artifactId>jacoco-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>report</id>
-                                <goals>
-                                    <goal>report</goal>
-                                </goals>
-                                <phase>verify</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+    </dependencyManagement>
 
     <repositories>
         <!-- sonatype releases -->

@@ -9,14 +9,6 @@ on:
       - 'v*'
 
 jobs:
-  build-vue-js-job:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout git submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
   build-jar-job:
     runs-on: ubuntu-latest
     steps:

@@ -35,6 +35,7 @@ public class OpenEPCISConverterHealthCheck implements HealthCheck {
     @Override
     public HealthCheckResponse call() {
         HealthCheckResponseBuilder builder = HealthCheckResponse.named("OpenEPCIS Document Converter health check").up();
+        builder.up().withData("xmlVersionTransformer", versionTransformer.getXmlVersionTransformer().getClass().getName() );
         builder.up().withData("xmlToJsonConverter", versionTransformer.getXmlToJsonConverter().getClass().getName() );
         return builder.build();
     }

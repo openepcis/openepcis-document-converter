@@ -19,5 +19,5 @@ import java.util.concurrent.ExecutorService;
 
 public interface XmlVersionTransformerFactory {
 
-  public XmlVersionTransformer newXmlVersionTransformer(final ExecutorService executorService);
+  public <T extends XmlVersionTransformer> T newXmlVersionTransformer(final ExecutorService executorService);
 }

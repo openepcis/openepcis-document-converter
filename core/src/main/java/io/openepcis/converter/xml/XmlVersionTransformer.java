@@ -35,24 +35,24 @@ public interface XmlVersionTransformer {
           InputStream inputStream, Conversion conversion)
       throws UnsupportedOperationException, IOException;
 
-  static XmlVersionTransformer newInstance() {
+  static <T extends XmlVersionTransformer> T newInstance() {
     return newInstance(Executors.newWorkStealingPool());
   }
 
-  static XmlVersionTransformer newInstance(Class<? extends XmlVersionTransformerFactory> factory) {
+  static <T extends XmlVersionTransformer> T newInstance(Class<? extends XmlVersionTransformerFactory> factory) {
     return newInstance(Executors.newWorkStealingPool(), factory);
   }
 
-  static XmlVersionTransformer newInstance(final ExecutorService executorService) {
+  static <T extends XmlVersionTransformer> T  newInstance(final ExecutorService executorService) {
     final Optional<XmlVersionTransformerFactory> optionalFactory =
         ServiceLoader.load(XmlVersionTransformerFactory.class).findFirst();
     if (optionalFactory.isPresent()) {
       return optionalFactory.get().newXmlVersionTransformer(executorService);
     }
-    return new DefaultXmlVersionTransformer(executorService);
+    return (T) new DefaultXmlVersionTransformer(executorService);
   }
 
-  static XmlVersionTransformer newInstance(
+  static <T extends XmlVersionTransformer> T newInstance(
       final ExecutorService executorService, Class<? extends XmlVersionTransformerFactory> factory)
       throws IllegalArgumentException {
     final Optional<ServiceLoader.Provider<XmlVersionTransformerFactory>> optionalFactory =

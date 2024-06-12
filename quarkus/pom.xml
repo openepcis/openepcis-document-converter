@@ -30,7 +30,7 @@
     <groupId>io.openepcis.quarkus</groupId>
     <artifactId>quarkus-document-converter-parent</artifactId>
     <packaging>pom</packaging>
-    <name>quarkus-document-converter-deployment-parent</name>
+    <name>quarkus-document-converter-parent</name>
     <description>Quarkus OpenEPCIS Document Converter Parent</description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
 
@@ -60,18 +60,6 @@
         <module>runtime</module>
         <module>deployment</module>
     </modules>
-
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
 
     <repositories>
         <!-- sonatype releases -->

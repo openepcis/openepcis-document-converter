@@ -59,11 +59,6 @@
             <artifactId>openepcis-document-converter</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-document-converter-sax</artifactId>
-        </dependency>
-
         <!-- Converting the EPCIS Identifiers URN <-> WebURI -->
         <dependency>
             <groupId>io.openepcis</groupId>

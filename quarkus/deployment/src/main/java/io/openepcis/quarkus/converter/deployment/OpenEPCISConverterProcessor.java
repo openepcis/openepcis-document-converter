@@ -27,7 +27,6 @@ import io.quarkus.deployment.builditem.nativeimage.NativeImageConfigBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourcePatternsBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.smallrye.health.deployment.spi.HealthBuildItem;
-import org.apache.xml.dtm.ref.DTMManagerDefault;
 
 import java.util.stream.Stream;
 
@@ -68,9 +67,7 @@ public class OpenEPCISConverterProcessor {
     return ReflectiveClassBuildItem.builder(
             VersionTransformerProducer.class,
             VersionTransformer.class,
-            DTMManagerDefault.class,
-            DefaultXmlVersionTransformer.class,
-            org.apache.xml.serializer.ToXMLStream.class
+            DefaultXmlVersionTransformer.class
     )
             .unsafeAllocated()
             .serialization().methods().fields().constructors()

@@ -179,7 +179,7 @@ public class DocumentConverterResource {
                                         .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
                                         .toMediaType(EPCISFormat.JSON_LD)
                                         .toVersion(EPCISVersion.VERSION_2_0_0)
-                                        .build()));
+                                        .build())).runSubscriptionOn(managedExecutor);
     }
 
     // Method to convert the input JSON 2.0 EPCIS events into XML 2.0 EPCIS events

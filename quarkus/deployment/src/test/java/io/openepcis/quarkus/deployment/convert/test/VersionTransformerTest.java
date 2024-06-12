@@ -16,7 +16,7 @@
 package io.openepcis.quarkus.deployment.convert.test;
 
 import io.openepcis.converter.VersionTransformer;
-import io.openepcis.quarkus.convert.VersionTransformerProducer;
+import io.openepcis.quarkus.converter.runtime.VersionTransformerProducer;
 import io.quarkus.test.QuarkusUnitTest;
 import jakarta.inject.Inject;
 import org.jboss.shrinkwrap.api.ShrinkWrap;

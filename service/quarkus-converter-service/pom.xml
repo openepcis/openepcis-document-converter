@@ -45,6 +45,10 @@
       <artifactId>converter-service-rest</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.openepcis</groupId>
+      <artifactId>openepcis-document-converter-sax</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>

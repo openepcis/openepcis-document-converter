@@ -21,15 +21,17 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.openepcis.quarkus</groupId>
-        <artifactId>quarkus-document-converter-parent</artifactId>
+        <groupId>io.openepcis</groupId>
+        <artifactId>openepcis-document-converter-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>quarkus-document-converter</artifactId>
-    <name>quarkus-document-converter</name>
-    <description>Quarkus OpenEPCIS Document Converter</description>
+    <groupId>io.openepcis.quarkus</groupId>
+    <artifactId>quarkus-document-converter-parent</artifactId>
+    <packaging>pom</packaging>
+    <name>quarkus-document-converter-deployment-parent</name>
+    <description>Quarkus OpenEPCIS Document Converter Parent</description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <licenses>
@@ -54,58 +56,19 @@
         <url>https://github.com/openepcis/openepcis-document-converter/tree/main</url>
     </scm>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-arc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-health</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.openepcis.quarkus</groupId>
-            <artifactId>quarkus-openepcis-model</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-document-converter</artifactId>
-        </dependency>
-
-    </dependencies>
+    <modules>
+        <module>runtime</module>
+        <module>deployment</module>
+    </modules>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-extension-maven-plugin</artifactId>
-                <version>${quarkus.platform.version}</version>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>extension-descriptor</goal>
-                        </goals>
-                        <configuration>
-                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
+                <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>io.quarkus</groupId>
-                            <artifactId>quarkus-extension-processor</artifactId>
-                            <version>${quarkus.platform.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-
-
 </project>

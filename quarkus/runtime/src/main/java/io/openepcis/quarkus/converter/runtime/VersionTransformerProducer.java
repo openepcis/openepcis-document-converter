@@ -13,20 +13,21 @@
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
  */
-package io.openepcis.quarkus.convert;
+package io.openepcis.quarkus.converter.runtime;
 
 import io.openepcis.converter.VersionTransformer;
+import io.smallrye.context.api.NamedInstance;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import jakarta.xml.bind.JAXBContext;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
 
 @ApplicationScoped
-@Slf4j
 public class VersionTransformerProducer {
   @Inject
+  @NamedInstance("VersionTransformerExecutor")
   ManagedExecutor managedExecutor;
 
   @Inject

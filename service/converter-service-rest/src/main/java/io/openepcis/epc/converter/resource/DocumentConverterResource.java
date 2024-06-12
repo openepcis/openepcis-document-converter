@@ -28,7 +28,8 @@ import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.exception.UnsupportedMediaTypeException;
 import io.openepcis.model.rest.ProblemResponseBody;
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import io.smallrye.common.annotation.Blocking;
+import io.smallrye.context.api.ManagedExecutorConfig;
+import io.smallrye.context.api.NamedInstance;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -68,6 +69,7 @@ public class DocumentConverterResource {
     GS1FormatProvider gs1FormatProvider;
 
     @Inject
+    @NamedInstance("DocumentConverterResourceExecutor")
     ManagedExecutor managedExecutor;
 
     // Method to convert the input XML EPCIS events into JSON EPCIS events
@@ -149,7 +151,6 @@ public class DocumentConverterResource {
                             description = "Internal Server Error: Unable to convert document or single event as server encountered problem.",
                             content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
             })
-    @Blocking
     public Uni<InputStream> convertToJson_2_0(
             final InputStream inputDocument,
             @Parameter(

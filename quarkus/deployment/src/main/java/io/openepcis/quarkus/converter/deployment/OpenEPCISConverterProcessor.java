@@ -67,7 +67,14 @@ public class OpenEPCISConverterProcessor {
     return ReflectiveClassBuildItem.builder(
             VersionTransformerProducer.class,
             VersionTransformer.class,
-            DefaultXmlVersionTransformer.class
+            DefaultXmlVersionTransformer.class,
+            org.apache.xml.dtm.ref.DTMManagerDefault.class,
+            org.apache.xml.serializer.AttributesImplSerializer.class,
+            org.apache.xml.serializer.DOM3Serializer.class,
+            org.apache.xml.serializer.DOMSerializer.class,
+            org.apache.xml.serializer.ExtendedContentHandler.class,
+            org.apache.xml.serializer.ExtendedLexicalHandler.class,
+            org.apache.xml.serializer.ToXMLStream.class
     )
             .unsafeAllocated()
             .serialization().methods().fields().constructors()

@@ -104,7 +104,6 @@ jobs:
 
   build-quarkus-container-images:
     name: "Build Container Images"
-    needs: [ build-vue-js-job ]
     runs-on: 'ubuntu-latest'
     steps:
       - name: checkout from git

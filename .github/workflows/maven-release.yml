@@ -40,6 +40,7 @@ jobs:
           gpg --batch --list-secret-keys --keyid-format LONG
 
       - name: deploy testdata generator modules
+        if: false
         env:
           OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
           OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}

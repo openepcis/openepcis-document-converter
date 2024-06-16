@@ -21,7 +21,7 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '21'
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
 
       - id: run_sonarqube
         name: sonarqube

@@ -49,7 +49,7 @@ jobs:
             --no-transfer-progress \
             --batch-mode \
             -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
-            -Pci-build -Popenepcis-ossrh \
+            -Popenepcis-ossrh \
             -B clean verify deploy
 
       - name: 'Get Version Number'
@@ -144,7 +144,7 @@ jobs:
 
       - name: "Build linux/amd64 Image"
         run: |
-          mvn --no-transfer-progress --batch-mode -Pci-build \
+          mvn --no-transfer-progress --batch-mode \
             clean package -f ./service/quarkus-converter-service/pom.xml \
             -Dquarkus.container-image.name=quarkus-converter-service \
             -Dquarkus.container-image.build=true \
@@ -156,7 +156,7 @@ jobs:
 
       - name: "Build linux/arm64 Image"
         run: |
-          mvn --no-transfer-progress --batch-mode -Pci-build \
+          mvn --no-transfer-progress --batch-mode \
             clean package -f ./service/quarkus-converter-service/pom.xml \
             -Dquarkus.container-image.name=quarkus-converter-service \
             -Dquarkus.container-image.build=true \

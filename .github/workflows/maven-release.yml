@@ -41,8 +41,8 @@ jobs:
 
       - name: deploy testdata generator modules
         env:
-          OPENEPCIS_OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
+          OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}
         run: |
           mvn \
             -s .mvn/settings.xml \

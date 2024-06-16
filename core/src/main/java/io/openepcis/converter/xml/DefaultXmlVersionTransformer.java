@@ -19,9 +19,6 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformerFeature;
 import io.openepcis.converter.exception.FormatConverterException;
-import org.reactivestreams.FlowAdapters;
-import software.amazon.awssdk.utils.async.InputStreamSubscriber;
-import software.amazon.awssdk.utils.async.OutputStreamPublisher;
 
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
@@ -30,10 +27,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
-import java.nio.ByteBuffer;
+import java.net.URL;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -45,35 +41,40 @@ import java.util.function.Function;
  */
 public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
 
-  private static Templates FROM_12_TO_20;
-  private static Templates FROM_20_TO_12;
-  private static final TransformerFactory TRANSFORMER_FACTORY = createTransformerFactory();
-  private ExecutorService executorService;
+  /**
+   * !!!
+   *
+   * static TransformerFactory instances and Templates
+   * required for registering classes for native
+   *
+   * !!!
+   */
+  private final Templates from12To20;
+  private final Templates from20To12;
+  private final ExecutorService executorService;
 
-  public DefaultXmlVersionTransformer(final ExecutorService executorService) {
+  public static final String TRANSLET_PACKAGE_NAME = "io.openepcis.converter.generated.translet";
+  public DefaultXmlVersionTransformer(final ExecutorService executorService)  {
     this.executorService = executorService;
-  }
-
-  public void setExecutorService(final ExecutorService executorService) {
-    this.executorService = executorService;
-  }
-
-  private static TransformerFactory createTransformerFactory() {
-
-    final TransformerFactory transformerFactory = TransformerFactory.newInstance();
     try {
-      FROM_12_TO_20 = transformerFactory.newTemplates(
-              new StreamSource(DefaultXmlVersionTransformer.class
-                      .getClassLoader()
-                      .getResourceAsStream("xalan-conversion/convert-1.2-to-2.0.xsl"), "urn:openepcis:converter:xsl:convert-1.2-to-2.0"));
-      FROM_20_TO_12 = transformerFactory.newTemplates(
-              new StreamSource(DefaultXmlVersionTransformer.class.getClassLoader()
-                      .getResourceAsStream("xalan-conversion/convert-2.0-to-1.2.xsl"), "urn:openepcis:converter:xsl:convert-2.0-to-1.2"));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+        TransformerFactory transformerFactory = TransformerFactory.newInstance("org.apache.xalan.xsltc.trax.TransformerFactoryImpl", Thread.currentThread().getContextClassLoader());
+        transformerFactory.setAttribute("package-name", "io.openepcis.converter.translet");
+        transformerFactory.setAttribute("translet-name", "From20To12");
+        transformerFactory.setAttribute("use-classpath", true);
+        from20To12 = transformerFactory.newTemplates(
+              new StreamSource(Thread.currentThread().getContextClassLoader()
+                      .getResourceAsStream("xalan-conversion/convert-2.0-to-1.2.xsl")));
 
-    return transformerFactory;
+        transformerFactory = TransformerFactory.newInstance("org.apache.xalan.xsltc.trax.TransformerFactoryImpl", Thread.currentThread().getContextClassLoader());
+        transformerFactory.setAttribute("package-name", "io.openepcis.converter.translet");
+        transformerFactory.setAttribute("translet-name", "From12To20");
+        transformerFactory.setAttribute("use-classpath", true);
+        from12To20 = transformerFactory.newTemplates(
+              new StreamSource(Thread.currentThread().getContextClassLoader()
+                      .getResourceAsStream("xalan-conversion/convert-1.2-to-2.0.xsl")));
+    } catch (Exception e) {
+      throw new RuntimeException(e.getMessage(), e);
+    }
   }
 
   @Override
@@ -120,40 +121,11 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
   /**
    * Convert EPCIS 1.2 XML document to EPCIS 2.0 XML document
    *
-   * @param publisher EPCIS 1.2 XML document as a ByteBuffer Publisher
-   * @return converted EPCIS 2.0 XML document as a ByteBuffer Publisher
-   * @throws IOException If any exception occur during the conversion then throw the error
-   */
-  public Flow.Publisher<ByteBuffer> convert12To20(final Flow.Publisher<ByteBuffer> publisher) {
-    final OutputStreamPublisher outTransform = new OutputStreamPublisher();
-    final InputStreamSubscriber inputDocument = new InputStreamSubscriber();
-    FlowAdapters.toPublisher(publisher).subscribe(inputDocument);
-    executorService.submit(() -> {
-      try (inputDocument) {
-        FROM_12_TO_20.newTransformer().transform(
-                new StreamSource(inputDocument),
-                new StreamResult(new BufferedOutputStream(outTransform)));
-      } catch (Exception e) {
-        outTransform.write(e.getMessage().getBytes());
-        final FormatConverterException ex = new FormatConverterException(
-                "Exception occurred during conversion of EPCIS XML document from 1.2 to 2.0 : "
-                        + e.getMessage(),
-                e);
-        inputDocument.onError(ex);
-        throw ex;
-      }
-    });
-    return FlowAdapters.toFlowPublisher(outTransform);
-  }
-
-  /**
-   * Convert EPCIS 1.2 XML document to EPCIS 2.0 XML document
-   *
    * @param inputDocument EPCIS 1.2 XML document as a InputStream
    * @return converted EPCIS 2.0 XML document as a InputStream
    * @throws IOException If any exception occur during the conversion then throw the error
    */
-  public InputStream convert12To20(final InputStream inputDocument) {
+  private InputStream convert12To20(final InputStream inputDocument) {
     final PipedInputStream convertedDocument = new PipedInputStream();
     final AtomicBoolean pipeConnected = new AtomicBoolean(false);
 
@@ -163,7 +135,7 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
               try (outTransform) {
                 outTransform.connect(convertedDocument);
                 pipeConnected.set(true);
-                FROM_12_TO_20.newTransformer().transform(
+                from12To20.newTransformer().transform(
                         new StreamSource(inputDocument),
                         new StreamResult(new BufferedOutputStream(outTransform)));
               } catch (Exception e) {
@@ -196,10 +168,6 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
   private InputStream convert20To12(final InputStream inputDocument, final List<VersionTransformerFeature> enabledFeatures) throws TransformerConfigurationException {
     final PipedInputStream convertedDocument = new PipedInputStream();
     final AtomicBoolean pipeConnected = new AtomicBoolean(false);
-    final Transformer from20T012 = FROM_20_TO_12.newTransformer();
-    from20T012.setParameter("includeAssociationEvent", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_ASSOCIATION_EVENT) ? "yes" : "no");
-    from20T012.setParameter("includePersistentDisposition", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_PERSISTENT_DISPOSITION) ? "yes" : "no");
-    from20T012.setParameter("includeSensorElementList", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_SENSOR_ELEMENT_LIST) ? "yes" : "no");
 
     executorService.execute(
             () -> {
@@ -207,10 +175,14 @@ public class DefaultXmlVersionTransformer implements XmlVersionTransformer {
               try (outTransform) {
                 outTransform.connect(convertedDocument);
                 pipeConnected.set(true);
-                from20T012.transform(
+                final Transformer from20T012Transformer = from20To12.newTransformer();
+                from20T012Transformer.setParameter("includeAssociationEvent", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_ASSOCIATION_EVENT) ? "yes" : "no");
+                from20T012Transformer.setParameter("includePersistentDisposition", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_PERSISTENT_DISPOSITION) ? "yes" : "no");
+                from20T012Transformer.setParameter("includeSensorElementList", enabledFeatures.contains(VersionTransformerFeature.EPCIS_1_2_0_INCLUDE_SENSOR_ELEMENT_LIST) ? "yes" : "no");
+                from20T012Transformer.transform(
                         new StreamSource(inputDocument),
                         new StreamResult(new BufferedOutputStream(outTransform)));
-              } catch (Exception e) {
+              } catch (Throwable e) {
                 try {
                   outTransform.write(e.getMessage().getBytes());
                 } catch (IOException ioException) {

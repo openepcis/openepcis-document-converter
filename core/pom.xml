@@ -85,10 +85,6 @@
             <groupId>io.smallrye.reactive</groupId>
             <artifactId>mutiny</artifactId>
         </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>utils</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>jakarta.enterprise</groupId>
@@ -145,7 +141,16 @@
             <version>${project.parent.version}</version>
         </dependency>
 
-        <!-- Add constants as dependencies -->
+        <!-- external xalan is required to support class generation from xsl in native builds -->
+        <dependency>
+            <groupId>xalan</groupId>
+            <artifactId>xalan</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>xalan</groupId>
+            <artifactId>serializer</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-test-resources</artifactId>
@@ -182,6 +187,62 @@
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
+            </plugin>
+
+            <!--
+              PRE-COMPILE XSL Translets
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>convert-2.0-to-1.2</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.apache.xalan.xsltc.cmdline.Compile</mainClass>
+                            <arguments>
+                                <argument>-o</argument>
+                                <argument>From20To12</argument>
+                                <argument>-d</argument>
+                                <argument>${build.directory}/classes</argument>
+                                <argument>-p</argument>
+                                <argument>io.openepcis.converter.translet</argument>
+                                <argument>-n</argument>
+                                <argument>-x</argument>
+                                <argument>-u</argument>
+                                <argument>file:${project.basedir}/src/main/resources/xalan-conversion/convert-2.0-to-1.2.xsl</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>convert-1.2-to-2.0</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.apache.xalan.xsltc.cmdline.Compile</mainClass>
+                            <arguments>
+                                <argument>-o</argument>
+                                <argument>From12To20</argument>
+                                <argument>-d</argument>
+                                <argument>${build.directory}/classes</argument>
+                                <argument>-p</argument>
+                                <argument>io.openepcis.converter.translet</argument>
+                                <argument>-n</argument>
+                                <argument>-x</argument>
+                                <argument>-u</argument>
+                                <argument>file:${project.basedir}/src/main/resources/xalan-conversion/convert-1.2-to-2.0.xsl</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+
             </plugin>
         </plugins>
     </build>

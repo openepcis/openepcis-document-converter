@@ -17,10 +17,10 @@ jobs:
       - name: checkout from git
         uses: actions/checkout@v3
 
-      - name: Set up GraalVM 17
+      - name: Set up GraalVM 21
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'graalvm'
 
       - id: run_sonarqube

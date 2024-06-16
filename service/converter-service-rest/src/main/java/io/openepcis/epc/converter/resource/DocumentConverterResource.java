@@ -21,15 +21,14 @@ import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.converter.util.ChannelUtil;
 import io.openepcis.epc.converter.util.GS1FormatProvider;
 import io.openepcis.model.epcis.EPCISDocument;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.exception.UnsupportedMediaTypeException;
 import io.openepcis.model.rest.ProblemResponseBody;
-import io.quarkus.resteasy.reactive.jackson.CustomSerialization;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.smallrye.context.api.NamedInstance;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -48,8 +47,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestHeader;
 import org.jboss.resteasy.reactive.RestMulti;
-import org.reactivestreams.FlowAdapters;
-import software.amazon.awssdk.utils.async.InputStreamConsumingPublisher;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -554,27 +551,14 @@ public class DocumentConverterResource {
     };
   }
 
-  private RestMulti<byte[]> setupRestMultiByteArray(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion) {
-    final InputStreamConsumingPublisher publisher = new InputStreamConsumingPublisher();
-    return RestMulti.fromMultiData(Multi.createFrom().<byte[]>emitter(em -> {
-      managedExecutor.execute(() -> {
-        try {
-          publisher.doBlockingWrite(
-                  versionTransformer
-                          .mapWith(mapper)
-                          .convert(
-                                  inputStream,
-                                  conversion)
-          );
-        } catch (IOException e) {
-          em.fail(e);
-          throw new RuntimeException(e);
-        }
-      });
-      Multi.createFrom().publisher(FlowAdapters.toFlowPublisher(publisher))
-              .runSubscriptionOn(managedExecutor)
-              .subscribe().with(b -> em.emit(b.array()), em::fail, em::complete);
-    })).build();
+  private RestMulti<byte[]> setupRestMultiByteArray(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion) throws IOException {
 
+    return RestMulti.fromMultiData(ChannelUtil.toMulti(
+            versionTransformer
+                    .mapWith(mapper)
+                    .convert(
+                            inputStream,
+                            conversion)
+    ).runSubscriptionOn(managedExecutor)).build();
   }
 }

@@ -71,16 +71,6 @@
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-document-converter</artifactId>
         </dependency>
-        <!-- external xalan is required to support class generation from xsl in native builds -->
-        <dependency>
-            <groupId>xalan</groupId>
-            <artifactId>xalan</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>xalan</groupId>
-            <artifactId>serializer</artifactId>
-        </dependency>
-
     </dependencies>
 
     <build>

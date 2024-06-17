@@ -357,7 +357,7 @@ jobs:
 
       - name: "Prepare Build"
         run: |
-          mvn --no-transfer-progress --batch-mode clean package -DskipTests
+          mvn --no-transfer-progress --batch-mode clean install -DskipTests
 
       - name: "Build Native Quarkus Executable"
         run: |

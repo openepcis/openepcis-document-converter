@@ -199,7 +199,6 @@ jobs:
   
 
   build-quarkus-native-container-images:
-    if: false
     name: "Build Native Container Image"
 
     strategy:
@@ -271,7 +270,6 @@ jobs:
           docker push ghcr.io/openepcis/quarkus-converter-service-native:${{matrix.tags}};
 
   push-quarkus-native-container-images:
-    if: false
     name: "Push Native Container Images"
     needs: [build-quarkus-native-container-images]
     runs-on: 'ubuntu-latest'
@@ -303,7 +301,6 @@ jobs:
           docker manifest push ghcr.io/openepcis/quarkus-converter-service-native:latest;
 
   build-quarkus-native-executable:
-    if: false
     name: "Build Quarkus Service Native Executable"
     needs: [build-jar-job]
 

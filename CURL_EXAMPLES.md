@@ -6,7 +6,7 @@
 
 ````shell
 curl -X 'POST' \
- 'http://localhost:9000/api/convert/json/2.0' \
+ 'http://localhost:8080/api/convert/json/2.0' \
  -H 'accept: application/ld+json' \
  -H 'Content-Type: application/xml' \
  -H 'GS1-EPC-Format: Always_GS1_Digital_Link' \
@@ -41,7 +41,7 @@ this should return an error due to unknown GCP-Length when requesting *GS1-EPC-F
 
 ````shell
 curl -X 'POST' \
- 'http://localhost:9000/api/convert/xml/2.0' \
+ 'http://localhost:8080/api/convert/xml/2.0' \
  -H 'accept: application/xml' \
  -H 'Content-Type: application/ld+json' \
  -H 'GS1-CBV-XML-Format: Always_URN' \
@@ -86,7 +86,7 @@ this should be working, no GCP-Length required when requesting without *GS1-EPC-
 
 ````shell
 curl -X 'POST' \
- 'http://localhost:9000/api/convert/xml/2.0' \
+ 'http://localhost:8080/api/convert/xml/2.0' \
  -H 'accept: application/xml' \
  -H 'Content-Type: application/ld+json' \
  -d '{

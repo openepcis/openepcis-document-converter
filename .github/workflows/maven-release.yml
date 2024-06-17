@@ -241,13 +241,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: 'Download VUE.JS Artifact'
-        if: contains(github.ref, 'v')
-        uses: actions/download-artifact@v4
-        with:
-          name: 'testdata-generator-ui-dist'
-          path: 'testdata-generator-ui/dist'
-
       - name: "Prepare Build"
         run: >
           mvn --no-transfer-progress --batch-mode clean package -DskipTests

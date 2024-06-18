@@ -135,7 +135,10 @@ public class OpenEPCISConverterProcessor {
   @BuildStep
   NativeImageResourcePatternsBuildItem addNativeImageResourceBuildItem() {
     return NativeImageResourcePatternsBuildItem.builder().includeGlobs(
-            "org/apache/xml/serializer/*.properties"
+            "org/apache/xml/serializer/*.properties",
+            "xalan-conversion/*.xsl",
+            "xalan-conversion/**/*",
+            "eventSchemas/*"
     ).build();
   }
 

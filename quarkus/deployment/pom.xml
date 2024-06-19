@@ -64,6 +64,10 @@
             <artifactId>quarkus-openepcis-model-deployment</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.openepcis.quarkus</groupId>
+            <artifactId>quarkus-document-validation-service-deployment</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc-deployment</artifactId>
         </dependency>

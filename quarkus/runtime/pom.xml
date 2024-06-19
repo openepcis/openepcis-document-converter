@@ -68,6 +68,10 @@
             <artifactId>quarkus-openepcis-model</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.openepcis.quarkus</groupId>
+            <artifactId>quarkus-document-validation-service</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-document-converter</artifactId>
         </dependency>

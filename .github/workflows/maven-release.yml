@@ -39,7 +39,7 @@ jobs:
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
           gpg --batch --list-secret-keys --keyid-format LONG
 
-      - name: deploy testdata generator modules
+      - name: deploy document converter modules
         env:
           OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
           OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}
@@ -52,8 +52,7 @@ jobs:
             -Popenepcis-ossrh \
             -B clean verify deploy
 
-      - name: install testdata generator modules
-        if: false
+      - name: install document converter modules
         env:
           OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
           OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}

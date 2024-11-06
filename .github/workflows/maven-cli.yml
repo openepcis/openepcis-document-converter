@@ -26,7 +26,7 @@ jobs:
       - id: run_sonarqube
         name: sonarqube
         env:
-          SONAR_TOKEN: ${{ secrets.CG_SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.CG_SONAR_LOGIN }}
         run: |
           mvn \
             -s .mvn/settings.xml \

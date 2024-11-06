@@ -267,14 +267,14 @@ public class VersionTransformer {
     private InputStream toXml(final InputStream inputDocument) {
         try {
             final PipedOutputStream xmlOutputStream = new PipedOutputStream();
-            final EventHandler<? extends XmlEPCISEventCollector> handler =
-                    new EventHandler(new XmlEPCISEventCollector(xmlOutputStream));
-
             final PipedInputStream convertedDocument = new PipedInputStream(xmlOutputStream);
 
             executorService.execute(
                     () -> {
-                        try {
+                        try (
+                                final EventHandler<? extends XmlEPCISEventCollector> handler =
+                                                 new EventHandler(new XmlEPCISEventCollector(xmlOutputStream));
+                        ) {
                             jsonToXmlConverter.convert(inputDocument, handler);
                             xmlOutputStream.close();
                         } catch (Exception e) {
@@ -302,14 +302,14 @@ public class VersionTransformer {
     private InputStream toJson(final InputStream inputDocument) {
         try {
             final PipedOutputStream jsonOutputStream = new PipedOutputStream();
-            final EventHandler<? extends JsonEPCISEventCollector> handler =
-                    new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
 
             final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
 
             executorService.execute(
                     () -> {
-                        try {
+                        try (            final EventHandler<? extends JsonEPCISEventCollector> handler =
+                                                 new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
+                        ) {
                             xmlToJsonConverter.convert(inputDocument, handler);
                         } catch (Exception e) {
                             try {
@@ -333,14 +333,14 @@ public class VersionTransformer {
     private InputStream fromJsonToJson(final InputStream inputDocument) {
         try {
             final PipedOutputStream jsonOutputStream = new PipedOutputStream();
-            final EventHandler<? extends JsonEPCISEventCollector> handler =
-                    new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
 
             final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
 
             executorService.execute(
                     () -> {
-                        try {
+                        try (            final EventHandler<? extends JsonEPCISEventCollector> handler =
+                                                 new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
+                        ) {
                             jsonEventValueTransformer.convert(inputDocument, handler);
                         } catch (Exception e) {
                             try {
@@ -364,14 +364,14 @@ public class VersionTransformer {
     private InputStream fromXmlToXml(final InputStream inputDocument) {
         try {
             final PipedOutputStream xmlOutputStream = new PipedOutputStream();
-            final EventHandler<? extends XmlEPCISEventCollector> handler =
-                    new EventHandler(new XmlEPCISEventCollector(xmlOutputStream));
 
             final PipedInputStream convertedDocument = new PipedInputStream(xmlOutputStream);
 
             executorService.execute(
                     () -> {
-                        try {
+                        try (            final EventHandler<? extends XmlEPCISEventCollector> handler =
+                                                 new EventHandler(new XmlEPCISEventCollector(xmlOutputStream));
+                        ) {
                             xmlEventValueTransformer.convert(inputDocument, handler);
                             xmlOutputStream.close();
                         } catch (Exception e) {

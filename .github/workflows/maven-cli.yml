@@ -25,12 +25,13 @@ jobs:
 
       - id: run_sonarqube
         name: sonarqube
+        env:
+          SONAR_TOKEN: ${{ secrets.CG_SONAR_HOST_URL }}
         run: |
           mvn \
             -s .mvn/settings.xml \
             --no-transfer-progress \
             --batch-mode \
             -Pcoverage \
-            -Dsonar.host.url=${{ secrets.CG_SONAR_HOST_URL }} \
-            -Dsonar.login=${{ secrets.CG_SONAR_LOGIN }} \
+            -Psonar \
             clean verify sonar:sonar

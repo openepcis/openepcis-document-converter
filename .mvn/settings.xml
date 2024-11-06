@@ -24,4 +24,16 @@
             <password>${env.OPENEPCIS_OSSRH_PASSWORD}</password>
         </server>
     </servers>
+    <profiles>
+        <profile>
+            <id>sonar</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <sonar.host.url>https://sonar.company-group.com</sonar.host.url>
+                <sonar.login>${env.SONAR_TOKEN}</sonar.login>
+            </properties>
+        </profile>
+    </profiles>
 </settings>

@@ -51,6 +51,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
       DefaultJsonSchemaNamespaceURIResolver.getContext();
 
+  private static final JsonFactory JSON_FACTORY = new JsonFactory();
+
   public JsonEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
 
@@ -276,5 +278,12 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   @Override
   public boolean isEPCISDocument() {
     return this.isEPCISDocument;
+  }
+
+  @Override
+  public void close() throws Exception {
+    if (jsonGenerator != null && !jsonGenerator.isClosed()) {
+      jsonGenerator.close();
+    }
   }
 }

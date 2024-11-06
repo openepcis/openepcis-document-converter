@@ -49,4 +49,9 @@ public class EventListCollector implements EPCISEventCollector<List<String>> {
   public boolean isEPCISDocument() {
     return false;
   }
+
+  @Override
+  public void close() throws Exception {
+    // not implemented for this simple list collector
+  }
 }

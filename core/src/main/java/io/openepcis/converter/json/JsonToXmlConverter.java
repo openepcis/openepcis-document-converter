@@ -62,14 +62,6 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
 
   private final JAXBContext jaxbContext;
 
-  // To read the JSON-LD events using the Jackson
-  private static final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(
-              new SimpleModule()
-                  .addDeserializer(JsonNode.class, new JsonNodeDupeFieldHandlingDeserializer()))
-          .registerModule(new JavaTimeModule());
-
   private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
   public JsonToXmlConverter(final JAXBContext jaxbContext) {

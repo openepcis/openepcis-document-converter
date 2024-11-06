@@ -24,7 +24,7 @@ import java.util.Map;
  * Class to delegate the incoming request to appropriate class to perform either XSD/Schema
  * validation or create final XML/JSON file after conversion
  */
-public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector<R> {
+public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector<R>, AutoCloseable {
 
   private EPCISEventValidator validator;
   private final EPCISEventCollector<R> collector;
@@ -138,5 +138,11 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
   @Override
   public boolean isEPCISDocument() {
     return collector != null && collector.isEPCISDocument();
+  }
+
+  @Override
+  public void close() throws Exception {
+    if (collector != null)
+      collector.close();
   }
 }

@@ -46,6 +46,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
 
   private String queryName;
 
+  private boolean closed = false;
+
   private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
   private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
@@ -185,6 +187,7 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
               null));
       xmlEventWriter.add(events.createEndDocument());
       xmlEventWriter.close();
+      closed = true;
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the closing of xmlEventWriter:"
@@ -226,5 +229,13 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
   @Override
   public boolean isEPCISDocument() {
     return this.isEPCISDocument;
+  }
+
+  @Override
+  public void close() throws Exception {
+    if (!closed && xmlEventWriter != null) {
+      xmlEventWriter.close();
+      closed = true;
+    }
   }
 }

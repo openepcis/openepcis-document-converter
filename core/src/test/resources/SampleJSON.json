@@ -1,0 +1,52 @@
+{
+  "@context": [
+    "https://raw.githubusercontent.com/Aravinda93/gs1egypt-custom-context/refs/heads/main/custom-epcis-context.jsonld"
+  ],
+  "type": "EPCISDocument",
+  "schemaVersion": "2.0",
+  "creationDate": "2020-08-24T10:41:03+02:00",
+  "epcisBody": {
+    "eventList": [
+      {
+        "type": "ObjectEvent",
+        "eventTime": "2020-08-23T10:41:03+02:00",
+        "recordTime": "2020-08-25T10:41:03+02:00",
+        "eventTimeZoneOffset": "+02:00",
+        "epcList": [
+          "https://id.gs1.org/01/06223002978052/21/2RW9D9VXH8JI30M5GK"
+        ],
+        "action": "OBSERVE",
+        "bizStep": "https://ref.gs1.org/cbv/BizStep-dispensing",
+        "disposition": "https://ref.gs1.org/cbv/Disp-partially_dispensed",
+        "readPoint": {
+          "id": "https://id.gs1.org/414/6223004510007"
+        },
+        "bizLocation": {
+          "id": "https://id.gs1.org/414/6223004510007"
+        },
+        "gs1egypthc:dosageQuantityList": {
+          "@id": "https://id.gs1.org/01/06223002978052/21/2RW9D9VXH8JI30M000",
+          "gs1egypthc:dosageQuantity": [
+            {
+              "@id": "https://id.gs1.org/01/06223002978052/21/2RW9D9VXH8JI30M002",
+              "epc": "urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M002",
+              "quantity": "1",
+              "uom": "T1"
+            },
+            {
+              "@id": "https://id.gs1.org/01/06223002978052/21/2RW9D9VXH8JI30M003",
+              "epc": "urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M003",
+              "quantity": "1",
+              "uom": "T1"
+            },
+            {
+              "@id": "https://id.gs1.org/8004/9256333188021329",
+              "quantity": "1",
+              "uom": "T1"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

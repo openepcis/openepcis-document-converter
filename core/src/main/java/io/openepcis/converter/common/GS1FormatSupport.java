@@ -33,6 +33,8 @@ import java.util.function.Function;
 
 public class GS1FormatSupport {
 
+  private static String extension;
+
   public interface RequestHeaderFacade {
     String getHeader(String name);
   }
@@ -88,5 +90,13 @@ public class GS1FormatSupport {
     } else {
       return EPCISFormat.JSON_LD;
     }
+  }
+
+  public static void setExtension(final String extension) {
+    GS1FormatSupport.extension = extension;
+  }
+
+  public static String getExtension() {
+    return extension;
   }
 }

@@ -20,19 +20,26 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.converter.collector.EventHandler;
+import io.openepcis.converter.collector.JsonEPCISEventCollector;
 import io.openepcis.converter.collector.XmlEPCISEventCollector;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.json.JsonToXmlConverter;
 import io.openepcis.converter.util.XMLFormatter;
 import io.openepcis.converter.validator.EventValidator;
+import io.openepcis.converter.xml.XmlToJsonConverter;
+import io.openepcis.model.epcis.format.FormatPreference;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.function.BiFunction;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 public class JsonToXmlTest {
 
   final XMLFormatter formatter = new XMLFormatter();
@@ -49,6 +56,7 @@ public class JsonToXmlTest {
     try (final EventHandler handler =
         new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream))) {
       new JsonToXmlConverter().convert(inputStream, handler);
+      System.out.println(byteArrayOutputStream);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
   }
@@ -238,16 +246,16 @@ public class JsonToXmlTest {
   void sensorDataWithCombinedEventsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
-        getClass()
-            .getClassLoader()
-            .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
+            getClass()
+                    .getClassLoader()
+                    .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
     var conversion = Conversion.builder()
-        .generateGS1CompliantDocument(false)
-        .fromMediaType(EPCISFormat.JSON_LD)
-        .fromVersion(EPCISVersion.VERSION_2_0_0)
-        .toMediaType(EPCISFormat.XML)
-        .toVersion(EPCISVersion.VERSION_2_0_0)
-        .build();
+            .generateGS1CompliantDocument(false)
+            .fromMediaType(EPCISFormat.JSON_LD)
+            .fromVersion(EPCISVersion.VERSION_2_0_0)
+            .toMediaType(EPCISFormat.XML)
+            .toVersion(EPCISVersion.VERSION_2_0_0)
+            .build();
 
     final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
     assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));
@@ -257,4 +265,65 @@ public class JsonToXmlTest {
       // ignored
     }
   }
+
+  @Test
+  void XML_TO_JSON_TEST() throws Exception {
+    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    final InputStream inputStream = getClass().getResourceAsStream("/SampleXML.xml");
+    final EventHandler handler = new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream));
+    new XmlToJsonConverter().convert(inputStream, handler);
+    System.out.println(byteArrayOutputStream);
+  }
+
+  @Test
+  void XML_TO_JSON_TEST_WITH_CONVERSION() throws Exception {
+    final InputStream inputStream = getClass().getResourceAsStream("/SampleXML.xml");
+    final FormatPreference formatPreference = new FormatPreference("always_gs1_digital_link", "always_web_uri");
+    final BiFunction<Object, List<Object>, Object> mapper = GS1FormatSupport.createMapper(formatPreference);
+    final Conversion conversion = Conversion.builder()
+            .fromMediaType(EPCISFormat.XML)
+            .fromVersion(EPCISVersion.VERSION_2_0_0)
+            .toMediaType(EPCISFormat.JSON_LD)
+            .toVersion(EPCISVersion.VERSION_2_0_0).build();
+    final VersionTransformer versionTransformer = new VersionTransformer();
+
+    final OutputStream outputStream = new ByteArrayOutputStream();
+    versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(outputStream);
+    //versionTransformer.convert(inputStream,conversion).transferTo(outputStream);
+
+    System.out.println(outputStream);
+  }
+
+
+  @Test
+  void JSON_TO_XML_TEST() throws Exception {
+    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    final InputStream inputStream = getClass().getResourceAsStream("/SampleJSON.json");
+    try (final EventHandler handler = new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream))) {
+      new JsonToXmlConverter().convert(inputStream, handler);
+      final XMLFormatter formatter = new XMLFormatter();
+      System.out.println(formatter.format(byteArrayOutputStream.toString()));;
+    }
+  }
+
+  @Test
+  void JSON_TO_XML_TEST_WITH_CONVERSION() throws Exception {
+    final InputStream inputStream = getClass().getResourceAsStream("/SampleJSON.json");
+    final FormatPreference formatPreference = new FormatPreference("always_gs1_digital_link", "always_epc_urn");
+    final BiFunction<Object, List<Object>, Object> mapper = GS1FormatSupport.createMapper(formatPreference);
+    final Conversion conversion = Conversion.builder()
+            .fromMediaType(EPCISFormat.JSON_LD)
+            .fromVersion(EPCISVersion.VERSION_2_0_0)
+            .toMediaType(EPCISFormat.XML)
+            .toVersion(EPCISVersion.VERSION_2_0_0).build();
+    final VersionTransformer versionTransformer = new VersionTransformer();
+
+    final OutputStream outputStream = new ByteArrayOutputStream();
+    versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(outputStream);
+    //versionTransformer.convert(inputStream,conversion).transferTo(outputStream);
+
+    final XMLFormatter formatter = new XMLFormatter();
+    System.out.println(formatter.format(outputStream.toString()));;
+  }
+
 }

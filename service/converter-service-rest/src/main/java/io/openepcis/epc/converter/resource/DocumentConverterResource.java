@@ -33,6 +33,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
@@ -162,8 +163,8 @@ public class DocumentConverterResource {
                           enumeration = {"No_Preference", "Always_GS1_Digital_Link", "Always_EPC_URN", "Never_Translates"}
                   ),
                   in = ParameterIn.HEADER)
-          @RestHeader(value = "GS1-EPC-Format")
-          String epcFormat,
+          @RestHeader(value = "GS1-EPC-Format") String epcFormat,
+          @RestHeader(value = "GS1-Extensions") String customExtensions,
           @Context HttpHeaders httpHeaders)
           throws FormatConverterException, IOException {
 
@@ -172,6 +173,10 @@ public class DocumentConverterResource {
     if (mediaType == null || !GS1FormatSupport.isValidMediaType(mediaType)) {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
+
+    //If custom extension has been provided as Header Parameter then set them and use during the JSON context creation
+    GS1FormatSupport.setExtension(customExtensions);
+
     return setupStreamingOutput(
             inputDocument,
             GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),

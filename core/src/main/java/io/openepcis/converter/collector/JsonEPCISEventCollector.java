@@ -15,18 +15,19 @@
  */
 package io.openepcis.converter.collector;
 
-import static io.openepcis.constants.EPCIS.*;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
+import static io.openepcis.constants.EPCIS.*;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final JSON file with all
@@ -37,7 +38,6 @@ import org.apache.commons.lang3.StringUtils;
  * JSON-LD header objects that were created in the start method.
  */
 public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream> {
-
   private final OutputStream stream;
   private final JsonGenerator jsonGenerator;
   private boolean jsonEventSeparator;
@@ -96,29 +96,37 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   public void start(Map<String, String> context) {
     try {
 
+      System.out.println("Checking for GS1 Extension : ");
+      System.out.println(GS1FormatSupport.getExtension());
+      System.out.println("Checking for GS1 Extension : ");
+
+
+      //Check if the namespaces contain the GS1 Egypt related namespaces if so add the custom context
+      final boolean isGS1EgyptContext = namespaceResolver.getAllNamespaces().containsKey(GS1_EGYPT_CUSTOM_NAMESPACES) ||
+              GS1_EGYPT_CUSTOM_PREFIX.equalsIgnoreCase(GS1FormatSupport.getExtension());
+
       // create Outermost JsonObject
       jsonGenerator.writeStartObject();
 
       // Write the info related to Context element in JSON
       jsonGenerator.writeFieldName(CONTEXT);
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
+      jsonGenerator.writeString(!isGS1EgyptContext ? EPCISVersion.getDefaultJSONContext() : GS1_EGYPT_CUSTOM_CONTEXT);
 
-      // Get all the stored namespaces from jsonNamespaces
-      namespaceResolver
-          .getDocumentNamespaces()
-          .forEach(
-              (key, value) -> {
-                try {
-                  jsonGenerator.writeStartObject();
-                  jsonGenerator.writeStringField(value, key);
-                  jsonGenerator.writeEndObject();
-                } catch (IOException e1) {
-                  throw new FormatConverterException(
-                      "Exception during XML-JSON-LD conversion, Error occurred during the addition of Namespaces: "
-                          + e1, e1);
-                }
-              });
+      if (!isGS1EgyptContext) {
+        // Get all the stored namespaces from jsonNamespaces
+        namespaceResolver.getDocumentNamespaces()
+                .forEach((key, value) -> {
+                  try {
+                    jsonGenerator.writeStartObject();
+                    jsonGenerator.writeStringField(value, key);
+                    jsonGenerator.writeEndObject();
+                  } catch (IOException e1) {
+                    throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during the addition of Namespaces: " + e1, e1);
+                  }
+                });
+      }
+
       jsonGenerator.writeEndArray();
 
       // Write Other header fields of JSON
@@ -126,19 +134,19 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
 
       // Write schema version and other attributes within XML Header
       context.forEach(
-          (key, value) -> {
-            try {
-              if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
-                jsonGenerator.writeStringField(key, "2.0");
-              } else {
-                jsonGenerator.writeStringField(key, value);
-              }
-            } catch (IOException e) {
-              throw new FormatConverterException(
-                  "Exception during XML-JSON-LD conversion, Error occurred during the addition of attributes: "
-                      + e, e);
-            }
-          });
+              (key, value) -> {
+                try {
+                  if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
+                    jsonGenerator.writeStringField(key, "2.0");
+                  } else {
+                    jsonGenerator.writeStringField(key, value);
+                  }
+                } catch (IOException e) {
+                  throw new FormatConverterException(
+                          "Exception during XML-JSON-LD conversion, Error occurred during the addition of attributes: "
+                                  + e, e);
+                }
+              });
 
       // Start epcisBody object
       jsonGenerator.writeFieldName(EPCIS_BODY_IN_CAMEL_CASE);

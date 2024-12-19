@@ -539,13 +539,17 @@ public class DocumentConverterResource {
   private StreamingOutput setupStreamingOutput(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion) {
     return new StreamingOutput() {
       @Override
-      public void write(OutputStream output) throws IOException, WebApplicationException {
-        versionTransformer
-                .mapWith(mapper)
-                .convert(
-                        inputStream,
-                        conversion)
-                .transferTo(output);
+      public void write(OutputStream output) throws WebApplicationException {
+        try {
+          versionTransformer
+                  .mapWith(mapper)
+                  .convert(
+                          inputStream,
+                          conversion)
+                  .transferTo(output);
+        } catch (Exception e) {
+          throw new WebApplicationException(e, Response.Status.BAD_REQUEST);
+        }
       }
 
     };

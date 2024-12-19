@@ -49,7 +49,7 @@ public class OpenEPCISConverterProcessor {
   @BuildStep
   HealthBuildItem addHealthCheck(OpenEPCISBuildTimeConfig buildTimeConfig) {
     return new HealthBuildItem(OpenEPCISConverterHealthCheck.class.getName(),
-            buildTimeConfig.healthEnabled);
+            buildTimeConfig.healthEnabled());
   }
 
 

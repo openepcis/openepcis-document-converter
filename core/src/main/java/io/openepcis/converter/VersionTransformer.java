@@ -31,11 +31,13 @@ import io.openepcis.converter.xml.XMLEventValueTransformer;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import io.openepcis.converter.xml.XmlVersionTransformer;
 import io.openepcis.model.rest.ProblemResponseBody;
+import io.smallrye.mutiny.Uni;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -302,25 +304,70 @@ public class VersionTransformer {
     private InputStream toJson(final InputStream inputDocument) {
         try {
             final PipedOutputStream jsonOutputStream = new PipedOutputStream();
-
             final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
+            return Uni.createFrom().<InputStream>emitter(em -> {
+                executorService.execute(
+                        () -> {
+                            try (
+                               final EventHandler<? extends JsonEPCISEventCollector> handler =
+                               new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
+                            ) {
 
-            executorService.execute(
-                    () -> {
-                        try (            final EventHandler<? extends JsonEPCISEventCollector> handler =
-                                                 new EventHandler(new JsonEPCISEventCollector(jsonOutputStream));
-                        ) {
-                            xmlToJsonConverter.convert(inputDocument, handler);
-                        } catch (Exception e) {
-                            try {
-                                jsonOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
-                                jsonOutputStream.close();
-                            } catch (IOException ioe) {
-                                log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
+                                xmlToJsonConverter.convert(new BufferedInputStream(inputDocument) {
+                                    long wasRead = 0l;
+                                    boolean active = false;
+
+                                    private int submitOnRead(int read) {
+                                        if (active) {
+                                            return read;
+                                        }
+                                        wasRead+=read;
+                                        if (wasRead >= 64) {
+                                            active = true;
+                                            em.complete(convertedDocument);
+                                        }
+                                        return read;
+                                    }
+
+                                    @Override
+                                    public void close() throws IOException {
+                                        try {
+                                            super.close();
+                                            if (!active) {
+                                                em.complete(convertedDocument);
+                                            }
+                                        } catch (IOException e) {
+                                            if (!active) {
+                                                em.fail(e);
+                                            }
+                                            throw e;
+                                        }
+                                    }
+
+                                    @Override
+                                    public int read() throws IOException {
+                                        submitOnRead(1);
+                                        return super.read();
+                                    }
+
+                                    @Override
+                                    public int read(byte[] b, int off, int len) throws IOException {
+                                        return submitOnRead(super.read(b, off, len));
+                                    }
+                                }, handler);
+                            } catch (Exception e) {
+                                em.fail(e);
+                                try {
+                                    jsonOutputStream.write(objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
+                                    jsonOutputStream.close();
+                                } catch (IOException ioe) {
+                                    log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
+                                }
                             }
-                        }
-                    });
-            return convertedDocument;
+                        });
+
+            }).emitOn(executorService).await().atMost(Duration.ofMillis(5000));
+
         } catch (Exception e) {
             throw new FormatConverterException(
                     "Exception occurred during the conversion of XML 2.0 document to JSON 2.0 document using PipedInputStream  : "

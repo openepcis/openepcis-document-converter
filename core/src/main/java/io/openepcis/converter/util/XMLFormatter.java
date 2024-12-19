@@ -29,8 +29,6 @@ public class XMLFormatter {
   public String format(String xml) {
     try {
       final TransformerFactory factory = TransformerFactory.newInstance();
-      factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-      factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 
       final Transformer transformer = factory.newTransformer();
       transformer.setOutputProperty(OutputKeys.INDENT, "yes");

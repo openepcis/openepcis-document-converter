@@ -30,6 +30,7 @@ import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import lombok.extern.slf4j.Slf4j;
@@ -92,56 +93,52 @@ public abstract class JsonEventParser {
     }
 
     protected void collectNameSpaceAndContextValues(JsonParser jsonParser) throws IOException {
-        while (!(jsonParser.getText().equals(EPCIS.TYPE)
-                || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
-            if (jsonParser.getCurrentName() != null
-                    && jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.CONTEXT)) {
-                // Read the context value only if the value is of type array else skip to add only string
-                if (jsonParser.nextToken() == JsonToken.START_ARRAY) {
+        while (!(jsonParser.getText().equals(EPCIS.TYPE) || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
+            // Read the context value only if the value is of type array else skip to add only string
+            if (jsonParser.currentName() != null && jsonParser.currentName().equalsIgnoreCase(EPCIS.CONTEXT) && jsonParser.nextToken() == JsonToken.START_ARRAY) {
                     // Loop until end of the Array to obtain Context elements
                     while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
 
-                        // If element has name then store name and text in Map
-                        if (jsonParser.getCurrentName() != null
-                                && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
-                            // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on
-                            // corresponding XSD
-                            defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(
-                                    jsonParser.getText(), jsonParser.getCurrentName());
+                        // If element has name then store name and text in Map (ignore any namespace/context that starts with @ as they are part of default context)
+                        if (jsonParser.currentName() != null && jsonParser.currentToken() == JsonToken.VALUE_STRING && !jsonParser.currentName().startsWith("@")) {
+                            // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on corresponding XSD
+                            defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(jsonParser.getText(), jsonParser.currentName());
                         }
                     }
-                }
+
             }
             jsonParser.nextToken();
         }
     }
-    protected void collectDocumentMetaData(Map<String, String> contextValues, JsonParser jsonParser, EventHandler eventHandler) throws IOException {
-        while (!jsonParser.getText().equals(EPCIS.EVENT_LIST_IN_CAMEL_CASE)) {
+    protected void collectDocumentMetaData(final Map<String, String> contextValues,
+                                           final JsonParser jsonParser,
+                                           final EventHandler eventHandler) throws IOException {
+        boolean isEPCISDocument = false;
 
-            boolean isEPCISDocument = false;
+        // Loop till the eventList and obtain the information at the document level like creationDate, schemaVersion, type etc.
+        while (!EPCIS.EVENT_LIST_IN_CAMEL_CASE.equals(jsonParser.getText())) {
+
             // If the element is type then accordingly set the value EPCISDocument/EPCISQueryDocument
-            if (jsonParser.getCurrentName().equals(EPCIS.TYPE)) {
+            if (EPCIS.TYPE.equals(jsonParser.currentName())) {
                 // Set for EPCISDocument or EPCISQueryDocument for adding the header element
-                isEPCISDocument = jsonParser.getText().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+                isEPCISDocument = EPCIS.EPCIS_DOCUMENT.equalsIgnoreCase(jsonParser.getText());
                 eventHandler.setIsEPCISDocument(isEPCISDocument);
             }
 
             // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
             if (!isEPCISDocument) {
-                if (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+                if (EPCIS.SUBSCRIPTION_ID.equalsIgnoreCase(jsonParser.currentName())) {
                     eventHandler.setSubscriptionID(jsonParser.nextTextValue());
-                } else if (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+                } else if (EPCIS.QUERY_NAME.equalsIgnoreCase(jsonParser.currentName())) {
                     eventHandler.setQueryName(jsonParser.nextTextValue());
                 }
             }
 
-            if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING
-                    || jsonParser.getCurrentToken() == JsonToken.VALUE_NUMBER_FLOAT)
-                    && (jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.SCHEMA_VERSION)
-                    || jsonParser.getCurrentName().equalsIgnoreCase(EPCIS.CREATION_DATE))) {
+            if ((jsonParser.getCurrentToken() == JsonToken.VALUE_STRING || jsonParser.getCurrentToken() == JsonToken.VALUE_NUMBER_FLOAT)
+                    && (EPCIS.SCHEMA_VERSION.equalsIgnoreCase(jsonParser.currentName()) || EPCIS.CREATION_DATE.equalsIgnoreCase(jsonParser.currentName()))) {
 
                 // Add the elements to target event header
-                contextValues.put(jsonParser.getCurrentName(), jsonParser.getText());
+                contextValues.put(jsonParser.currentName(), jsonParser.getText());
             }
             jsonParser.nextToken();
         }

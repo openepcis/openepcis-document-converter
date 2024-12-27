@@ -309,8 +309,11 @@ public class JsonToXmlTest {
   @Test
   void JSON_TO_XML_TEST_WITH_CONVERSION() throws Exception {
     final InputStream inputStream = getClass().getResourceAsStream("/SampleJSON.json");
-    final FormatPreference formatPreference = new FormatPreference("always_gs1_digital_link", "always_epc_urn");
-    final BiFunction<Object, List<Object>, Object> mapper = GS1FormatSupport.createMapper(formatPreference);
+    final FormatPreference withWebURI = new FormatPreference("always_gs1_digital_link", "always_web_uri");
+    final FormatPreference withURN = new FormatPreference("always_epc_urn", "no_preference");
+    final FormatPreference noPreference = new FormatPreference("no_preference", "no_preference");
+    final FormatPreference nullPreference = new FormatPreference(null, null);
+    final BiFunction<Object, List<Object>, Object> mapper = GS1FormatSupport.createMapper(withURN);
     final Conversion conversion = Conversion.builder()
             .fromMediaType(EPCISFormat.JSON_LD)
             .fromVersion(EPCISVersion.VERSION_2_0_0)

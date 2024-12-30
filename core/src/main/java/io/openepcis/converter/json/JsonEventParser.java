@@ -24,8 +24,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
-import io.openepcis.converter.collector.context.ContextLogicDelegator;
-import io.openepcis.converter.collector.context.CustomContextLogic;
+import io.openepcis.converter.collector.context.ContextProcessorApp;
+import io.openepcis.converter.collector.context.api.ContextHandler;
 import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
@@ -102,8 +102,8 @@ public abstract class JsonEventParser {
 
                     // Get the default context value from the JSON @context using the ContextLogicDelegator find if its custom context or Default GS1 context
                     if (isContextValue && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
-                        final CustomContextLogic customLogicProvider = ContextLogicDelegator.getXmlNamespaceLogic(jsonParser.getText(), GS1FormatSupport.getExtension());
-                        customLogicProvider.xmlNamespacesBuilder(jsonParser, defaultJsonSchemaNamespaceURIResolver);
+                        final ContextHandler customLogicProvider = ContextProcessorApp.resolveForXmlConversion(jsonParser.getText(), GS1FormatSupport.getExtension());
+                        customLogicProvider.populateXmlNamespaces(jsonParser, defaultJsonSchemaNamespaceURIResolver);
                         isContextValue = false;
                     }
 

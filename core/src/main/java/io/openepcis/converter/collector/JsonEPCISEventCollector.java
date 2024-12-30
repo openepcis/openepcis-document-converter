@@ -18,8 +18,8 @@ package io.openepcis.converter.collector;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
-import io.openepcis.converter.collector.context.ContextLogicDelegator;
-import io.openepcis.converter.collector.context.CustomContextLogic;
+import io.openepcis.converter.collector.context.ContextProcessorApp;
+import io.openepcis.converter.collector.context.api.ContextHandler;
 import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
@@ -95,8 +95,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       final Map<String, String> allNamespaces = namespaceResolver.getAllNamespaces();
 
       // Use the delegation approach to add either Default context from DefaultContext or add custom context such as GS1 Egypt or other
-      final CustomContextLogic customLogicProvider = ContextLogicDelegator.getJsonContextLogic(allNamespaces, GS1FormatSupport.getExtension());
-      customLogicProvider.jsonContextBuilder(jsonGenerator, allNamespaces);
+      final ContextHandler customLogicProvider = ContextProcessorApp.resolveForJsonConversion(allNamespaces, GS1FormatSupport.getExtension());
+      customLogicProvider.buildJsonContext(jsonGenerator, allNamespaces);
 
       jsonGenerator.writeEndArray(); // End of context array
 

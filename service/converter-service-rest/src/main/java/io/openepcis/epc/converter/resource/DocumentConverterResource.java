@@ -33,7 +33,6 @@ import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
@@ -76,8 +75,7 @@ public class DocumentConverterResource {
   ManagedExecutor managedExecutor;
 
   // Method to convert the input XML EPCIS events into JSON EPCIS events
-  @Operation(
-          summary = "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 2.0 JSON/JSON-LD.")
+  @Operation(summary = "Convert EPCIS document or event from 1.2/2.0 XML to EPCIS 2.0 JSON/JSON-LD.")
   @Path("/convert/json/2.0")
   @POST
   @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, "application/ld+json"})
@@ -89,32 +87,20 @@ public class DocumentConverterResource {
                           mediaType = MediaType.APPLICATION_XML,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 1.2 XML document",
-                                          ref = "xml1.2Document",
-                                          description = "Example EPCIS 1.2 document"),
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 XML document",
-                                          ref = "xmlDocument",
-                                          description = "Example EPCIS 2.0 document in XML format.")
+                                  @ExampleObject(name = "EPCIS 1.2 XML document", ref = "xml1.2Document", description = "Example EPCIS 1.2 document"),
+                                  @ExampleObject(name = "EPCIS 2.0 XML document", ref = "xmlDocument", description = "Example EPCIS 2.0 document in XML format.")
                           }),
                   @Content(
                           mediaType = MediaType.APPLICATION_JSON,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           }),
                   @Content(
                           mediaType = "application/ld+json",
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           })
           }
   )
@@ -127,10 +113,7 @@ public class DocumentConverterResource {
                                   mediaType = MediaType.APPLICATION_JSON,
                                   schema = @Schema(implementation = EPCISDocument.class),
                                   examples = {
-                                          @ExampleObject(
-                                                  name = "EPCIS 2.0 JSON document",
-                                                  ref = "jsonDocument",
-                                                  description = "Example EPCIS 2.0 document in JSON format.")
+                                          @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                                   })
                   ),
                   @APIResponse(
@@ -159,12 +142,10 @@ public class DocumentConverterResource {
           @Parameter(
                   name = "GS1-EPC-Format",
                   description = ParameterDescription.GS1_EPC_FORMAT,
-                  schema = @Schema(type = SchemaType.STRING,
-                          enumeration = {"No_Preference", "Always_GS1_Digital_Link", "Always_EPC_URN", "Never_Translates"}
-                  ),
+                  schema = @Schema(type = SchemaType.STRING, enumeration = {"No_Preference", "Always_GS1_Digital_Link", "Always_EPC_URN", "Never_Translates"}),
                   in = ParameterIn.HEADER)
           @RestHeader(value = "GS1-EPC-Format") String epcFormat,
-          @RestHeader(value = "GS1-Extensions") String customExtensions,
+          @RestHeader(value = "GS1-Extensions") String gs1Extensions,
           @Context HttpHeaders httpHeaders)
           throws FormatConverterException, IOException {
 
@@ -175,7 +156,7 @@ public class DocumentConverterResource {
     }
 
     //If custom extension has been provided as Header Parameter then set them and use during the JSON context creation
-    GS1FormatSupport.setExtension(customExtensions);
+      GS1FormatSupport.setExtension(gs1Extensions);
 
     return setupStreamingOutput(
             inputDocument,
@@ -201,87 +182,63 @@ public class DocumentConverterResource {
   }
 
   // Method to convert the input JSON 2.0 EPCIS events into XML 2.0 EPCIS events
-  @Operation(
-          summary =
-                  "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 2.0 XML.")
+  @Operation(summary = "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 2.0 XML.")
   @Path("/convert/xml/2.0")
   @POST
   @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, "application/ld+json"})
   @Produces({MediaType.APPLICATION_XML})
   @RequestBody(
-          description =
-                  "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 2.0 XML.",
+          description = "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 2.0 XML.",
           content = {
                   @Content(
                           mediaType = MediaType.APPLICATION_JSON,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           }),
                   @Content(
                           mediaType = MediaType.APPLICATION_XML,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 1.2 XML document",
-                                          ref = "xml1.2Document",
-                                          description = "Example EPCIS 1.2 document"),
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 XML document",
-                                          ref = "xmlDocument",
-                                          description = "Example EPCIS 2.0 document in XML format.")
+                                  @ExampleObject(name = "EPCIS 1.2 XML document", ref = "xml1.2Document", description = "Example EPCIS 1.2 document"),
+                                  @ExampleObject(name = "EPCIS 2.0 XML document", ref = "xmlDocument", description = "Example EPCIS 2.0 document in XML format.")
                           }),
                   @Content(
                           mediaType = "application/ld+json",
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           })
           })
   @APIResponses(
           value = {
                   @APIResponse(
                           responseCode = "200",
-                          description =
-                                  "OK: Converted to EPCIS 2.0 XML successfully.",
+                          description = "OK: Converted to EPCIS 2.0 XML successfully.",
                           content =
                           @Content(
                                   schema = @Schema(implementation = EPCISDocument.class),
-                                  examples = @ExampleObject(
-                                          name = "EPCIS 2.0 XML document",
-                                          ref = "xmlDocument",
-                                          description = "Example EPCIS 2.0 document in XML format.")
+                                  examples = @ExampleObject(name = "EPCIS 2.0 XML document", ref = "xmlDocument", description = "Example EPCIS 2.0 document in XML format.")
                           )),
                   @APIResponse(
                           responseCode = "400",
-                          description =
-                                  "Bad Request: Input EPCIS document or single event contains missing/invalid information.",
+                          description = "Bad Request: Input EPCIS document or single event contains missing/invalid information.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "401",
-                          description =
-                                  "Unauthorized: Unable to convert document or single event as request contains missing/invalid authorization.",
+                          description = "Unauthorized: Unable to convert document or single event as request contains missing/invalid authorization.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "404",
-                          description =
-                                  "Not Found: Unable to convert document or single event as the requested resource not found.",
+                          description = "Not Found: Unable to convert document or single event as the requested resource not found.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "406",
-                          description =
-                                  "Not Acceptable: Unable to convert EPCIS document or single event as server cannot find content confirming request.",
+                          description = "Not Acceptable: Unable to convert EPCIS document or single event as server cannot find content confirming request.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "500",
-                          description =
-                                  "Internal Server Error: Unable to convert document or single event as server encountered problem.",
+                          description = "Internal Server Error: Unable to convert document or single event as server encountered problem.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
           })
   public RestMulti<byte[]> convertToXml_2_0(
@@ -289,39 +246,38 @@ public class DocumentConverterResource {
           @Parameter(
                   name = "GS1-EPC-Format",
                   description = ParameterDescription.GS1_EPC_FORMAT,
-                  schema = @Schema(type = SchemaType.STRING,
-                          enumeration = {"No_Preference", "Always_GS1_Digital_Link", "Always_EPC_URN", "Never_Translates"}
-                  ),
+                  schema = @Schema(type = SchemaType.STRING, enumeration = {"No_Preference", "Always_GS1_Digital_Link", "Always_EPC_URN", "Never_Translates"}),
                   in = ParameterIn.HEADER)
           @RestHeader(value = "GS1-EPC-Format")
           String epcFormat,
           @Parameter(
                   name = "GS1-CBV-XML-Format",
                   description = ParameterDescription.GS1_CBV_XML_FORMAT,
-                  schema = @Schema(type = SchemaType.STRING,
-                          enumeration = {"No_Preference", "Always_Web_URI", "Always_URN", "Never_Translates"}
-                  ),
+                  schema = @Schema(type = SchemaType.STRING, enumeration = {"No_Preference", "Always_Web_URI", "Always_URN", "Never_Translates"}),
                   in = ParameterIn.HEADER)
           @RestHeader(value = "GS1-CBV-XML-Format")
           String cbvFormat,
-          @Context HttpHeaders httpHeaders)
-          throws FormatConverterException, IOException {
+          @RestHeader(value = "GS1-Extensions") String gs1Extensions,
+          @Context HttpHeaders httpHeaders) throws FormatConverterException, IOException {
 
-    final MediaType mediaType = httpHeaders.getMediaType();
+      final MediaType mediaType = httpHeaders.getMediaType();
 
-    if (mediaType == null || !GS1FormatSupport.isValidMediaType(mediaType)) {
-      throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
-    }
+      if (mediaType == null || !GS1FormatSupport.isValidMediaType(mediaType)) {
+          throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
+      }
 
-    return setupRestMultiByteArray(
-            inputDocument,
-            GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),
-            Conversion.builder()
-                    .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-                    .toMediaType(EPCISFormat.XML)
-                    .toVersion(EPCISVersion.VERSION_2_0_0)
-                    .build()
-    );
+      //If custom extension has been provided as Header Parameter then set them and use during the JSON context creation
+      GS1FormatSupport.setExtension(gs1Extensions);
+
+      return setupRestMultiByteArray(
+              inputDocument,
+              GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),
+              Conversion.builder()
+                      .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
+                      .toMediaType(EPCISFormat.XML)
+                      .toVersion(EPCISVersion.VERSION_2_0_0)
+                      .build()
+      );
 /*
         return RestMulti.fromMultiData(
                 ChannelUtil.toMulti(versionTransformer
@@ -339,9 +295,7 @@ public class DocumentConverterResource {
   }
 
   // Method to convert the input JSON 2.0 EPCIS events into XML 1.2 EPCIS events
-  @Operation(
-          summary =
-                  "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 1.2 XML.")
+  @Operation(summary = "Convert EPCIS document or single event from XML version 1.2 or 2.0 or JSON/JSON-LD 2.0 to EPCIS 1.2 XML.")
   @Path("/convert/xml/1.2")
   @POST
   @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, "application/ld+json"})
@@ -354,73 +308,52 @@ public class DocumentConverterResource {
                           mediaType = MediaType.APPLICATION_JSON,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           }),
                   @Content(
                           mediaType = MediaType.APPLICATION_XML,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 XML document",
-                                          ref = "xmlDocument",
-                                          description = "Example EPCIS 2.0 document in XML format."),
-                                  @ExampleObject(
-                                          name = "EPCIS 1.2 XML document",
-                                          ref = "xml1.2Document",
-                                          description = "Example EPCIS 1.2 document")
+                                  @ExampleObject(name = "EPCIS 2.0 XML document", ref = "xmlDocument", description = "Example EPCIS 2.0 document in XML format."),
+                                  @ExampleObject(name = "EPCIS 1.2 XML document", ref = "xml1.2Document", description = "Example EPCIS 1.2 document")
 
                           }),
                   @Content(
                           mediaType = "application/ld+json",
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           })
           })
   @APIResponses(
           value = {
                   @APIResponse(
                           responseCode = "200",
-                          description =
-                                  "OK: Converted to EPCIS 1.2 XML successfully.",
+                          description = "OK: Converted to EPCIS 1.2 XML successfully.",
                           content =
                           @Content(
                                   schema = @Schema(type = SchemaType.ARRAY, implementation = EPCISEvent.class),
-                                  examples = @ExampleObject(
-                                          name = "EPCIS 1.2 XML document",
-                                          ref = "xml1.2Document",
-                                          description = "Example EPCIS 1.2 document")
+                                  examples = @ExampleObject(name = "EPCIS 1.2 XML document", ref = "xml1.2Document", description = "Example EPCIS 1.2 document")
                           )),
                   @APIResponse(
                           responseCode = "400",
-                          description =
-                                  "Bad Request: Input EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event contains missing/invalid information.",
+                          description = "Bad Request: Input EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event contains missing/invalid information.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "401",
-                          description =
-                                  "Unauthorized: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as request contains missing/invalid authorization.",
+                          description = "Unauthorized: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as request contains missing/invalid authorization.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "404",
-                          description =
-                                  "Not Found: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as the requested resource not found.",
+                          description = "Not Found: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as the requested resource not found.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "406",
-                          description =
-                                  "Not Acceptable: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as server cannot find content confirming request.",
+                          description = "Not Acceptable: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as server cannot find content confirming request.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class))),
                   @APIResponse(
                           responseCode = "500",
-                          description =
-                                  "Internal Server Error: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as server encountered problem.",
+                          description = "Internal Server Error: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as server encountered problem.",
                           content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
           })
   public RestMulti<byte[]> convertToXml_1_2(
@@ -437,9 +370,7 @@ public class DocumentConverterResource {
           @Parameter(
                   name = "GS1-CBV-XML-Format",
                   description = ParameterDescription.GS1_CBV_XML_FORMAT,
-                  schema = @Schema(type = SchemaType.STRING,
-                          enumeration = {"No_Preference", "Always_Web_URI", "Always_URN", "Never_Translates"}
-                  ),
+                  schema = @Schema(type = SchemaType.STRING, enumeration = {"No_Preference", "Always_Web_URI", "Always_URN", "Never_Translates"}),
                   in = ParameterIn.HEADER)
           @RestHeader(value = "GS1-CBV-XML-Format")
           String cbvFormat,
@@ -481,46 +412,32 @@ public class DocumentConverterResource {
   @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
   @Produces(MediaType.APPLICATION_JSON)
   @RequestBody(
-          description =
-                  "Convert EPCIS document or single event from JSON/JSON-LD or EPCIS 2.0 XML to EPCIS 2.0 XML.",
+          description = "Convert EPCIS document or single event from JSON/JSON-LD or EPCIS 2.0 XML to EPCIS 2.0 XML.",
           content = {
                   @Content(
                           mediaType = MediaType.APPLICATION_JSON,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           }),
                   @Content(
                           mediaType = MediaType.APPLICATION_XML,
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 1.2 XML document",
-                                          ref = "xml1.2Document",
-                                          description = "Example EPCIS 1.2 document"),
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 XML document",
-                                          ref = "xmlDocument",
-                                          description = "Example EPCIS 2.0 document in XML format.")
+                                  @ExampleObject(name = "EPCIS 1.2 XML document", ref = "xml1.2Document", description = "Example EPCIS 1.2 document"),
+                                  @ExampleObject(name = "EPCIS 2.0 XML document", ref = "xmlDocument", description = "Example EPCIS 2.0 document in XML format.")
                           }),
                   @Content(
                           mediaType = "application/ld+json",
                           schema = @Schema(implementation = EPCISDocument.class),
                           examples = {
-                                  @ExampleObject(
-                                          name = "EPCIS 2.0 JSON document",
-                                          ref = "jsonDocument",
-                                          description = "Example EPCIS 2.0 document in JSON format.")
+                                  @ExampleObject(name = "EPCIS 2.0 JSON document", ref = "jsonDocument", description = "Example EPCIS 2.0 document in JSON format.")
                           })
           })
   @APIResponses(value = {
           @APIResponse(
                   responseCode = "200",
-                  description =
-                          "OK: version detected",
+                  description = "OK: version detected",
                   content = @Content(schema = @Schema(type = SchemaType.OBJECT),
                           example = """
                                   {
@@ -528,8 +445,7 @@ public class DocumentConverterResource {
                                   }""")),
           @APIResponse(
                   responseCode = "400",
-                  description =
-                          "Bad Request: Input EPCIS document contains missing/invalid information.",
+                  description = "Bad Request: Input EPCIS document contains missing/invalid information.",
                   content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
 
   })
@@ -545,25 +461,15 @@ public class DocumentConverterResource {
     return new StreamingOutput() {
       @Override
       public void write(OutputStream output) throws IOException, WebApplicationException {
-        versionTransformer
-                .mapWith(mapper)
-                .convert(
-                        inputStream,
-                        conversion)
-                .transferTo(output);
+          versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(output);
       }
 
     };
   }
 
   private RestMulti<byte[]> setupRestMultiByteArray(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion) throws IOException {
-
-    return RestMulti.fromMultiData(ChannelUtil.toMulti(
-            versionTransformer
-                    .mapWith(mapper)
-                    .convert(
-                            inputStream,
-                            conversion)
-    ).runSubscriptionOn(managedExecutor)).build();
+      return RestMulti
+              .fromMultiData(ChannelUtil.toMulti(versionTransformer.mapWith(mapper).convert(inputStream, conversion))
+                      .runSubscriptionOn(managedExecutor)).build();
   }
 }

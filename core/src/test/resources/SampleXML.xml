@@ -1,4 +1,9 @@
-<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2" schemaVersion="2.0" creationDate="2020-08-24T10:41:03+02:00" xmlns:gs1egypthc="http://epcis.gs1eg.org/hc/ns">
+<?xml version="1.0" encoding="UTF-8"?>
+<epcis:EPCISDocument
+        xmlns:epcis="urn:epcglobal:epcis:xsd:2"
+        xmlns:gs1egypthc="http://epcis.gs1eg.org/hc/ns"
+        xmlns:ext1="http://example.com.gs1eg.org/hc/ns"
+        schemaVersion="2.0" creationDate="2020-08-24T10:41:03+02:00">
     <EPCISBody>
         <EventList>
             <ObjectEvent>
@@ -17,12 +22,26 @@
                 <bizLocation>
                     <id>urn:epc:id:sgln:622300451.000.0</id>
                 </bizLocation>
-                <gs1egypthc:dosageQuantityList id="urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M000">
-                    <gs1egypthc:dosageQuantity id="https://id.gs1.org/8004/9256333188021329">
+                <gs1egypthc:dosageQuantityList>
+                    <gs1egypthc:dosageQuantity>
+                        <epc>urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M5GK</epc>
                         <quantity>1</quantity>
                         <uom>T1</uom>
                     </gs1egypthc:dosageQuantity>
                 </gs1egypthc:dosageQuantityList>
+                <ext1:test>
+                    <ext1:value>String</ext1:value>
+                    <ext1:value2>true</ext1:value2>
+                    <ext1:value3>2.1</ext1:value3>
+                    <ext1:complex>
+                        <ext1:complex2>
+                            <ext1:array>
+                                <ext1:value>String</ext1:value>
+                                <ext1:value2>true</ext1:value2>
+                            </ext1:array>
+                        </ext1:complex2>
+                    </ext1:complex>
+                </ext1:test>
             </ObjectEvent>
         </EventList>
     </EPCISBody>

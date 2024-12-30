@@ -24,13 +24,15 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
+import io.openepcis.converter.collector.context.ContextLogicDelegator;
+import io.openepcis.converter.collector.context.CustomContextLogic;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
-import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import lombok.extern.slf4j.Slf4j;
@@ -88,19 +90,21 @@ public abstract class JsonEventParser {
         return event;
     }
 
+    // Parse the @context in JSON document and read the values and store the elements for document level
     protected void collectNameSpaceAndContextValues(JsonParser jsonParser) throws IOException {
-        while (!(jsonParser.getText().equals(EPCIS.TYPE) || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
+        boolean isContextValue = true;
+        //Loop over the jsonParser until reaching the type : EPCISDocument or eventId field at document level
+        while (!(EPCIS.TYPE.equals(jsonParser.getText()) || EPCIS.EVENT_ID.equals(jsonParser.getText()))) {
             // Read the context value only if the value is of type array else skip to add only string
-            if (jsonParser.currentName() != null && jsonParser.currentName().equalsIgnoreCase(EPCIS.CONTEXT) && jsonParser.nextToken() == JsonToken.START_ARRAY) {
+            if (jsonParser.currentName() != null && EPCIS.CONTEXT.equalsIgnoreCase(jsonParser.currentName()) && jsonParser.nextToken() == JsonToken.START_ARRAY) {
                 // Loop until end of the Array to obtain Context elements
                 while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
 
-                    // Get the default context value from the JSON @context
-                    if (jsonParser.currentName() == null &&
-                            jsonParser.currentToken() == JsonToken.VALUE_STRING &&
-                            jsonParser.getText().equalsIgnoreCase(EPCIS.GS1_EGYPT_CUSTOM_CONTEXT)) {
-                        //if matches to GS1 Egypt context then add the respective namespaces to document namespaces (http://epcis.gs1eg.org/hc/ns, gs1egypthc)
-                        defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(EPCIS.GS1_EGYPT_CUSTOM_NAMESPACES, EPCIS.GS1_EGYPT_CUSTOM_PREFIX);
+                    // Get the default context value from the JSON @context using the ContextLogicDelegator find if its custom context or Default GS1 context
+                    if (isContextValue && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
+                        final CustomContextLogic customLogicProvider = ContextLogicDelegator.getXmlNamespaceLogic(jsonParser.getText(), GS1FormatSupport.getExtension());
+                        customLogicProvider.xmlNamespacesBuilder(jsonParser, defaultJsonSchemaNamespaceURIResolver);
+                        isContextValue = false;
                     }
 
                     // If element has name then store name and text in Map (ignore any namespace/context that starts with @ as they are part of default context)
@@ -181,7 +185,9 @@ public abstract class JsonEventParser {
 
                     Object xmlSupport = event.xmlSupport();
                     if (epcisEventMapper.isPresent() && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
-                        final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+                        final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()
+                                .entrySet().stream()
+                                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, (existing, replacement) -> existing));
                         final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
                         epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
                         xmlSupport = epcisEventMapper.get().apply(xmlSupport, List.of(swappedNamespace));

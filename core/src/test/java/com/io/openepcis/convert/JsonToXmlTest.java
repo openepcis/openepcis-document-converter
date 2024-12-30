@@ -329,4 +329,27 @@ public class JsonToXmlTest {
     System.out.println(formatter.format(outputStream.toString()));;
   }
 
+  @Test
+  void XML_TO_JSON_TEST_WITH_CONVERSIONTEST() throws Exception {
+    final InputStream inputStream = getClass().getResourceAsStream("/SampleXML.xml");
+    final FormatPreference withWebURI = new FormatPreference("always_gs1_digital_link", "always_web_uri");
+    final FormatPreference withURN = new FormatPreference("always_epc_urn", "no_preference");
+    final FormatPreference noPreference = new FormatPreference("no_preference", "no_preference");
+    final FormatPreference nullPreference = new FormatPreference(null, null);
+    final BiFunction<Object, List<Object>, Object> mapper = GS1FormatSupport.createMapper(withWebURI);
+
+    final Conversion conversion = Conversion.builder()
+            .fromMediaType(EPCISFormat.XML)
+            .fromVersion(EPCISVersion.VERSION_2_0_0)
+            .toMediaType(EPCISFormat.JSON_LD)
+            .toVersion(EPCISVersion.VERSION_2_0_0).build();
+    final VersionTransformer versionTransformer = new VersionTransformer();
+
+    final OutputStream outputStream = new ByteArrayOutputStream();
+    //versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(outputStream);
+    versionTransformer.convert(inputStream,conversion).transferTo(outputStream);
+
+    System.out.println(outputStream);
+  }
+
 }

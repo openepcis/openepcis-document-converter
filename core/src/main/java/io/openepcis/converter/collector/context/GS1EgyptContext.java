@@ -12,7 +12,7 @@ import java.util.Map;
  * Custom class for adding the GS1 Egypt related namespaces during the JSON conversion
  */
 public class GS1EgyptContext implements CustomContextLogic {
-    public static final String GS1_EGYPT_CONTEXT = "https://raw.githubusercontent.com/Aravinda93/gs1egypt-custom-context/refs/heads/main/custom-epcis-context.jsonld";
+    public static final String GS1_EGYPT_CONTEXT = "https://gs1eg.org/standards/epcis/2.0.0/epcis-context.jsonld";
     public static final String GS1_EGYPT_NAMESPACE = "http://epcis.gs1eg.org/hc/ns";
     public static final String GS1_EGYPT_PREFIX = "gs1egypthc";
 

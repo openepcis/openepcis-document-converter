@@ -16,7 +16,9 @@ public class ContextLogicDelegator {
     public static CustomContextLogic getJsonContextLogic(final Map<String, String> allNamespaces, final String gs1Extensions) {
 
         //Check if the namespaces contain the GS1 Egypt related namespaces if so add the custom context
-        final boolean isGS1EgyptContext = allNamespaces.containsKey(GS1EgyptContext.GS1_EGYPT_NAMESPACE) || GS1EgyptContext.GS1_EGYPT_PREFIX.equalsIgnoreCase(gs1Extensions);
+        final boolean isGS1EgyptContext = allNamespaces.containsKey(GS1EgyptContext.GS1_EGYPT_NAMESPACE) ||
+                allNamespaces.containsValue(GS1EgyptContext.GS1_EGYPT_PREFIX) ||
+                GS1EgyptContext.GS1_EGYPT_PREFIX.equalsIgnoreCase(gs1Extensions);
 
         // Determine which implementation to return based on context
         if (isGS1EgyptContext) {

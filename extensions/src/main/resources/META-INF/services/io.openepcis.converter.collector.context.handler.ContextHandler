@@ -1,2 +1,1 @@
-gs_eg.context.impl.GS1EgyptContextHandler
-io.openepcis.converter.collector.context.impl.DefaultContextHandler
+io.openepcis.gs1eg.context.impl.GS1EgyptContextHandler

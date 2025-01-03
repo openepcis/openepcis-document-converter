@@ -75,6 +75,10 @@
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-document-converter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.openepcis</groupId>
+            <artifactId>document-converter-extensions</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

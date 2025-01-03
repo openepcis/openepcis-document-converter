@@ -1,4 +1,4 @@
-package gseg.context;
+package io.openepcis.gs1eg.context.test;
 
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;

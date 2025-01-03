@@ -1,4 +1,4 @@
-package gs_eg.context.impl;
+package io.openepcis.gs1eg.context.impl;
 
 
 import com.fasterxml.jackson.core.JsonGenerator;

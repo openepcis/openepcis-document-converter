@@ -27,8 +27,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>extensions-document-converter-parent</artifactId>
-    <name>extensions-document-converter-parent</name>
+    <artifactId>document-converter-extensions</artifactId>
+    <name>document-converter-extensions</name>
     <description>Extensions for OpenEPCIS Document Converter Parent</description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
 

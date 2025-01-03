@@ -21,15 +21,15 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.openepcis.quarkus</groupId>
-        <artifactId>quarkus-document-converter-parent</artifactId>
+        <groupId>io.openepcis</groupId>
+        <artifactId>openepcis-document-converter-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>quarkus-document-converter</artifactId>
-    <name>quarkus-document-converter</name>
-    <description>Quarkus OpenEPCIS Document Converter</description>
+    <artifactId>document-converter-extensions</artifactId>
+    <name>document-converter-extensions</name>
+    <description>Extensions for OpenEPCIS Document Converter Parent</description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <licenses>
@@ -40,6 +40,12 @@
     </licenses>
 
     <developers>
+        <developer>
+            <name>Aravinda Baliga B</name>
+            <email>aravinda.baliga@benelog.com</email>
+            <organization>benelog GmbH &amp; Co. KG</organization>
+            <organizationUrl>https://www.benelog.com</organizationUrl>
+        </developer>
         <developer>
             <name>Sven Boeckelmann</name>
             <email>sven.boeckelmann@benelog.com</email>
@@ -56,63 +62,53 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-arc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-health</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.openepcis.quarkus</groupId>
-            <artifactId>quarkus-openepcis-model</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.openepcis.quarkus</groupId>
-            <artifactId>quarkus-document-validation-service</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.openepcis</groupId>
             <artifactId>openepcis-document-converter</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>document-converter-extensions</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-extension-maven-plugin</artifactId>
-                <version>${quarkus.platform.version}</version>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>extension-descriptor</goal>
-                        </goals>
-                        <configuration>
-                            <deployment>${project.groupId}:${project.artifactId}-deployment:${project.version}</deployment>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>io.quarkus</groupId>
-                            <artifactId>quarkus-extension-processor</artifactId>
-                            <version>${quarkus.platform.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+
             </plugin>
         </plugins>
     </build>
 
+    <repositories>
+        <!-- sonatype releases -->
+        <repository>
+            <id>sonatype-releases</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/releases</url>
+        </repository>
+        <!-- sonatype snapshots -->
+        <repository>
+            <id>sonatype-staging</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
 
 </project>

@@ -20,19 +20,26 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.converter.collector.EventHandler;
+import io.openepcis.converter.collector.JsonEPCISEventCollector;
 import io.openepcis.converter.collector.XmlEPCISEventCollector;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.json.JsonToXmlConverter;
 import io.openepcis.converter.util.XMLFormatter;
 import io.openepcis.converter.validator.EventValidator;
+import io.openepcis.converter.xml.XmlToJsonConverter;
+import io.openepcis.model.epcis.format.FormatPreference;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.function.BiFunction;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 public class JsonToXmlTest {
 
   final XMLFormatter formatter = new XMLFormatter();
@@ -49,6 +56,7 @@ public class JsonToXmlTest {
     try (final EventHandler handler =
         new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream))) {
       new JsonToXmlConverter().convert(inputStream, handler);
+      System.out.println(byteArrayOutputStream);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
   }
@@ -238,16 +246,16 @@ public class JsonToXmlTest {
   void sensorDataWithCombinedEventsTest() throws Exception {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     InputStream inputStream =
-        getClass()
-            .getClassLoader()
-            .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
+            getClass()
+                    .getClassLoader()
+                    .getResourceAsStream("2.0/EPCIS/JSON/Query/SensorData_with_combined_events.json");
     var conversion = Conversion.builder()
-        .generateGS1CompliantDocument(false)
-        .fromMediaType(EPCISFormat.JSON_LD)
-        .fromVersion(EPCISVersion.VERSION_2_0_0)
-        .toMediaType(EPCISFormat.XML)
-        .toVersion(EPCISVersion.VERSION_2_0_0)
-        .build();
+            .generateGS1CompliantDocument(false)
+            .fromMediaType(EPCISFormat.JSON_LD)
+            .fromVersion(EPCISVersion.VERSION_2_0_0)
+            .toMediaType(EPCISFormat.XML)
+            .toVersion(EPCISVersion.VERSION_2_0_0)
+            .build();
 
     final InputStream convertedDocument = new VersionTransformer().convert(inputStream, conversion);
     assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 00));

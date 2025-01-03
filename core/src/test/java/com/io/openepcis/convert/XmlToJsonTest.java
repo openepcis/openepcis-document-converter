@@ -24,14 +24,16 @@ import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.validator.EventValidator;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import jakarta.xml.bind.JAXBException;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XmlToJsonTest {
   private final VersionTransformer versionTransformer;

@@ -63,6 +63,7 @@
 
     <modules>
         <module>core</module>
+        <module>extensions</module>
         <module>quarkus/runtime</module>
         <module>quarkus/deployment</module>
         <module>service/converter-service-restassured</module>
@@ -101,6 +102,11 @@
             <dependency>
                 <groupId>io.openepcis</groupId>
                 <artifactId>openepcis-document-converter</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>document-converter-extensions</artifactId>
                 <version>${project.parent.version}</version>
             </dependency>
             <dependency>

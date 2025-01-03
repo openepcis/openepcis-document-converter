@@ -149,8 +149,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
 
       // Check the first element is Object if not then invalid JSON throw error
       if (jsonParser.nextToken() != JsonToken.START_OBJECT) {
-        throw new FormatConverterException(
-            "Invalid JSON-LD file has been provided. JSON-LD file should start with the Object");
+        throw new FormatConverterException("Invalid JSON-LD file has been provided. JSON-LD file should start with the Object");
       }
 
       // Loop until type element to read the Context values and namespaces present in it

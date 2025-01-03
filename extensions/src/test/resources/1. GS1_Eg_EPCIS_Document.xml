@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2"
+                     schemaVersion="2.0" creationDate="2020-08-24T10:41:03+02:00" xmlns:gs1egypthc="https://epcis.gs1eg.org/hc/ns">
+    <EPCISBody>
+        <EventList>
+            <ObjectEvent>
+                <eventTime>2020-08-23T10:41:03+02:00</eventTime>
+                <recordTime>2020-08-25T10:41:03+02:00</recordTime>
+                <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+                <epcList>
+                    <epc>urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M5GK</epc>
+                </epcList>
+                <action>OBSERVE</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:dispensing</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:partially_dispensed</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:622300451.000.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:622300451.000.0</id>
+                </bizLocation>
+                <gs1egypthc:dosageQuantityList>
+                    <gs1egypthc:dosageQuantity>
+                        <epc>urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M5GK</epc>
+                        <quantity>1</quantity>
+                        <uom>T1</uom>
+                    </gs1egypthc:dosageQuantity>
+                </gs1egypthc:dosageQuantityList>
+            </ObjectEvent>
+        </EventList>
+    </EPCISBody>
+</epcis:EPCISDocument>

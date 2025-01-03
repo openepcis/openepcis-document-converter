@@ -63,20 +63,16 @@ public class Transform20To12Test {
 
   @Test
   void convertWithScanTest() throws IOException {
-    InputStream inputDocument =
-        getClass()
-            .getClassLoader()
-            .getResourceAsStream(
-                "2.0/EPCIS/XML/Capture/Documents/AssociationEvent_all_possible_fields.xml");
+    final InputStream inputDocument = getClass().getClassLoader().getResourceAsStream("2.0/EPCIS/XML/Capture/Documents/AssociationEvent_all_possible_fields.xml");
     final InputStream convertedDocument =
-        versionTransformer.convert(
-            inputDocument,
-            Conversion.builder()
-                .generateGS1CompliantDocument(true)
-                .fromMediaType(EPCISFormat.XML)
-                .toMediaType(EPCISFormat.XML)
-                .toVersion(EPCISVersion.VERSION_1_2_0)
-                .build());
+            versionTransformer.convert(inputDocument,
+                    Conversion.builder()
+                            .generateGS1CompliantDocument(true)
+                            .fromMediaType(EPCISFormat.XML)
+                            .fromVersion(EPCISVersion.VERSION_2_0_0)
+                            .toMediaType(EPCISFormat.XML)
+                            .toVersion(EPCISVersion.VERSION_1_2_0)
+                            .build());
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();

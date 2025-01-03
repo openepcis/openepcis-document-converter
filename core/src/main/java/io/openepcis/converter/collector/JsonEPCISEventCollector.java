@@ -18,9 +18,7 @@ package io.openepcis.converter.collector;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
-import io.openepcis.converter.collector.context.ContextProcessorApp;
-import io.openepcis.converter.collector.context.api.ContextHandler;
-import io.openepcis.converter.common.GS1FormatSupport;
+import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import org.apache.commons.lang3.StringUtils;
@@ -72,6 +70,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeRaw(event.toString());
       jsonEventSeparator = true;
     } catch (IOException e) {
+      System.out.println(e.getMessage());
       throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during writing of the events to JsonGenerator: " + e, e);
     }
   }
@@ -94,9 +93,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Get all document level namespaces for adding within context
       final Map<String, String> allNamespaces = namespaceResolver.getAllNamespaces();
 
-      // Use the delegation approach to add either Default context from DefaultContext or add custom context such as GS1 Egypt or other
-      final ContextHandler customLogicProvider = ContextProcessorApp.resolveForJsonConversion(allNamespaces, GS1FormatSupport.getExtension());
-      customLogicProvider.buildJsonContext(jsonGenerator, allNamespaces);
+      // Use SPI approach to add either Default GS1 context from DefaultContext or add custom context such as GS1 Egypt or other
+      ContextProcessor.resolveForJsonConversion(jsonGenerator, allNamespaces);
 
       jsonGenerator.writeEndArray(); // End of context array
 

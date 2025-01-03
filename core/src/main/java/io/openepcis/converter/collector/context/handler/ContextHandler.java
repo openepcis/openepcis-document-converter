@@ -1,7 +1,6 @@
-package io.openepcis.converter.collector.context.api;
+package io.openepcis.converter.collector.context.handler;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 
 import java.util.Map;
@@ -15,11 +14,8 @@ public interface ContextHandler {
     void buildJsonContext(final JsonGenerator jsonGenerator, final Map<String, String> namespaces);
 
     // Populates XML namespaces during JSON → XML conversion.
-    void populateXmlNamespaces(final JsonParser jsonParser, final DefaultJsonSchemaNamespaceURIResolver defaultNamespaceResolver);
+    void populateXmlNamespaces(final DefaultJsonSchemaNamespaceURIResolver namespaceURIResolver);
 
-    // Determines if the handler is applicable for JSON context processing.
-    boolean supportsJsonConversion(final Map<String, String> namespaces, final String gs1Extension);
-
-    // Determines if the handler is applicable for XML namespace processing.
-    boolean supportsXmlConversion(final String context, final String gs1Extension);
+    // Determines if the handler is applicable for JSON context or XML namespace processing.
+    boolean isContextHandler(final Map<String, String> namespaces);
 }

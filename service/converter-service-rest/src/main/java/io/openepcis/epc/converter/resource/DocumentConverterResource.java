@@ -147,16 +147,13 @@ public class DocumentConverterResource {
           @RestHeader(value = "GS1-EPC-Format") String epcFormat,
           @RestHeader(value = "GS1-Extensions") String gs1Extensions,
           @Context HttpHeaders httpHeaders)
-          throws FormatConverterException, IOException {
+          throws FormatConverterException {
 
     final MediaType mediaType = httpHeaders.getMediaType();
 
     if (mediaType == null || !GS1FormatSupport.isValidMediaType(mediaType)) {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
-
-    //If custom extension has been provided as Header Parameter then set them and use during the JSON context creation
-      GS1FormatSupport.setExtension(gs1Extensions);
 
     return setupStreamingOutput(
             inputDocument,
@@ -165,7 +162,8 @@ public class DocumentConverterResource {
                     .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
                     .toMediaType(EPCISFormat.JSON_LD)
                     .toVersion(EPCISVersion.VERSION_2_0_0)
-                    .build()
+                    .build(),
+            gs1Extensions
     );
 
 /*        return Uni.createFrom().item(versionTransformer
@@ -266,9 +264,6 @@ public class DocumentConverterResource {
           throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
       }
 
-      //If custom extension has been provided as Header Parameter then set them and use during the JSON context creation
-      GS1FormatSupport.setExtension(gs1Extensions);
-
       return setupRestMultiByteArray(
               inputDocument,
               GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),
@@ -276,7 +271,8 @@ public class DocumentConverterResource {
                       .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
                       .toMediaType(EPCISFormat.XML)
                       .toVersion(EPCISVersion.VERSION_2_0_0)
-                      .build()
+                      .build(),
+              gs1Extensions
       );
 /*
         return RestMulti.fromMultiData(
@@ -374,6 +370,7 @@ public class DocumentConverterResource {
                   in = ParameterIn.HEADER)
           @RestHeader(value = "GS1-CBV-XML-Format")
           String cbvFormat,
+          @RestHeader(value = "GS1-Extensions") String gs1Extensions,
           @Context HttpHeaders httpHeaders)
           throws FormatConverterException, IOException {
 
@@ -389,7 +386,8 @@ public class DocumentConverterResource {
                     .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
                     .toMediaType(EPCISFormat.XML)
                     .toVersion(EPCISVersion.VERSION_1_2_0)
-                    .build()
+                    .build(),
+            gs1Extensions
     );
 /*
         return RestMulti.fromMultiData(ChannelUtil.toMulti(versionTransformer
@@ -457,19 +455,19 @@ public class DocumentConverterResource {
     return Uni.createFrom().item(Response.ok(response).build());
   }
 
-  private StreamingOutput setupStreamingOutput(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion) {
-    return new StreamingOutput() {
-      @Override
-      public void write(OutputStream output) throws IOException, WebApplicationException {
-          versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(output);
-      }
+    private StreamingOutput setupStreamingOutput(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion, final String gs1Extensions) {
+        return new StreamingOutput() {
+            @Override
+            public void write(OutputStream output) throws IOException, WebApplicationException {
+                versionTransformer.mapWith(mapper, gs1Extensions).convert(inputStream, conversion).transferTo(output);
+            }
 
-    };
-  }
+        };
+    }
 
-  private RestMulti<byte[]> setupRestMultiByteArray(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion) throws IOException {
-      return RestMulti
-              .fromMultiData(ChannelUtil.toMulti(versionTransformer.mapWith(mapper).convert(inputStream, conversion))
-                      .runSubscriptionOn(managedExecutor)).build();
-  }
+    private RestMulti<byte[]> setupRestMultiByteArray(final InputStream inputStream, final BiFunction<Object, List<Object>, Object> mapper, final Conversion conversion, final String gs1Extensions) throws IOException {
+        return RestMulti
+                .fromMultiData(ChannelUtil.toMulti(versionTransformer.mapWith(mapper, gs1Extensions).convert(inputStream, conversion))
+                        .runSubscriptionOn(managedExecutor)).build();
+    }
 }

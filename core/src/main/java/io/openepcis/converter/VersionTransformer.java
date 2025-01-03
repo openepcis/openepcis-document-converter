@@ -52,7 +52,6 @@ public class VersionTransformer {
             new ObjectMapper()
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                     .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-
     private final ExecutorService executorService;
 
     public XmlVersionTransformer getXmlVersionTransformer() {
@@ -71,10 +70,9 @@ public class VersionTransformer {
     private final XmlToJsonConverter xmlToJsonConverter;
     private final JsonToXmlConverter jsonToXmlConverter;
     private final JSONEventValueTransformer jsonEventValueTransformer;
-
     private final XMLEventValueTransformer xmlEventValueTransformer;
-
     private Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
+    private String gs1Extensions;
 
     public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
         this.executorService = executorService;
@@ -103,6 +101,18 @@ public class VersionTransformer {
         this.jsonEventValueTransformer = new JSONEventValueTransformer();
         this.xmlEventValueTransformer = new XMLEventValueTransformer();
     }
+
+    private VersionTransformer(final VersionTransformer parent, final BiFunction<Object, List<Object>, Object> eventMapper, final String gs1Extensions) {
+        this.executorService = parent.executorService;
+        this.xmlVersionTransformer = parent.xmlVersionTransformer;
+        this.jsonToXmlConverter = parent.jsonToXmlConverter.mapWith(eventMapper);
+        this.xmlToJsonConverter = parent.xmlToJsonConverter.mapWith(eventMapper);
+        this.jsonEventValueTransformer = parent.jsonEventValueTransformer.mapWith(eventMapper);
+        this.xmlEventValueTransformer = parent.xmlEventValueTransformer.mapWith(eventMapper);
+        this.epcisEventMapper = Optional.ofNullable(eventMapper);
+        this.gs1Extensions = gs1Extensions;
+    }
+
 
     public VersionTransformer() throws JAXBException {
         this(Executors.newFixedThreadPool(8));
@@ -396,6 +406,10 @@ public class VersionTransformer {
 
     public final VersionTransformer mapWith(final BiFunction<Object, List<Object>, Object> mapper) {
         return new VersionTransformer(this, mapper);
+    }
+
+    public final VersionTransformer mapWith(final BiFunction<Object, List<Object>, Object> mapper, final String gs1Extensions) {
+        return new VersionTransformer(this, mapper, gs1Extensions);
     }
 
     // For API backward compatibility

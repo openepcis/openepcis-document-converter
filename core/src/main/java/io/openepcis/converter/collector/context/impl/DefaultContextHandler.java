@@ -1,9 +1,8 @@
 package io.openepcis.converter.collector.context.impl;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import io.openepcis.constants.EPCISVersion;
-import io.openepcis.converter.collector.context.api.ContextHandler;
+import io.openepcis.converter.collector.context.handler.ContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 
@@ -33,18 +32,13 @@ public class DefaultContextHandler implements ContextHandler {
     }
 
     @Override
-    public void populateXmlNamespaces(final JsonParser jsonParser, final DefaultJsonSchemaNamespaceURIResolver defaultNamespaceResolver) {
+    public void populateXmlNamespaces(final DefaultJsonSchemaNamespaceURIResolver defaultNamespaceResolver) {
         // No additional handling needed for default context.
     }
 
 
     @Override
-    public boolean supportsJsonConversion(final Map<String, String> namespaces, final String gs1Extension) {
-        return true;
-    }
-
-    @Override
-    public boolean supportsXmlConversion(final String context, final String gs1Extension) {
+    public boolean isContextHandler(final Map<String, String> namespaces) {
         return true;
     }
 }

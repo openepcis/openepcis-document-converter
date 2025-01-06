@@ -424,7 +424,7 @@ Users and developers can make use of the API to send requests to the OpenEPCIS d
 | OpenEPCIS Tools User Interface | [http://localhost:9000/openepcis-ui/](http://localhost:9000/openepcis-ui/) |
 | OpenAPI Swagger-UI             | [http://localhost:9000/q/swagger-ui/](http://localhost:9000/q/swagger-ui/) |
 
-## Java Service Provider Interface (SPI)
+## SPI based approach for building Default or Custom context/namespaces
 
 In our OpenEPCIS document converter project, we leverage the Java Service Provider Interface (SPI) to enhance modularity and extendability. SPI is a powerful feature of the Java platform that allows
 for service provider modules to be discovered and loaded at runtime. It's like using plug-and-play feature for the code logic, where the system can recognize and work with these accessories
@@ -435,7 +435,7 @@ automatically. This approach enables our application to be more flexible and sca
 During the JSON/JSON-LD ↔ XML conversion we use the SPI for handling context and namespace resolution, as demonstrated by the `ContextHandler` interface. This interface outlines methods for building
 JSON-LD contexts (XML -> JSON/JSON-LD conversion using `buildJsonContext` method), populating XML namespaces (JSON/JSON-LD -> XML using `populateXmlNamespaces` method) conversion, and determining the
 applicability of a
-handler for given namespaces or contexts.
+handler (Default/Custom) for given namespaces or contexts.
 
 We have separate implementations for different standards or custom behaviors. For instance, the `DefaultContextHandler` provides generic handling, whereas `GS1EgyptContextHandler` is tailored for
 specific needs related to GS1 Egypt standards. Through SPI, our application dynamically discovers and uses these implementations.

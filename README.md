@@ -417,13 +417,75 @@ Users and developers can make use of the API to send requests to the OpenEPCIS d
     podman run --rm -t --name openepcis-tools-ui -p 9000:9000 docker.io/openepcis/tools-ui
     ```
 
-
 ### Access Local OpenEPCIS Tools Application
 
-   | Service                        | URL                                                                         |
-       |--------------------------------|-----------------------------------------------------------------------------|
-   | OpenEPCIS Tools User Interface | [http://localhost:9000/openepcis-ui/](http://localhost:9000/openepcis-ui/)  |
-   | OpenAPI Swagger-UI             | [http://localhost:9000/q/swagger-ui/](http://localhost:9000/q/swagger-ui/)  |
+| Service                        | URL                                                                        |
+       |--------------------------------|----------------------------------------------------------------------------|
+| OpenEPCIS Tools User Interface | [http://localhost:9000/openepcis-ui/](http://localhost:9000/openepcis-ui/) |
+| OpenAPI Swagger-UI             | [http://localhost:9000/q/swagger-ui/](http://localhost:9000/q/swagger-ui/) |
+
+## Java Service Provider Interface (SPI)
+
+In our OpenEPCIS document converter project, we leverage the Java Service Provider Interface (SPI) to enhance modularity and extendability. SPI is a powerful feature of the Java platform that allows
+for service provider modules to be discovered and loaded at runtime. It's like using plug-and-play feature for the code logic, where the system can recognize and work with these accessories
+automatically. This approach enables our application to be more flexible and scalable by abstracting the core logic of converting documents and allowing for customization without altering the original codebase.
+
+### How SPI is Utilized
+
+During the JSON/JSON-LD ↔ XML conversion we use the SPI for handling context and namespace resolution, as demonstrated by the `ContextHandler` interface. This interface outlines methods for building
+JSON-LD contexts (XML -> JSON/JSON-LD conversion using `buildJsonContext` method), populating XML namespaces (JSON/JSON-LD -> XML using `populateXmlNamespaces` method) conversion, and determining the
+applicability of a
+handler for given namespaces or contexts.
+
+We have separate implementations for different standards or custom behaviors. For instance, the `DefaultContextHandler` provides generic handling, whereas `GS1EgyptContextHandler` is tailored for
+specific needs related to GS1 Egypt standards. Through SPI, our application dynamically discovers and uses these implementations.
+
+```java
+public interface ContextHandler {
+    void buildJsonContext(final JsonGenerator jsonGenerator, final Map<String, String> namespaces);
+
+    void populateXmlNamespaces(final DefaultJsonSchemaNamespaceURIResolver namespaceURIResolver);
+
+    boolean isContextHandler(final Map<String, String> namespaces);
+}
+```
+
+### SPI Implementation Mechanism
+
+1. **Service Provider Configuration File**: We must list the fully qualified names of our `ContextHandler` implementations in a service provider configuration file located within the
+   `META-INF/services` directory. This file is named after the fully qualified interface name, which, in our case, is:
+
+```
+io.openepcis.converter.collector.context.handler.ContextHandler
+```
+
+2. **ServiceLoader API**: At runtime, we employ the `ServiceLoader` API to discover and load available `ContextHandler` implementations. This lets our conversion process dynamically adapt to the
+   specifics of the input document, whether it requires default handling or specific logic like that provided by `GS1EgyptContextHandler`.
+
+```java
+ServiceLoader<ContextHandler> handlers=ServiceLoader.load(ContextHandler.class);
+```
+
+3. **Dynamic Handler Resolution**: During the conversion process, the application iterates over discovered `ContextHandler` instances. It selects the appropriate handler based on the namespaces or
+   contexts of the document being converted, enabling a flexible conversion mechanism that can be easily extended with new handlers for different standards or requirements.
+
+### Advantages of Using SPI
+
+Using SPI in our document converter offers several advantages:
+
+* **Extensibility**: New context handlers can be easily added without modifying the core conversion logic.
+* **Decoupling**: The conversion logic is decoupled from the specifics of different standards, making the codebase cleaner and more maintainable.
+
+This SPI-based approach aligns with modern software design principles, promoting modularity, low coupling, and high cohesion, ultimately leading to a versatile and robust document conversion
+framework.
+
+### Dependency Configuration
+
+To integrate the document conversion capabilities within a Quarkus application, the project includes the `document-converter-extensions` artifact as a dependency. This module contains the necessary
+implementations and configurations for handling different types of document standards, such as GS1 Egypt, and is readily recognized by the SPI.
+
+Quarkus optimizes our SPI usage for GraalVM native compilations, which means the dynamically resolved `ContextHandler implementations are properly included in the native binary, ensuring fast startup
+and low memory footprint.
 
 ## How To Get In Contact and Contribute
 

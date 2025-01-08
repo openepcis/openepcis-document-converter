@@ -426,7 +426,7 @@ Users and developers can make use of the API to send requests to the OpenEPCIS d
 
 ## SPI based approach for building Default or Custom context/namespaces
 
-In our OpenEPCIS document converter project, we leverage the Java Service Provider Interface (SPI) to enhance modularity and extendability. SPI is a powerful feature of the Java platform that allows
+In our OpenEPCIS document converter project, we leverage the Java Service Provider Interface (SPI) to enhance modularity and extendability. SPI is a Java platform feature that allows
 for service provider modules to be discovered and loaded at runtime. It's like using plug-and-play feature for the code logic, where the system can recognize and work with these accessories
 automatically. This approach enables our application to be more flexible and scalable by abstracting the core logic of converting documents and allowing for customization without altering the original codebase.
 
@@ -434,11 +434,10 @@ automatically. This approach enables our application to be more flexible and sca
 
 During the JSON/JSON-LD ↔ XML conversion we use the SPI for handling context and namespace resolution, as demonstrated by the `ContextHandler` interface. This interface outlines methods for building
 JSON-LD contexts (XML -> JSON/JSON-LD conversion using `buildJsonContext` method), populating XML namespaces (JSON/JSON-LD -> XML using `populateXmlNamespaces` method) conversion, and determining the
-applicability of a
-handler (Default/Custom) for given namespaces or contexts.
+applicability of a handler (Default/Custom) for given namespaces or contexts using `isContextHandler` method.
 
-We have separate implementations for different standards or custom behaviors. For instance, the `DefaultContextHandler` provides generic handling, whereas `GS1EgyptContextHandler` is tailored for
-specific needs related to GS1 Egypt standards. Through SPI, our application dynamically discovers and uses these implementations.
+We have separate implementations for different standards or custom behaviors. For instance, the `DefaultContextHandler` provides generic handling, and we can define our own custom handler by implementing the `ContextHandler` interface.
+Through SPI, application dynamically discovers and uses these implementations, if no match is found then defaults to `DefaultContextHandler`.  The project includes the `document-converter-extensions` artifact as a dependency. This module contains various implementations and configurations for handling `ContextHandler`.
 
 ```java
 public interface ContextHandler {
@@ -460,7 +459,7 @@ io.openepcis.converter.collector.context.handler.ContextHandler
 ```
 
 2. **ServiceLoader API**: At runtime, we employ the `ServiceLoader` API to discover and load available `ContextHandler` implementations. This lets our conversion process dynamically adapt to the
-   specifics of the input document, whether it requires default handling or specific logic like that provided by `GS1EgyptContextHandler`.
+   specifics of the input document, whether it requires default handling or custom logic.
 
 ```java
 ServiceLoader<ContextHandler> handlers=ServiceLoader.load(ContextHandler.class);
@@ -475,17 +474,7 @@ Using SPI in our document converter offers several advantages:
 
 * **Extensibility**: New context handlers can be easily added without modifying the core conversion logic.
 * **Decoupling**: The conversion logic is decoupled from the specifics of different standards, making the codebase cleaner and more maintainable.
-
-This SPI-based approach aligns with modern software design principles, promoting modularity, low coupling, and high cohesion, ultimately leading to a versatile and robust document conversion
-framework.
-
-### Dependency Configuration
-
-To integrate the document conversion capabilities within a Quarkus application, the project includes the `document-converter-extensions` artifact as a dependency. This module contains the necessary
-implementations and configurations for handling different types of document standards, such as GS1 Egypt, and is readily recognized by the SPI.
-
-Quarkus optimizes our SPI usage for GraalVM native compilations, which means the dynamically resolved `ContextHandler implementations are properly included in the native binary, ensuring fast startup
-and low memory footprint.
+* **Adheres to standards**: SPI-based approach aligns with modern software design principles, promoting modularity and high cohesion.
 
 ## How To Get In Contact and Contribute
 

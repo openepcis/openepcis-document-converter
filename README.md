@@ -420,7 +420,7 @@ Users and developers can make use of the API to send requests to the OpenEPCIS d
 ### Access Local OpenEPCIS Tools Application
 
 | Service                        | URL                                                                        |
-       |--------------------------------|----------------------------------------------------------------------------|
+|--------------------------------|----------------------------------------------------------------------------|
 | OpenEPCIS Tools User Interface | [http://localhost:9000/openepcis-ui/](http://localhost:9000/openepcis-ui/) |
 | OpenAPI Swagger-UI             | [http://localhost:9000/q/swagger-ui/](http://localhost:9000/q/swagger-ui/) |
 

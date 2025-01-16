@@ -2,13 +2,13 @@ package io.openepcis.converter.collector.context;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.converter.collector.context.handler.ContextHandler;
+import io.openepcis.converter.collector.context.impl.DefaultContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
-import java.util.ServiceLoader;
+import java.util.*;
 
 /**
  * Factory for resolving the appropriate {@link ContextHandler} implementation.
@@ -18,9 +18,25 @@ public class ContextProcessor {
 
     private static final ServiceLoader<ContextHandler> handlers = ServiceLoader.load(ContextHandler.class);
 
+    private static final List<ContextHandler> standardHandlers = new ArrayList<>();
+
+    static {
+        standardHandlers.add(new DefaultContextHandler());
+    }
+
+    public static void addStandardHandler(final ContextHandler handler) {
+        standardHandlers.add(handler);
+    }
+
     public static void resolveForJsonConversion(final JsonGenerator jsonGenerator, final Map<String, String> allNamespaces) {
         // Iterate and find the matching handler such as GS1 Egypt or Default during the XML -> JSON conversion
         for (final ContextHandler handler : handlers) {
+              if (handler.isContextHandler(allNamespaces)) {
+                  handler.buildJsonContext(jsonGenerator, allNamespaces);
+                  return;
+              }
+        }
+        for (final ContextHandler handler : standardHandlers) {
             if (handler.isContextHandler(allNamespaces)) {
                 handler.buildJsonContext(jsonGenerator, allNamespaces);
                 return;
@@ -32,6 +48,12 @@ public class ContextProcessor {
     public static void resolveForXmlConversion(final Map<String, String> contextNamespaces, final DefaultJsonSchemaNamespaceURIResolver namespaceURIResolver) {
         // Iterate and find the matching handler GS1 Egypt or Default during the JSON -> XML conversion
         for (final ContextHandler handler : handlers) {
+            if (handler.isContextHandler(contextNamespaces)) {
+                handler.populateXmlNamespaces(namespaceURIResolver);
+                return;
+            }
+        }
+        for (final ContextHandler handler : standardHandlers) {
             if (handler.isContextHandler(contextNamespaces)) {
                 handler.populateXmlNamespaces(namespaceURIResolver);
                 return;

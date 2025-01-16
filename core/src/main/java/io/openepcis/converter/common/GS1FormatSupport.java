@@ -32,7 +32,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class GS1FormatSupport {
-
   public interface RequestHeaderFacade {
     String getHeader(String name);
   }
@@ -41,7 +40,7 @@ public class GS1FormatSupport {
     return new RequestHeaderFacade() {
       @Override
       public String getHeader(String name) {
-        return function.apply(name);
+        return function .apply(name);
       }
     };
   }

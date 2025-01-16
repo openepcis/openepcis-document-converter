@@ -1,0 +1,36 @@
+{
+  "@context": [
+    "https://ref.gs1eg.org/standards/epcis/hc/2.0.0/eda-context.jsonld"
+  ],
+  "type": "EPCISDocument",
+  "schemaVersion": "2.0",
+  "creationDate": "2005-07-11T11:30:47.0Z",
+  "epcisBody": {
+    "eventList": [
+      {
+        "type": "ObjectEvent",
+        "eventTime": "2023-09-06T07:42:10+02:00",
+        "recordTime": "2023-09-06T07:56:10+02:00",
+        "eventTimeZoneOffset": "+02:00",
+        "epcList": [
+          "urn:epc:id:sgtin:95221231.01229.222628484126"
+        ],
+        "action": "ADD",
+        "bizStep": "commissioning",
+        "readPoint": {
+          "id": "urn:epc:id:sgln:95221231.0000.0"
+        },
+        "bizLocation": {
+          "id": "urn:epc:id:sgln:95221231.0000.0"
+        },
+        "gs1egypthc:dosageQuantityList": {
+          "gs1egypthc:dosageQuantity": {
+            "epc": "urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M5GK",
+            "quantity": "1",
+            "uom": "T1"
+          }
+        }
+      }
+    ]
+  }
+}

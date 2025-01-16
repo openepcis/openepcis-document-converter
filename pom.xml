@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.openepcis</groupId>
         <artifactId>openepcis-bom</artifactId>
-        <version>999-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>openepcis-document-converter-parent</artifactId>
@@ -63,7 +63,9 @@
 
     <modules>
         <module>core</module>
-        <module>quarkus</module>
+        <module>extensions</module>
+        <module>quarkus/runtime</module>
+        <module>quarkus/deployment</module>
         <module>service/converter-service-restassured</module>
         <module>service/converter-service-rest</module>
         <module>service/converter-service-servlet</module>
@@ -100,6 +102,11 @@
             <dependency>
                 <groupId>io.openepcis</groupId>
                 <artifactId>openepcis-document-converter</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.openepcis</groupId>
+                <artifactId>document-converter-extensions</artifactId>
                 <version>${project.parent.version}</version>
             </dependency>
             <dependency>

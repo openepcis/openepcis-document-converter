@@ -24,13 +24,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
+import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.XmlSupportExtension;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
-import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import lombok.extern.slf4j.Slf4j;
@@ -53,9 +53,7 @@ import java.util.stream.Collectors;
 public abstract class JsonEventParser {
 
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
-    protected final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
-            DefaultJsonSchemaNamespaceURIResolver.getContext();
-
+    protected final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
     protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
 
     // Variable to ensure whether provided InputStream is EPCIS document or single event
@@ -72,14 +70,12 @@ public abstract class JsonEventParser {
 
     protected void validateJsonStream(InputStream jsonStream) {
         if (jsonStream == null) {
-            throw new FormatConverterException(
-                    "Unable to convert the events from JSON - XML as InputStream contain any values");
+            throw new FormatConverterException("Unable to convert the events from JSON - XML as InputStream contain any values");
         }
     }
 
     protected EPCISEvent processSingleEvent(AtomicInteger sequenceInEventList, JsonParser jsonParser) throws IOException {
-        XmlSupportExtension singleEvent =
-                objectMapper.readValue(jsonParser, XmlSupportExtension.class);
+        XmlSupportExtension singleEvent = objectMapper.readValue(jsonParser, XmlSupportExtension.class);
 
         EPCISEvent event = (EPCISEvent) singleEvent.xmlSupport();
         if (epcisEventMapper.isPresent()) {
@@ -92,19 +88,28 @@ public abstract class JsonEventParser {
         return event;
     }
 
+    // Parse the @context in JSON document and read the values and store the elements for document level
     protected void collectNameSpaceAndContextValues(JsonParser jsonParser) throws IOException {
-        while (!(jsonParser.getText().equals(EPCIS.TYPE) || jsonParser.getText().equals(EPCIS.EVENT_ID))) {
+        boolean isContextValue = true;
+        //Loop over the jsonParser until reaching the type : EPCISDocument or eventId field at document level
+        while (!(EPCIS.TYPE.equals(jsonParser.getText()) || EPCIS.EVENT_ID.equals(jsonParser.getText()))) {
             // Read the context value only if the value is of type array else skip to add only string
-            if (jsonParser.currentName() != null && jsonParser.currentName().equalsIgnoreCase(EPCIS.CONTEXT) && jsonParser.nextToken() == JsonToken.START_ARRAY) {
-                    // Loop until end of the Array to obtain Context elements
-                    while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+            if (jsonParser.currentName() != null && EPCIS.CONTEXT.equalsIgnoreCase(jsonParser.currentName()) && jsonParser.nextToken() == JsonToken.START_ARRAY) {
+                // Loop until end of the Array to obtain Context elements
+                while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
 
-                        // If element has name then store name and text in Map (ignore any namespace/context that starts with @ as they are part of default context)
-                        if (jsonParser.currentName() != null && jsonParser.currentToken() == JsonToken.VALUE_STRING && !jsonParser.currentName().startsWith("@")) {
-                            // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on corresponding XSD
-                            defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(jsonParser.getText(), jsonParser.currentName());
-                        }
+                    // Get the default context value from the JSON @context using the ContextLogicDelegator find if its custom context or Default GS1 context
+                    if (isContextValue && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
+                        ContextProcessor.resolveForXmlConversion(Map.of(jsonParser.getText(), jsonParser.getText()), defaultJsonSchemaNamespaceURIResolver);
+                        isContextValue = false;
                     }
+
+                    // If element has name then store name and text in Map (ignore any namespace/context that starts with @ as they are part of default context)
+                    if (jsonParser.currentName() != null && jsonParser.currentToken() == JsonToken.VALUE_STRING && !jsonParser.currentName().startsWith("@")) {
+                        // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on corresponding XSD
+                        defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(jsonParser.getText(), jsonParser.currentName());
+                    }
+                }
 
             }
             jsonParser.nextToken();
@@ -176,9 +181,10 @@ public abstract class JsonEventParser {
                     // Create the XML based on type of incoming event type and store in StringWriter
 
                     Object xmlSupport = event.xmlSupport();
-                    if (epcisEventMapper.isPresent()
-                            && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
-                        final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+                    if (epcisEventMapper.isPresent() && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
+                        final Map<String, String> swappedNamespace = defaultJsonSchemaNamespaceURIResolver.getAllNamespaces()
+                                .entrySet().stream()
+                                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, (existing, replacement) -> existing));
                         final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
                         epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
                         xmlSupport = epcisEventMapper.get().apply(xmlSupport, List.of(swappedNamespace));
@@ -186,25 +192,20 @@ public abstract class JsonEventParser {
 
                     if(isMarshallingRequired) {
                         final XMLStreamWriter skipEPCISNamespaceWriter =
-                                new NonEPCISNamespaceXMLStreamWriter(
-                                        new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(xmlEvent)));
+                                new NonEPCISNamespaceXMLStreamWriter(new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(xmlEvent)));
 
                         // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
-                        marshaller.setProperty(
-                                MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-                                defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
+                        marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
 
                         marshaller.marshal(xmlSupport, skipEPCISNamespaceWriter);
 
-                        // Call the method to check if the event adheres to XSD or write into the OutputStream
-                        // using the EventHandler
+                        // Call the method to check if the event adheres to XSD or write into the OutputStream using the EventHandler
                         eventHandler.handler(xmlEvent);
 
                     } else {
                         // Create the JSON using Jackson ObjectMapper based on type of incoming event type and
                         // store
-                        final String eventAsJson =
-                                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(xmlSupport);
+                        final String eventAsJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(xmlSupport);
                         eventHandler.handler(eventAsJson);
                     }
 
@@ -219,9 +220,7 @@ public abstract class JsonEventParser {
                 }
 
             } else {
-                log.error(
-                        "Could not find required Event information for the particular event as \"type\" attribute missing, Proceeding to next event from EventList : "
-                                + jsonNode);
+                log.error("Could not find required Event information for the particular event as \"type\" attribute missing, Proceeding to next event from EventList : " + jsonNode);
             }
         }
     }

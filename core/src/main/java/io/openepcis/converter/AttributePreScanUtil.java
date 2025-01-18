@@ -25,7 +25,7 @@ public class AttributePreScanUtil {
 
   private static final String SCHEMA_VERSION_REGEX ="schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)[\"?'?]";
   private static final Pattern SCHEMA_VERSION_PATTERN = Pattern.compile(SCHEMA_VERSION_REGEX);
-  private static final int READ_LIMIT = 4096;
+  private static final int READ_LIMIT = 1000000;
   public static final String scanSchemaVersion(final BufferedInputStream input) throws IOException {
     input.mark(READ_LIMIT);
     try  {

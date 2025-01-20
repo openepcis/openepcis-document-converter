@@ -45,6 +45,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private String subscriptionID;
   private String queryName;
   private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
+  protected final ContextProcessor contextProcessor = ContextProcessor.getInstance();
 
   public JsonEPCISEventCollector(OutputStream stream) {
     this.stream = stream;
@@ -94,7 +95,7 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       final Map<String, String> allNamespaces = namespaceResolver.getAllNamespaces();
 
       // Use SPI approach to add either Default GS1 context from DefaultContext or add custom context such as GS1 Egypt or other
-      ContextProcessor.resolveForJsonConversion(jsonGenerator, allNamespaces);
+      contextProcessor.resolveForJsonConversion(jsonGenerator, allNamespaces);
 
       jsonGenerator.writeEndArray(); // End of context array
 

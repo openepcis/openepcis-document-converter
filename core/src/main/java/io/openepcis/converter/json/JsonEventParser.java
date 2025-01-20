@@ -54,6 +54,8 @@ public abstract class JsonEventParser {
 
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
     protected final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
+    protected final ContextProcessor contextProcessor = ContextProcessor.getInstance();
+
     protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
 
     // Variable to ensure whether provided InputStream is EPCIS document or single event
@@ -100,7 +102,7 @@ public abstract class JsonEventParser {
 
                     // Get the default context value from the JSON @context using the ContextLogicDelegator find if its custom context or Default GS1 context
                     if (isContextValue && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
-                        ContextProcessor.resolveForXmlConversion(Map.of(jsonParser.getText(), jsonParser.getText()), defaultJsonSchemaNamespaceURIResolver);
+                        contextProcessor.resolveForXmlConversion(Map.of(jsonParser.getText(), jsonParser.getText()), defaultJsonSchemaNamespaceURIResolver);
                         isContextValue = false;
                     }
 

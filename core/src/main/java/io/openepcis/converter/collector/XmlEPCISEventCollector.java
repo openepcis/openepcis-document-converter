@@ -123,8 +123,12 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
 
       // Add the values from JSON Context header stored in MAP to XML header
       for (Map.Entry<String, String> stringStringEntry : context.entrySet()) {
-        xmlEventWriter.add(
-            events.createAttribute(stringStringEntry.getKey(), stringStringEntry.getValue()));
+        xmlEventWriter.add(events.createAttribute(stringStringEntry.getKey(), stringStringEntry.getValue()));
+      }
+
+      // If the JSON provided information does not contain schemaVersion then add it
+      if(!context.containsKey(EPCIS.SCHEMA_VERSION)){
+        xmlEventWriter.add(events.createAttribute(EPCIS.SCHEMA_VERSION, EPCIS.SCHEMA_VERSION_2_0));
       }
 
       // Add EPCISBody and EventList tag as outer tag

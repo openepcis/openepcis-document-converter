@@ -106,9 +106,12 @@ public abstract class JsonEventParser {
                         isContextValue = false;
                     }
 
-                    // If element has name then store name and text in Map (ignore any namespace/context that starts with @ as they are part of default context)
-                    if (jsonParser.currentName() != null && jsonParser.currentToken() == JsonToken.VALUE_STRING && !jsonParser.currentName().startsWith("@")) {
-                        // Add the namespaces from JSONSchema to the MAP in SchemaURIResolver based on corresponding XSD
+                    // Store namespace/context with prefix in Map if valid (ignores @ namespaces and default context matching in EPCISNamespacePrefixMapper.EPCIS_NAMESPACE_MAP)
+                    if (jsonParser.currentName() != null
+                            && jsonParser.currentToken() == JsonToken.VALUE_STRING
+                            && !jsonParser.currentName().startsWith("@")
+                            && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsValue(jsonParser.getText())) {
+                        // Add namespaces from JSON schema to the map (key: remote URL/URN and value: prefix associated to URL)
                         defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(jsonParser.getText(), jsonParser.currentName());
                     }
                 }

@@ -34,6 +34,7 @@ import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 
 import javax.xml.stream.XMLOutputFactory;
@@ -91,31 +92,35 @@ public abstract class JsonEventParser {
     }
 
     // Parse the @context in JSON document and read the values and store the elements for document level
-    protected void collectNameSpaceAndContextValues(JsonParser jsonParser) throws IOException {
-        boolean isContextValue = true;
+    protected void collectNameSpaceAndContextValues(JsonParser jsonParser, final Map<String, String> contextValues) throws IOException {
         //Loop over the jsonParser until reaching the type : EPCISDocument or eventId field at document level
         while (!(EPCIS.TYPE.equals(jsonParser.getText()) || EPCIS.EVENT_ID.equals(jsonParser.getText()))) {
+
+            // If values are present before context, store as metadata in contextValues and add as attributes to epcis:EPCISDocument in XML
+            if(StringUtils.isNotBlank(jsonParser.currentName()) && StringUtils.isNotBlank(jsonParser.getText()) && !EPCIS.CONTEXT.equalsIgnoreCase(jsonParser.currentName())){
+                contextValues.put(jsonParser.currentName(), jsonParser.getText());
+            }
+
             // Read the context value only if the value is of type array else skip to add only string
             if (jsonParser.currentName() != null && EPCIS.CONTEXT.equalsIgnoreCase(jsonParser.currentName()) && jsonParser.nextToken() == JsonToken.START_ARRAY) {
                 // Loop until end of the Array to obtain Context elements
                 while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
 
                     // Get the default context value from the JSON @context using the ContextLogicDelegator find if its custom context or Default GS1 context
-                    if (isContextValue && jsonParser.currentToken() == JsonToken.VALUE_STRING) {
+                    if (jsonParser.currentToken() == JsonToken.VALUE_STRING) {
                         contextProcessor.resolveForXmlConversion(Map.of(jsonParser.getText(), jsonParser.getText()), defaultJsonSchemaNamespaceURIResolver);
-                        isContextValue = false;
                     }
 
                     // Store namespace/context with prefix in Map if valid (ignores @ namespaces and default context matching in EPCISNamespacePrefixMapper.EPCIS_NAMESPACE_MAP)
                     if (jsonParser.currentName() != null
                             && jsonParser.currentToken() == JsonToken.VALUE_STRING
                             && !jsonParser.currentName().startsWith("@")
-                            && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsValue(jsonParser.getText())) {
+                            && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsValue(jsonParser.getText())
+                            && !EPCIS.GS1_EPCIS_DOMAIN.equalsIgnoreCase(jsonParser.getText())) {
                         // Add namespaces from JSON schema to the map (key: remote URL/URN and value: prefix associated to URL)
                         defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(jsonParser.getText(), jsonParser.currentName());
                     }
                 }
-
             }
             jsonParser.nextToken();
         }

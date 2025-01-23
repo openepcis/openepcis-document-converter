@@ -76,7 +76,7 @@ public class JSONEventValueTransformer extends JsonEventParser implements Events
             }
 
             // Loop until type element to read the Context values and namespaces present in it
-            collectNameSpaceAndContextValues(jsonParser);
+            collectNameSpaceAndContextValues(jsonParser, contextValues);
 
             try {
                 EPCISEvent event = processSingleEvent(sequenceInEventList, jsonParser);

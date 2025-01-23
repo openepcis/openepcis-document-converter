@@ -1,0 +1,61 @@
+{
+  "@context": {
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "epcis": "https://ref.gs1.org/epcis/",
+    "gs1egypthc": "https://ref.gs1eg.org/extensions/epcis/hc/voc/",
+    "recallReason": {
+      "@id": "gs1egypthc:recallReason",
+      "@type": "xsd:string"
+    },
+    "dosageQuantityList": {
+      "@id": "gs1egypthc:dosageQuantityList",
+      "@container": "@set",
+      "@context": {
+        "@protected": true,
+        "dosageQuantity": {
+          "@id": "gs1egypthc:dosageQuantity",
+          "@context": {
+            "@protected": true,
+            "gs1egypthc": "https://ref.gs1eg.org/extensions/epcis/hc/voc/",
+            "epc": {
+              "@id": "gs1egypthc:epc",
+              "@type": "xsd:string"
+            },
+            "quantity": {
+              "@id": "gs1egypthc:quantity",
+              "@type": "xsd:double"
+            },
+            "uom": {
+              "@id": "gs1egypthc:uom",
+              "@type": "xsd:string"
+            }
+          }
+        }
+      }
+    },
+    "batchInfoList": {
+      "@id": "gs1egypthc:batchInfoList",
+      "@container": "@set",
+      "@context": {
+        "@protected": true,
+        "batchInfo": {
+          "@id": "gs1egypthc:batchInfo",
+          "@context": {
+            "@protected": true,
+            "gs1egypthc": "https://ref.gs1eg.org/extensions/epcis/hc/voc/",
+            "epcis": "https://ref.gs1.org/epcis/",
+            "lotNumber": {
+              "@id": "gs1egypthc:lotNumber",
+              "@type": "xsd:string"
+            },
+            "epcList": {
+              "@id": "epcis:epcList",
+              "@container": "@set",
+              "@type": "@id"
+            }
+          }
+        }
+      }
+    }
+  }
+}

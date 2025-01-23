@@ -3,6 +3,7 @@ package io.openepcis.converter.collector.context.handler;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 
+import java.net.URI;
 import java.util.Map;
 
 /**
@@ -18,4 +19,9 @@ public interface ContextHandler {
 
     // Determines if the handler is applicable for JSON context or XML namespace processing.
     boolean isContextHandler(final Map<String, String> namespaces);
+
+    // get map of context urls
+    default Map<String, URI> getContextUrls() {
+        return Map.of();
+    }
 }

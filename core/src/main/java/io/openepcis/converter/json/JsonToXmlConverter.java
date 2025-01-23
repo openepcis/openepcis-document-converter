@@ -153,7 +153,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
       }
 
       // Loop until type element to read the Context values and namespaces present in it
-      collectNameSpaceAndContextValues(jsonParser);
+      collectNameSpaceAndContextValues(jsonParser, contextValues);
 
       try {
 

@@ -126,11 +126,6 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
         xmlEventWriter.add(events.createAttribute(stringStringEntry.getKey(), stringStringEntry.getValue()));
       }
 
-      // If the JSON provided information does not contain schemaVersion then add it
-      if(!context.containsKey(EPCIS.SCHEMA_VERSION)){
-        xmlEventWriter.add(events.createAttribute(EPCIS.SCHEMA_VERSION, EPCIS.SCHEMA_VERSION_2_0));
-      }
-
       // Add EPCISBody and EventList tag as outer tag
       xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EPCIS_BODY), null, null));
 

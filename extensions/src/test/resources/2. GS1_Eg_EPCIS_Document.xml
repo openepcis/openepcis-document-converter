@@ -1,4 +1,4 @@
-<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2" xmlns:gs1egypthc="https://epcis.gs1eg.org/hc/ns"
+<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2" xmlns:gs1egypthc="https://ref.gs1eg.org/extensions/epcis/hc/"
                      xmlns:cbvmda="urn:epcglobal:cbv:mda" schemaVersion="2.0" creationDate="2005-07-11T11:30:47.0Z">
     <EPCISBody>
         <EventList>
@@ -20,15 +20,15 @@
                 <gs1egypthc:recallReason>First 3 Batches</gs1egypthc:recallReason>
                 <gs1egypthc:dosageQuantityList>
                     <gs1egypthc:dosageQuantity>
-                        <uom>T1</uom>
-                        <quantity>1</quantity>
-                        <epc>https://id.gs1.org/01/06223002978052/21/2RW9D9VXH8JI30M5GK</epc>
+                        <gs1egypthc:uom>T1</gs1egypthc:uom>
+                        <gs1egypthc:quantity>1</gs1egypthc:quantity>
+                        <gs1egypthc:epc>https://id.gs1.org/01/06223002978052/21/2RW9D9VXH8JI30M5GK</gs1egypthc:epc>
                     </gs1egypthc:dosageQuantity>
                 </gs1egypthc:dosageQuantityList>
                 <cbvmda:itemExpirationDate>2023-01-15</cbvmda:itemExpirationDate>
                 <gs1egypthc:batchInfoList>
                     <gs1egypthc:batchInfo>
-                        <lotNumber>E1UGS28SH17S3KF0DD4Y</lotNumber>
+                        <gs1egypthc:lotNumber>E1UGS28SH17S3KF0DD4Y</gs1egypthc:lotNumber>
                     </gs1egypthc:batchInfo>
                 </gs1egypthc:batchInfoList>
                 <cbvmda:lotNumber>U6DDLQC2B9ZI9GR4PP55</cbvmda:lotNumber>

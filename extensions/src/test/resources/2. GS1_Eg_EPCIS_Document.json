@@ -1,6 +1,7 @@
 {
   "@context": [
-    "https://ref.gs1eg.org/standards/epcis/hc/2.0.0/eda-context.jsonld"
+    "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld",
+    "https://ref.gs1eg.org/extensions/epcis/hc/2.0.0/hc-context.jsonld"
   ],
   "type": "EPCISDocument",
   "schemaVersion": "2.0",
@@ -25,15 +26,15 @@
         },
         "gs1egypthc:dosageQuantityList": {
           "gs1egypthc:dosageQuantity": {
-            "epc": "urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M5GK",
-            "quantity": "1",
-            "uom": "T1"
+            "gs1egypthc:epc": "urn:epc:id:sgtin:622300297.0805.2RW9D9VXH8JI30M5GK",
+            "gs1egypthc:quantity": "1",
+            "gs1egypthc:uom": "T1"
           }
         },
         "gs1egypthc:recallReason": "First 3 Batches",
         "gs1egypthc:batchInfoList": {
           "gs1egypthc:batchInfo": {
-            "lotNumber": "E1UGS28SH17S3KF0DD4Y"
+            "gs1egypthc_lotNumber": "E1UGS28SH17S3KF0DD4Y"
           }
         },
         "cbvmda:lotNumber": "U6DDLQC2B9ZI9GR4PP55",

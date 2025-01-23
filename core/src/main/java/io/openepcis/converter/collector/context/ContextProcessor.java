@@ -6,17 +6,14 @@ import io.openepcis.converter.collector.context.impl.DefaultContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 
+import java.net.URI;
 import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * Factory for resolving the appropriate {@link ContextHandler} implementation.
  */
 public class ContextProcessor {
-
-
     private static ContextProcessor _instance;
-
     private final List<ContextHandler> handlers;
 
     private ContextProcessor(final List<ContextHandler> handlers) {
@@ -24,6 +21,12 @@ public class ContextProcessor {
         if (this.handlers.isEmpty()) {
             this.handlers.add(new DefaultContextHandler());
         }
+    }
+
+    public Map<String, URI> getContextUrls(){
+        final Map<String, URI> map = new HashMap<>();
+        handlers.forEach(c -> map.putAll(c.getContextUrls()));
+        return map;
     }
 
     public synchronized static ContextProcessor getInstance() {

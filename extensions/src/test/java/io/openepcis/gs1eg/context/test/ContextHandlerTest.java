@@ -39,7 +39,7 @@ public class ContextHandlerTest {
         final OutputStream outputStream = new ByteArrayOutputStream();
         versionTransformer.convert(inputStream, conversion).transferTo(outputStream);
         assertTrue(outputStream.toString().length() > 0);
-        System.out.println(formatter.format(outputStream.toString()));
+        //System.out.println(formatter.format(outputStream.toString()));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class ContextHandlerTest {
         final OutputStream outputStream = new ByteArrayOutputStream();
         versionTransformer.convert(inputStream, conversion).transferTo(outputStream);
         assertTrue(outputStream.toString().length() > 0);
-        System.out.println(outputStream);
+        //System.out.println(outputStream);
     }
 
     @Test
@@ -71,7 +71,7 @@ public class ContextHandlerTest {
         final OutputStream outputStream = new ByteArrayOutputStream();
         versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(outputStream);
         assertTrue(outputStream.toString().length() > 0);
-        System.out.println(formatter.format(outputStream.toString()));
+        //System.out.println(formatter.format(outputStream.toString()));
     }
 
     @Test
@@ -89,6 +89,6 @@ public class ContextHandlerTest {
         final OutputStream outputStream = new ByteArrayOutputStream();
         versionTransformer.mapWith(mapper).convert(inputStream, conversion).transferTo(outputStream);
         assertTrue(outputStream.toString().length() > 0);
-        System.out.println(outputStream);
+        //System.out.println(outputStream);
     }
 }

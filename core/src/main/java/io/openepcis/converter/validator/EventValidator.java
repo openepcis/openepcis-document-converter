@@ -47,7 +47,7 @@ public class EventValidator implements EPCISEventValidator {
   private final Schema xsdSchema;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final JsonSchemaFactory validatorFactory = JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7)).objectMapper(objectMapper).build();
+  private final JsonSchemaFactory validatorFactory = JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7)).yamlMapper(objectMapper).build();
 
   public EventValidator() {
     try {

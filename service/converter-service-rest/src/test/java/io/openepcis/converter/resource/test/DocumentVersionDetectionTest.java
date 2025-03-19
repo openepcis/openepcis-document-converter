@@ -20,7 +20,6 @@ import io.openepcis.epc.converter.resource.DocumentConverterResource;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
-
 import java.net.URL;
 
 @QuarkusTest
@@ -34,5 +33,4 @@ public class DocumentVersionDetectionTest extends AbstractDocumentVersionDetecti
   public String url() {
     return url.toString();
   }
-
 }

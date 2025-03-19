@@ -15,24 +15,22 @@
  */
 package com.io.openepcis.version;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
+import jakarta.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import jakarta.xml.bind.JAXBException;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class Transform12To20Test {
 
   private final VersionTransformer versionTransformer;
-
 
   public Transform12To20Test() throws JAXBException {
     this.versionTransformer = new VersionTransformer();
@@ -94,13 +92,14 @@ public class Transform12To20Test {
             .getResourceAsStream(
                 "1.2/EPCIS/XML/Capture/Documents/All_eventTypes_in_single_document.xml");
 
-    var conversion = Conversion.builder()
-        .generateGS1CompliantDocument(false)
-        .fromMediaType(EPCISFormat.XML)
-        .fromVersion(EPCISVersion.VERSION_1_2_0)
-        .toMediaType(EPCISFormat.XML)
-        .toVersion(EPCISVersion.VERSION_2_0_0)
-        .build();
+    var conversion =
+        Conversion.builder()
+            .generateGS1CompliantDocument(false)
+            .fromMediaType(EPCISFormat.XML)
+            .fromVersion(EPCISVersion.VERSION_1_2_0)
+            .toMediaType(EPCISFormat.XML)
+            .toVersion(EPCISVersion.VERSION_2_0_0)
+            .build();
 
     final InputStream convertedDocument = versionTransformer.convert(inputDocument, conversion);
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);

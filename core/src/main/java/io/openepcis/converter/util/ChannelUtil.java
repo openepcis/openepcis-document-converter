@@ -15,6 +15,7 @@
  */
 package io.openepcis.converter.util;
 
+import io.smallrye.mutiny.Multi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,54 +23,52 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-
-import io.smallrye.mutiny.Multi;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChannelUtil {
 
-    public static void copy(InputStream inputStream, OutputStream outputStream) throws IOException {
-        try (final ReadableByteChannel src = Channels.newChannel(inputStream);
-             final WritableByteChannel dest = Channels.newChannel(outputStream);
-        ) {
-            final ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
-            while (src.read(buffer) != -1) {
-                buffer.flip();
-                dest.write(buffer);
-                buffer.compact();
-            }
-            buffer.flip();
-            while (buffer.hasRemaining()) {
-                dest.write(buffer);
-            }
-        }
+  public static void copy(InputStream inputStream, OutputStream outputStream) throws IOException {
+    try (final ReadableByteChannel src = Channels.newChannel(inputStream);
+        final WritableByteChannel dest = Channels.newChannel(outputStream); ) {
+      final ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
+      while (src.read(buffer) != -1) {
+        buffer.flip();
+        dest.write(buffer);
+        buffer.compact();
+      }
+      buffer.flip();
+      while (buffer.hasRemaining()) {
+        dest.write(buffer);
+      }
     }
+  }
 
-    public static Multi<byte[]> toMulti(InputStream inputStream) {
-        return Multi.createFrom().emitter(em -> {
-            try (final ReadableByteChannel src = Channels.newChannel(inputStream);
-            ) {
+  public static Multi<byte[]> toMulti(InputStream inputStream) {
+    return Multi.createFrom()
+        .emitter(
+            em -> {
+              try (final ReadableByteChannel src = Channels.newChannel(inputStream); ) {
                 byte[] bytes;
                 final ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
                 while (src.read(buffer) != -1) {
-                    buffer.flip();
-                    bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes, 0, bytes.length);
-                    em.emit(bytes);
-                    buffer.compact();
+                  buffer.flip();
+                  bytes = new byte[buffer.remaining()];
+                  buffer.get(bytes, 0, bytes.length);
+                  em.emit(bytes);
+                  buffer.compact();
                 }
                 buffer.flip();
                 while (buffer.hasRemaining()) {
-                    bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes, 0, bytes.length);
-                    em.emit(bytes);
+                  bytes = new byte[buffer.remaining()];
+                  buffer.get(bytes, 0, bytes.length);
+                  em.emit(bytes);
                 }
                 em.complete();
-            } catch (Exception e) {
+              } catch (Exception e) {
                 em.fail(e);
-            }
-        });
-    }
+              }
+            });
+  }
 }

@@ -17,7 +17,6 @@ package io.openepcis.converter.collector;
 
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.validator.EPCISEventValidator;
-
 import java.util.Map;
 
 /**
@@ -115,22 +114,22 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
   }
 
   @Override
-  public void setIsEPCISDocument(boolean isEPCISDocument){
-    if(collector != null) {
+  public void setIsEPCISDocument(boolean isEPCISDocument) {
+    if (collector != null) {
       collector.setIsEPCISDocument(isEPCISDocument);
     }
   }
 
   @Override
-  public void setSubscriptionID(String subscriptionID){
-    if(collector != null) {
+  public void setSubscriptionID(String subscriptionID) {
+    if (collector != null) {
       collector.setSubscriptionID(subscriptionID);
     }
   }
 
   @Override
-  public void setQueryName(String queryName){
-    if(collector != null) {
+  public void setQueryName(String queryName) {
+    if (collector != null) {
       collector.setQueryName(queryName);
     }
   }
@@ -142,7 +141,6 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
 
   @Override
   public void close() throws Exception {
-    if (collector != null)
-      collector.close();
+    if (collector != null) collector.close();
   }
 }

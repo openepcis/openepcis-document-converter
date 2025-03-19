@@ -23,7 +23,6 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import javax.xml.stream.*;
 import javax.xml.stream.util.EventReaderDelegate;
-
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -66,7 +65,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the creation of XMLEventWriter : "
-              + e, e);
+              + e,
+          e);
     }
   }
 
@@ -93,7 +93,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the addition of events to XMLEventWriter: "
-              + e, e);
+              + e,
+          e);
     }
   }
 
@@ -123,7 +124,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
 
       // Add the values from JSON Context header stored in MAP to XML header
       for (Map.Entry<String, String> stringStringEntry : context.entrySet()) {
-        xmlEventWriter.add(events.createAttribute(stringStringEntry.getKey(), stringStringEntry.getValue()));
+        xmlEventWriter.add(
+            events.createAttribute(stringStringEntry.getKey(), stringStringEntry.getValue()));
       }
 
       // Add EPCISBody and EventList tag as outer tag
@@ -156,7 +158,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the creation of final XML file header information "
-              + e, e);
+              + e,
+          e);
     }
   }
 
@@ -190,7 +193,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the closing of xmlEventWriter:"
-              + e, e);
+              + e,
+          e);
     }
   }
 
@@ -206,7 +210,8 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
     } catch (XMLStreamException e) {
       throw new FormatConverterException(
           "Exception during JSON-XML conversion, Error occurred during the addition of events to XMLEventWriter: "
-              + e, e);
+              + e,
+          e);
     }
   }
 

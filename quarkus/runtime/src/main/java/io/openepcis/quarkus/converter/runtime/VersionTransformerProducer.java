@@ -22,7 +22,6 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import jakarta.xml.bind.JAXBContext;
 import org.eclipse.microprofile.context.ManagedExecutor;
-import org.eclipse.microprofile.context.ThreadContext;
 
 @ApplicationScoped
 public class VersionTransformerProducer {
@@ -30,12 +29,10 @@ public class VersionTransformerProducer {
   @NamedInstance("VersionTransformerExecutor")
   ManagedExecutor managedExecutor;
 
-  @Inject
-  JAXBContext jaxbContext;
+  @Inject JAXBContext jaxbContext;
 
   @Produces
   public VersionTransformer createVersionTransformer() throws Exception {
     return new VersionTransformer(managedExecutor, jaxbContext);
   }
-
 }

@@ -21,10 +21,9 @@ import io.vertx.ext.web.RoutingContext;
 import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.core.Application;
 import jakarta.xml.bind.JAXBException;
+import javax.xml.namespace.QName;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-
-import javax.xml.namespace.QName;
 
 @ApplicationPath("/")
 @RegisterForReflection(targets = {QName.class, JAXBException.class})
@@ -36,6 +35,4 @@ public class RESTApplication extends Application {
   void index(RoutingContext rc) {
     rc.redirect("/q/swagger-ui/index.html");
   }
-
-
 }

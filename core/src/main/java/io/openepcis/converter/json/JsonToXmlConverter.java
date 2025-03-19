@@ -18,13 +18,9 @@ package io.openepcis.converter.json;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.converter.EventsConverter;
-import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.collector.EPCISEventCollector;
+import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
@@ -34,12 +30,6 @@ import jakarta.enterprise.context.RequestScoped;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
-import org.eclipse.persistence.jaxb.MarshallerProperties;
-
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -49,6 +39,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamWriter;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
+import org.eclipse.persistence.jaxb.MarshallerProperties;
 
 /**
  * Class for handling the conversion of EPCIS 2.0 events in JSON-LD format to EPCIS 2.0 XML format.
@@ -69,7 +64,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
   }
 
   private JsonToXmlConverter(
-      final JsonToXmlConverter parent, BiFunction<Object,List<Object>, Object> epcisEventMapper) {
+      final JsonToXmlConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
     this(parent.jaxbContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
@@ -100,8 +95,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
    */
   @Override
   public void convert(
-      InputStream jsonStream,
-      EventHandler<? extends EPCISEventCollector> eventHandler)
+      InputStream jsonStream, EventHandler<? extends EPCISEventCollector> eventHandler)
       throws IOException, JAXBException {
     convert(jsonStream, eventHandler, this.jaxbContext);
   }
@@ -149,7 +143,8 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
 
       // Check the first element is Object if not then invalid JSON throw error
       if (jsonParser.nextToken() != JsonToken.START_OBJECT) {
-        throw new FormatConverterException("Invalid JSON-LD file has been provided. JSON-LD file should start with the Object");
+        throw new FormatConverterException(
+            "Invalid JSON-LD file has been provided. JSON-LD file should start with the Object");
       }
 
       // Loop until type element to read the Context values and namespaces present in it
@@ -160,16 +155,16 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
         EPCISEvent event = processSingleEvent(sequenceInEventList, jsonParser);
         // Set the namespaces for the marshaller
         marshaller.setProperty(
-                MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-                defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
+            MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
+            defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
 
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();
 
         final XMLStreamWriter skipEPCISNamespaceWriter =
-                new NonEPCISNamespaceXMLStreamWriter(
-                        new IndentingXMLStreamWriter(
-                                XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+            new NonEPCISNamespaceXMLStreamWriter(
+                new IndentingXMLStreamWriter(
+                    XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
         // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
         marshaller.marshal(event, skipEPCISNamespaceWriter);
 
@@ -202,7 +197,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
     // Close JSONParser after reading all events
   }
 
-  public final JsonToXmlConverter mapWith(final BiFunction<Object, List<Object>,Object> mapper) {
+  public final JsonToXmlConverter mapWith(final BiFunction<Object, List<Object>, Object> mapper) {
     return new JsonToXmlConverter(this, mapper);
   }
 }

@@ -18,7 +18,6 @@ package io.openepcis.converter.util;
 import io.openepcis.converter.exception.FormatConverterException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;

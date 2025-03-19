@@ -15,6 +15,9 @@
  */
 package com.io.openepcis.convert;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.VersionTransformer;
@@ -24,16 +27,12 @@ import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.validator.EventValidator;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import jakarta.xml.bind.JAXBException;
-import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Test;
 
 public class XmlToJsonTest {
   private final VersionTransformer versionTransformer;
@@ -52,7 +51,8 @@ public class XmlToJsonTest {
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/ObjectEvent_all_possible_fields.xml");
     try (final EventHandler handler =
-        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+        new EventHandler(
+            new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
       new XmlToJsonConverter().convert(inputStream, handler);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
@@ -67,7 +67,8 @@ public class XmlToJsonTest {
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/AggregationEvent_all_possible_fields.xml");
     try (final EventHandler handler =
-                 new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+        new EventHandler(
+            new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
       new XmlToJsonConverter().convert(inputStream, handler);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
@@ -82,7 +83,8 @@ public class XmlToJsonTest {
             .getResourceAsStream(
                 "2.0/EPCIS/XML/Capture/Documents/TransformationEvent_all_possible_fields.xml");
     try (final EventHandler handler =
-                 new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+        new EventHandler(
+            new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
       new XmlToJsonConverter().convert(inputStream, handler);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
@@ -97,11 +99,13 @@ public class XmlToJsonTest {
             .getClassLoader()
             .getResourceAsStream(
                 "2.0/EPCIS/JSON/Capture/Documents/TransformationEvent_all_possible_fields.json");
-    assertThrows(FormatConverterException.class, () -> {
-      try (final EventHandler handler = new EventHandler(null, null)) {
-      new XmlToJsonConverter().convert(inputStream, handler);
-    }});
-
+    assertThrows(
+        FormatConverterException.class,
+        () -> {
+          try (final EventHandler handler = new EventHandler(null, null)) {
+            new XmlToJsonConverter().convert(inputStream, handler);
+          }
+        });
   }
 
   // Test case for Invalid JSON file contents
@@ -114,10 +118,11 @@ public class XmlToJsonTest {
             .getResourceAsStream("2.0/EPCIS/JSON/Capture/Documents/file_does_not_exist.xml");
     try (final EventHandler handler = new EventHandler(new EventValidator(), null)) {
 
-      assertThrows(FormatConverterException.class, () -> {
-        new XmlToJsonConverter().convert(inputStream, handler);
-      });
-
+      assertThrows(
+          FormatConverterException.class,
+          () -> {
+            new XmlToJsonConverter().convert(inputStream, handler);
+          });
     }
   }
 
@@ -174,12 +179,12 @@ public class XmlToJsonTest {
         new VersionTransformer()
             .convert(
                 inputStream,
-                b -> b
-                    .generateGS1CompliantDocument(false)
-                    .fromMediaType(EPCISFormat.XML)
-                      .fromVersion(EPCISVersion.VERSION_2_0_0)
-                      .toMediaType(EPCISFormat.JSON_LD)
-                      .toVersion(EPCISVersion.VERSION_2_0_0));
+                b ->
+                    b.generateGS1CompliantDocument(false)
+                        .fromMediaType(EPCISFormat.XML)
+                        .fromVersion(EPCISVersion.VERSION_2_0_0)
+                        .toMediaType(EPCISFormat.JSON_LD)
+                        .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -197,11 +202,12 @@ public class XmlToJsonTest {
                 "2.0/EPCIS/XML/Capture/Documents/TransformationEvent_with_errorDeclaration.xml");
     final InputStream convertedDocument =
         versionTransformer.convert(
-            inputStream, b -> b
-                .generateGS1CompliantDocument(false)
-                .fromMediaType(EPCISFormat.XML)
-                .toMediaType(EPCISFormat.JSON_LD)
-                .toVersion(EPCISVersion.VERSION_2_0_0));
+            inputStream,
+            b ->
+                b.generateGS1CompliantDocument(false)
+                    .fromMediaType(EPCISFormat.XML)
+                    .toMediaType(EPCISFormat.JSON_LD)
+                    .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -219,10 +225,10 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream,
-            b -> b
-                  .fromMediaType(EPCISFormat.XML)
-                  .toMediaType(EPCISFormat.JSON_LD)
-                  .toVersion(EPCISVersion.VERSION_2_0_0));
+            b ->
+                b.fromMediaType(EPCISFormat.XML)
+                    .toMediaType(EPCISFormat.JSON_LD)
+                    .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -240,10 +246,10 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream,
-            b -> b
-                  .fromMediaType(EPCISFormat.XML)
-                  .toMediaType(EPCISFormat.JSON_LD)
-                  .toVersion(EPCISVersion.VERSION_2_0_0));
+            b ->
+                b.fromMediaType(EPCISFormat.XML)
+                    .toMediaType(EPCISFormat.JSON_LD)
+                    .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -262,11 +268,11 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream,
-                  b -> b
-                      .generateGS1CompliantDocument(false)
-                      .fromMediaType(EPCISFormat.XML)
-                      .toMediaType(EPCISFormat.JSON_LD)
-                      .toVersion(EPCISVersion.VERSION_2_0_0));
+            b ->
+                b.generateGS1CompliantDocument(false)
+                    .fromMediaType(EPCISFormat.XML)
+                    .toMediaType(EPCISFormat.JSON_LD)
+                    .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue(IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0);
     try {
       convertedDocument.close();
@@ -285,10 +291,10 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream,
-                  b -> b
-                  .fromMediaType(EPCISFormat.XML)
-                  .toMediaType(EPCISFormat.JSON_LD)
-                  .toVersion(EPCISVersion.VERSION_2_0_0));
+            b ->
+                b.fromMediaType(EPCISFormat.XML)
+                    .toMediaType(EPCISFormat.JSON_LD)
+                    .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
     try {
       convertedDocument.close();
@@ -308,7 +314,8 @@ public class XmlToJsonTest {
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/XML/Query/Combination_of_different_event.xml");
     try (final EventHandler handler =
-        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+        new EventHandler(
+            new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
       new XmlToJsonConverter().convert(inputStream, handler);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
@@ -322,7 +329,8 @@ public class XmlToJsonTest {
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/XML/Query/JumbledFieldsOrder.xml");
     try (final EventHandler handler =
-        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+        new EventHandler(
+            new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
       new XmlToJsonConverter().convert(inputStream, handler);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
@@ -336,9 +344,10 @@ public class XmlToJsonTest {
             .getClassLoader()
             .getResourceAsStream("2.0/EPCIS/XML/Query/ObjectEvent_all_possible_fields.xml");
     try (final EventHandler handler =
-        new EventHandler(new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
-    new XmlToJsonConverter().convert(inputStream, handler);
-    assertTrue(byteArrayOutputStream.toString().length() > 0);
+        new EventHandler(
+            new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+      new XmlToJsonConverter().convert(inputStream, handler);
+      assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
   }
 
@@ -351,10 +360,10 @@ public class XmlToJsonTest {
     final InputStream convertedDocument =
         versionTransformer.convert(
             inputStream,
-                  b -> b
-                  .fromMediaType(EPCISFormat.XML)
-                  .toMediaType(EPCISFormat.JSON_LD)
-                  .toVersion(EPCISVersion.VERSION_2_0_0));
+            b ->
+                b.fromMediaType(EPCISFormat.XML)
+                    .toMediaType(EPCISFormat.JSON_LD)
+                    .toVersion(EPCISVersion.VERSION_2_0_0));
     assertTrue((IOUtils.toString(convertedDocument, StandardCharsets.UTF_8).length() > 0));
     try {
       convertedDocument.close();

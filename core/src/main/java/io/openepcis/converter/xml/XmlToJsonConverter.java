@@ -28,11 +28,6 @@ import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
-
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -41,6 +36,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
 
 /**
  * Class for handling the conversion of EPCIS 2.0 events in XML format to EPCIS 2.0 JSON format. It
@@ -161,7 +160,7 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
             && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName())) {
 
           // Get the event type
-           Object event = getEvent(xmlStreamReader, unmarshaller);
+          Object event = getEvent(xmlStreamReader, unmarshaller);
 
           // Check if Object has some value
           if (event != null) {
@@ -233,7 +232,8 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
           }
         }
         // Move to the next event/element in InputStream
-        if (!(xmlStreamReader.isStartElement() && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName()))) {
+        if (!(xmlStreamReader.isStartElement()
+            && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName()))) {
           xmlStreamReader.next();
         }
       }
@@ -242,7 +242,8 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
       eventHandler.end();
 
     } catch (Exception e) {
-      throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);
+      throw new FormatConverterException(
+          "XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);
     }
   }
 

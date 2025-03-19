@@ -15,19 +15,18 @@
  */
 package io.openepcis.converter.collector;
 
+import static io.openepcis.constants.EPCIS.*;
+
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
-
-import static io.openepcis.constants.EPCIS.*;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Class that implements the interface EPCISEventsCollector to create the final JSON file with all
@@ -44,7 +43,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private boolean isEPCISDocument;
   private String subscriptionID;
   private String queryName;
-  private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
+  private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
+      DefaultJsonSchemaNamespaceURIResolver.getContext();
   protected final ContextProcessor contextProcessor = ContextProcessor.getInstance();
 
   public JsonEPCISEventCollector(OutputStream stream) {
@@ -55,24 +55,32 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator = new JsonFactory().createGenerator(this.stream).useDefaultPrettyPrinter();
       jsonEventSeparator = false;
     } catch (IOException e) {
-      throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during the creation of JsonGenerator object " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD conversion, Error occurred during the creation of JsonGenerator object "
+              + e,
+          e);
     }
   }
 
   @Override
   public void collect(Object event) {
     try {
-      // Add the comma separator between each of the event as the number of events are unknown "," will be added before writing the next event
+      // Add the comma separator between each of the event as the number of events are unknown ","
+      // will be added before writing the next event
       if (jsonEventSeparator) {
         jsonGenerator.writeRaw(",");
       }
 
-      // Add each of the converted event into the EventList of the JSON file that is created in start method
+      // Add each of the converted event into the EventList of the JSON file that is created in
+      // start method
       jsonGenerator.writeRaw(event.toString());
       jsonEventSeparator = true;
     } catch (IOException e) {
       System.out.println(e.getMessage());
-      throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during writing of the events to JsonGenerator: " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD conversion, Error occurred during writing of the events to JsonGenerator: "
+              + e,
+          e);
     }
   }
 
@@ -94,7 +102,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Get all document level namespaces for adding within context
       final Map<String, String> allNamespaces = namespaceResolver.getAllNamespaces();
 
-      // Use SPI approach to add either Default GS1 context from DefaultContext or add custom context such as GS1 Egypt or other
+      // Use SPI approach to add either Default GS1 context from DefaultContext or add custom
+      // context such as GS1 Egypt or other
       contextProcessor.resolveForJsonConversion(jsonGenerator, allNamespaces);
 
       jsonGenerator.writeEndArray(); // End of context array
@@ -104,17 +113,20 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
 
       // Write schema version and other attributes within XML Header
       context.forEach(
-              (key, value) -> {
-                try {
-                  if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
-                    jsonGenerator.writeStringField(key, "2.0");
-                  } else {
-                    jsonGenerator.writeStringField(key, value);
-                  }
-                } catch (IOException e) {
-                  throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during the addition of attributes: " + e, e);
-                }
-              });
+          (key, value) -> {
+            try {
+              if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
+                jsonGenerator.writeStringField(key, "2.0");
+              } else {
+                jsonGenerator.writeStringField(key, value);
+              }
+            } catch (IOException e) {
+              throw new FormatConverterException(
+                  "Exception during XML-JSON-LD conversion, Error occurred during the addition of attributes: "
+                      + e,
+                  e);
+            }
+          });
 
       // Start epcisBody object
       jsonGenerator.writeFieldName(EPCIS_BODY_IN_CAMEL_CASE);
@@ -141,7 +153,10 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeFieldName(EVENT_LIST_IN_CAMEL_CASE);
       jsonGenerator.writeStartArray();
     } catch (IOException e) {
-      throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during the creation of JSON-LD events file: " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD conversion, Error occurred during the creation of JSON-LD events file: "
+              + e,
+          e);
     }
   }
 
@@ -159,7 +174,10 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeEndObject(); // End epcisBody
       jsonGenerator.writeEndObject(); // End whole json file
     } catch (IOException e) {
-      throw new FormatConverterException("Exception during XML-JSON-LD conversion, Error occurred during the closing of JSON-LD events file: " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD conversion, Error occurred during the closing of JSON-LD events file: "
+              + e,
+          e);
     } finally {
       try {
         jsonGenerator.close();
@@ -190,7 +208,10 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
                   jsonGenerator.writeStringField(value, key);
                   jsonGenerator.writeEndObject();
                 } catch (IOException e1) {
-                  throw new FormatConverterException("Exception during XML-JSON-LD single event conversion, Error occurred during the addition of Namespaces: " + e1, e1);
+                  throw new FormatConverterException(
+                      "Exception during XML-JSON-LD single event conversion, Error occurred during the addition of Namespaces: "
+                          + e1,
+                      e1);
                 }
               });
       jsonGenerator.writeEndArray();
@@ -201,7 +222,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Add comma to separate the context and serialized event
       jsonGenerator.writeRaw(",");
     } catch (IOException e) {
-      throw new FormatConverterException("Exception during XML-JSON-LD single event conversion : " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD single event conversion : " + e, e);
     }
   }
 
@@ -211,7 +233,10 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Add converted event into the JSON object created using startSingleEvent
       jsonGenerator.writeRaw(event.toString(), 1, event.toString().length() - 2);
     } catch (IOException e) {
-      throw new FormatConverterException("Exception during XML-JSON-LD single event conversion, Error occurred during writing of the events to JsonGenerator: " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD single event conversion, Error occurred during writing of the events to JsonGenerator: "
+              + e,
+          e);
     }
   }
 
@@ -222,7 +247,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.close();
       jsonGenerator.flush();
     } catch (IOException e) {
-      throw new FormatConverterException("Exception during XML-JSON-LD single event conversion : " + e, e);
+      throw new FormatConverterException(
+          "Exception during XML-JSON-LD single event conversion : " + e, e);
     }
   }
 

@@ -15,13 +15,14 @@
  */
 package io.openepcis.converter.service.restassured;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class AbstractIdentifierConverterTest {
 
@@ -68,7 +69,10 @@ public abstract class AbstractIdentifierConverterTest {
   @Test
   public void convertToInstanceWebURITest() {
     final Response response =
-        RestAssured.given().body("urn:epc:id:sgtin:234567890.1123.9999").when().post(webURIConvertAPI);
+        RestAssured.given()
+            .body("urn:epc:id:sgtin:234567890.1123.9999")
+            .when()
+            .post(webURIConvertAPI);
 
     assertEquals(200, response.getStatusCode());
     assertEquals("https://id.gs1.org/01/12345678901231/21/9999", response.getBody().asString());
@@ -78,7 +82,10 @@ public abstract class AbstractIdentifierConverterTest {
   @Test
   public void convertToClassWebURITest() {
     final Response response =
-        RestAssured.given().body("urn:epc:idpat:itip:483478.7347834.92.93.*").when().post(webURIConvertAPI);
+        RestAssured.given()
+            .body("urn:epc:idpat:itip:483478.7347834.92.93.*")
+            .when()
+            .post(webURIConvertAPI);
 
     assertEquals(200, response.getStatusCode());
     assertEquals("https://id.gs1.org/8006/748347834783449293", response.getBody().asString());
@@ -128,7 +135,10 @@ public abstract class AbstractIdentifierConverterTest {
   @Test
   public void convertToInstanceURNTest() {
     final Response response =
-        RestAssured.given().body("https://id.gs1.org/414/6880009384938 12").when().post(urnConvertAPI);
+        RestAssured.given()
+            .body("https://id.gs1.org/414/6880009384938 12")
+            .when()
+            .post(urnConvertAPI);
 
     assertEquals(200, response.getStatusCode());
     assertEquals("urn:epc:id:sgln:688000938493..0", response.jsonPath().getString("asURN"));

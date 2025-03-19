@@ -26,17 +26,25 @@ import org.eclipse.microprofile.health.Readiness;
 @ApplicationScoped
 public class OpenEPCISConverterHealthCheck implements HealthCheck {
 
-    private final VersionTransformer versionTransformer;
+  private final VersionTransformer versionTransformer;
 
-    public OpenEPCISConverterHealthCheck(final VersionTransformer versionTransformer) {
-        this.versionTransformer = versionTransformer;
-    }
+  public OpenEPCISConverterHealthCheck(final VersionTransformer versionTransformer) {
+    this.versionTransformer = versionTransformer;
+  }
 
-    @Override
-    public HealthCheckResponse call() {
-        HealthCheckResponseBuilder builder = HealthCheckResponse.named("OpenEPCIS Document Converter health check").up();
-        builder.up().withData("xmlVersionTransformer", versionTransformer.getXmlVersionTransformer().getClass().getName() );
-        builder.up().withData("xmlToJsonConverter", versionTransformer.getXmlToJsonConverter().getClass().getName() );
-        return builder.build();
-    }
+  @Override
+  public HealthCheckResponse call() {
+    HealthCheckResponseBuilder builder =
+        HealthCheckResponse.named("OpenEPCIS Document Converter health check").up();
+    builder
+        .up()
+        .withData(
+            "xmlVersionTransformer",
+            versionTransformer.getXmlVersionTransformer().getClass().getName());
+    builder
+        .up()
+        .withData(
+            "xmlToJsonConverter", versionTransformer.getXmlToJsonConverter().getClass().getName());
+    return builder.build();
+  }
 }

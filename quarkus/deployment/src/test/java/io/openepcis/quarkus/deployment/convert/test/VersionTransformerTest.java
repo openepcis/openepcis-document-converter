@@ -15,6 +15,8 @@
  */
 package io.openepcis.quarkus.deployment.convert.test;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.quarkus.converter.runtime.VersionTransformerProducer;
 import io.quarkus.test.QuarkusUnitTest;
@@ -24,29 +26,22 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 class VersionTransformerTest {
 
-    @RegisterExtension
-    static final QuarkusUnitTest TEST = new QuarkusUnitTest()
-            .setArchiveProducer(
-                    () -> ShrinkWrap.create(JavaArchive.class));
+  @RegisterExtension
+  static final QuarkusUnitTest TEST =
+      new QuarkusUnitTest().setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class));
 
-    @Inject
-    VersionTransformerProducer versionTransformerProducer;
+  @Inject VersionTransformerProducer versionTransformerProducer;
 
-    @Inject
-    VersionTransformer versionTransformer;
+  @Inject VersionTransformer versionTransformer;
 
-
-    @Test
-    void testVersionTransformerInjection() throws Exception {
-        assertNotNull(versionTransformerProducer);
-        assertNotNull(versionTransformer);
-        assertNotNull(versionTransformer.getXmlToJsonConverter());
-        assertNotNull(versionTransformer.getJsonToXmlConverter());
-        assertNotNull(versionTransformer.getXmlVersionTransformer());
-    }
-
+  @Test
+  void testVersionTransformerInjection() throws Exception {
+    assertNotNull(versionTransformerProducer);
+    assertNotNull(versionTransformer);
+    assertNotNull(versionTransformer.getXmlToJsonConverter());
+    assertNotNull(versionTransformer.getJsonToXmlConverter());
+    assertNotNull(versionTransformer.getXmlVersionTransformer());
+  }
 }

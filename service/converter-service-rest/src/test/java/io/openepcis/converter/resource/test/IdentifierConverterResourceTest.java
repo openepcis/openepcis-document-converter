@@ -20,7 +20,6 @@ import io.openepcis.epc.converter.resource.IdentifierConverterResource;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
-
 import java.net.URL;
 
 @QuarkusTest
@@ -39,5 +38,4 @@ public class IdentifierConverterResourceTest extends AbstractIdentifierConverter
   public String urnUrl() {
     return url + "/convert/identifier/urn";
   }
-
 }

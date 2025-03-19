@@ -15,24 +15,22 @@
  */
 package io.openepcis.converter.service.restassured;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.openepcis.resources.util.Commons;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 @QuarkusTest
 public abstract class AbstractDocumentVersionConverterTest {
-
 
   private String xmlConverterAPI_2_0;
   private String xmlConverterAPI_1_2;
@@ -81,7 +79,11 @@ public abstract class AbstractDocumentVersionConverterTest {
     assertEquals(200, response.getStatusCode());
     assertEquals("application/xml;charset=UTF-8", response.getContentType());
     final String responseBody = response.getBody().asString();
-    assertEquals(1, Commons.getXmlPath(responseBody).getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".AggregationEvent").size());
+    assertEquals(
+        1,
+        Commons.getXmlPath(responseBody)
+            .getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".AggregationEvent")
+            .size());
   }
 
   @Test
@@ -102,7 +104,9 @@ public abstract class AbstractDocumentVersionConverterTest {
     assertEquals(
         0,
         Commons.getXmlPath(responseBody)
-            .getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".extension.extension.AssociationEvent")
+            .getList(
+                Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST
+                    + ".extension.extension.AssociationEvent")
             .size());
   }
 
@@ -123,7 +127,10 @@ public abstract class AbstractDocumentVersionConverterTest {
     final String responseBody = response.getBody().asString();
     assertEquals(
         1,
-        Commons.getXmlPath(responseBody).getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".extension.TransformationEvent").size());
+        Commons.getXmlPath(responseBody)
+            .getList(
+                Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".extension.TransformationEvent")
+            .size());
   }
 
   /** Convert the XML 1.2 document into XML 2.0 */
@@ -161,7 +168,11 @@ public abstract class AbstractDocumentVersionConverterTest {
     assertEquals(200, response.getStatusCode());
     assertEquals("application/xml;charset=UTF-8", response.getContentType());
     final String responseBody = response.getBody().asString();
-    assertEquals(1, Commons.getXmlPath(responseBody).getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".AggregationEvent").size());
+    assertEquals(
+        1,
+        Commons.getXmlPath(responseBody)
+            .getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".AggregationEvent")
+            .size());
   }
 
   @Test
@@ -178,7 +189,11 @@ public abstract class AbstractDocumentVersionConverterTest {
     assertEquals(200, response.getStatusCode());
     assertEquals("application/xml;charset=UTF-8", response.getContentType());
     final String responseBody = response.getBody().asString();
-    assertEquals(1, Commons.getXmlPath(responseBody).getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".AssociationEvent").size());
+    assertEquals(
+        1,
+        Commons.getXmlPath(responseBody)
+            .getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".AssociationEvent")
+            .size());
   }
 
   @Test
@@ -196,6 +211,10 @@ public abstract class AbstractDocumentVersionConverterTest {
     assertEquals(200, response.getStatusCode());
     assertEquals("application/xml;charset=UTF-8", response.getContentType());
     final String responseBody = response.getBody().asString();
-    assertEquals(1, Commons.getXmlPath(responseBody).getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".TransformationEvent").size());
+    assertEquals(
+        1,
+        Commons.getXmlPath(responseBody)
+            .getList(Commons.EPCIS_EPCISDOCUMENT_EPCISBODY_EVENT_LIST + ".TransformationEvent")
+            .size());
   }
 }

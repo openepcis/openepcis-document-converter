@@ -25,10 +25,11 @@ import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 public class ExceptionMapper {
 
   @ServerExceptionMapper
-  public final RestResponse<ProblemResponseBody> mapException(final FormatConverterException exception) {
+  public final RestResponse<ProblemResponseBody> mapException(
+      final FormatConverterException exception) {
     log.error(exception.getMessage(), exception);
-    ProblemResponseBody responseBody = ProblemResponseBody.fromException(exception, RestResponse.Status.BAD_REQUEST);
+    ProblemResponseBody responseBody =
+        ProblemResponseBody.fromException(exception, RestResponse.Status.BAD_REQUEST);
     return RestResponse.status(RestResponse.Status.BAD_REQUEST, responseBody);
   }
-
 }

@@ -23,12 +23,14 @@ import java.util.regex.Pattern;
 
 public class AttributePreScanUtil {
 
-  private static final String SCHEMA_VERSION_REGEX ="schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)[\"?'?]";
+  private static final String SCHEMA_VERSION_REGEX =
+      "schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)[\"?'?]";
   private static final Pattern SCHEMA_VERSION_PATTERN = Pattern.compile(SCHEMA_VERSION_REGEX);
   private static final int READ_LIMIT = 1000000;
+
   public static final String scanSchemaVersion(final BufferedInputStream input) throws IOException {
     input.mark(READ_LIMIT);
-    try  {
+    try {
       final StringBuilder sb = new StringBuilder();
       final byte[] buffer = new byte[64];
       int len = -1;
@@ -47,5 +49,4 @@ public class AttributePreScanUtil {
       input.reset();
     }
   }
-
 }

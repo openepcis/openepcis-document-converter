@@ -15,8 +15,6 @@
  */
 package io.openepcis.quarkus.converter.deployment;
 
-import io.openepcis.converter.VersionTransformer;
-import io.openepcis.converter.xml.DefaultXmlVersionTransformer;
 import io.openepcis.quarkus.converter.runtime.OpenEPCISConverterHealthCheck;
 import io.openepcis.quarkus.converter.runtime.VersionTransformerProducer;
 import io.openepcis.quarkus.deployment.model.OpenEPCISBuildTimeConfig;
@@ -26,15 +24,12 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageConfigBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourcePatternsBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
-import io.quarkus.deployment.steps.NativeImageSerializationConfigStep;
 import io.quarkus.smallrye.health.deployment.spi.HealthBuildItem;
-
 import java.util.stream.Stream;
 
 public class OpenEPCISConverterProcessor {
 
   private static final String FEATURE = "openepcis-document-converter";
-
 
   @BuildStep
   FeatureBuildItem feature() {
@@ -48,10 +43,9 @@ public class OpenEPCISConverterProcessor {
 
   @BuildStep
   HealthBuildItem addHealthCheck(OpenEPCISBuildTimeConfig buildTimeConfig) {
-    return new HealthBuildItem(OpenEPCISConverterHealthCheck.class.getName(),
-            buildTimeConfig.healthEnabled());
+    return new HealthBuildItem(
+        OpenEPCISConverterHealthCheck.class.getName(), buildTimeConfig.healthEnabled());
   }
-
 
   @BuildStep
   NativeImageConfigBuildItem addNativeImageConfig() {
@@ -61,16 +55,16 @@ public class OpenEPCISConverterProcessor {
     Stream.of(
             "org.apache.xml.res.XMLErrorResources",
             "org.apache.xml.serializer.utils.SerializerMessages",
-            "org.apache.xalan.xsltc.compiler.util.ErrorMessages"
-    ).forEach(builder::addResourceBundle);
+            "org.apache.xalan.xsltc.compiler.util.ErrorMessages")
+        .forEach(builder::addResourceBundle);
 
     // set runtime initialized classes
     Stream.of(
             "io.openepcis.converter.xml.DefaultXmlVersionTransformer",
             "org.apache.xalan.xsltc.trax.TransformerFactoryImpl",
             "org.apache.bcel.util.SyntheticRepository",
-            "org.apache.bcel.util.ClassPath"
-    ).forEach(builder::addRuntimeInitializedClass);
+            "org.apache.bcel.util.ClassPath")
+        .forEach(builder::addRuntimeInitializedClass);
     return builder.build();
   }
 
@@ -84,7 +78,7 @@ public class OpenEPCISConverterProcessor {
             "io.openepcis.quarkus.converter.runtime.OpenEPCISConverterHealthCheck",
             "io.openepcis.quarkus.converter.runtime.VersionTransformerProducer",
 
-                    // Apache Xalan related classes
+            // Apache Xalan related classes
             "org.apache.xalan.xsltc.trax.TransformerFactoryImpl",
             "org.apache.xalan.xsltc.trax.SmartTransformerFactoryImpl",
             "org.apache.xalan.xsltc.dom.XSLTCDTMManager"
@@ -117,29 +111,34 @@ public class OpenEPCISConverterProcessor {
 
              */
             )
-            .unsafeAllocated()
-            .serialization().methods().fields().constructors()
-            .build();
+        .unsafeAllocated()
+        .serialization()
+        .methods()
+        .fields()
+        .constructors()
+        .build();
   }
+
   @BuildStep
   ReflectiveClassBuildItem addReflectiveClassConstructorBuildItem() {
     return ReflectiveClassBuildItem.builder(
             // predefined generated classes from XML Stylesheets
             "io.openepcis.converter.translet.From12To20",
-            "io.openepcis.converter.translet.From20To12"
-    ).constructors().methods().fields().build();
+            "io.openepcis.converter.translet.From20To12")
+        .constructors()
+        .methods()
+        .fields()
+        .build();
   }
-
-
 
   @BuildStep
   NativeImageResourcePatternsBuildItem addNativeImageResourceBuildItem() {
-    return NativeImageResourcePatternsBuildItem.builder().includeGlobs(
+    return NativeImageResourcePatternsBuildItem.builder()
+        .includeGlobs(
             "org/apache/xml/serializer/*.properties",
             "xalan-conversion/*.xsl",
             "xalan-conversion/**/*",
-            "eventSchemas/*"
-    ).build();
+            "eventSchemas/*")
+        .build();
   }
-
 }

@@ -16,7 +16,6 @@
 package io.openepcis.converter.xml;
 
 import io.openepcis.converter.Conversion;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
@@ -28,22 +27,22 @@ import java.util.function.Function;
 public interface XmlVersionTransformer {
 
   public InputStream xmlConverter(
-          InputStream inputStream, final Function<Conversion.StartStage, Conversion.BuildStage> fn)
-          throws UnsupportedOperationException, IOException;
+      InputStream inputStream, final Function<Conversion.StartStage, Conversion.BuildStage> fn)
+      throws UnsupportedOperationException, IOException;
 
-  public InputStream xmlConverter(
-          InputStream inputStream, Conversion conversion)
+  public InputStream xmlConverter(InputStream inputStream, Conversion conversion)
       throws UnsupportedOperationException, IOException;
 
   static <T extends XmlVersionTransformer> T newInstance() {
     return newInstance(Executors.newWorkStealingPool());
   }
 
-  static <T extends XmlVersionTransformer> T newInstance(Class<? extends XmlVersionTransformerFactory> factory) {
+  static <T extends XmlVersionTransformer> T newInstance(
+      Class<? extends XmlVersionTransformerFactory> factory) {
     return newInstance(Executors.newWorkStealingPool(), factory);
   }
 
-  static <T extends XmlVersionTransformer> T  newInstance(final ExecutorService executorService) {
+  static <T extends XmlVersionTransformer> T newInstance(final ExecutorService executorService) {
     final Optional<XmlVersionTransformerFactory> optionalFactory =
         ServiceLoader.load(XmlVersionTransformerFactory.class).findFirst();
     if (optionalFactory.isPresent()) {

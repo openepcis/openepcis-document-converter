@@ -24,23 +24,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProblemResponseBodyMarshaller {
 
-    private static Marshaller marshaller;
+  private static Marshaller marshaller;
 
-    static {
-        try {
-            JAXBContext context = JAXBContext.newInstance(ProblemResponseBody.class);
-            marshaller = context.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        } catch (JAXBException e) {
-            log.error(e.getMessage(), e);
-        }
+  static {
+    try {
+      JAXBContext context = JAXBContext.newInstance(ProblemResponseBody.class);
+      marshaller = context.createMarshaller();
+      marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+    } catch (JAXBException e) {
+      log.error(e.getMessage(), e);
     }
+  }
 
-    public static Marshaller getMarshaller() {
-        return marshaller;
-    }
+  public static Marshaller getMarshaller() {
+    return marshaller;
+  }
 
-    public static void setMarshaller(Marshaller marshaller) {
-        ProblemResponseBodyMarshaller.marshaller = marshaller;
-    }
+  public static void setMarshaller(Marshaller marshaller) {
+    ProblemResponseBodyMarshaller.marshaller = marshaller;
+  }
 }

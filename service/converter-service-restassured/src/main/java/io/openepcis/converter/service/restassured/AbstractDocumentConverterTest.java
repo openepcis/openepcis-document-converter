@@ -52,6 +52,7 @@ public abstract class AbstractDocumentConverterTest {
   public void jsonConverterInvalidContentTypeTest() {
     final Response response =
         RestAssured.given()
+            .accept(ContentType.JSON)
             .contentType(ContentType.TEXT)
             .body(Commons.getInputStream("2.0/EPCIS/XML/Capture/Documents/AggregationEvent.xml"))
             .when()
@@ -101,6 +102,7 @@ public abstract class AbstractDocumentConverterTest {
   public void jsonConverterValidRequestTest() throws IOException {
     final Response response =
         RestAssured.given()
+            .accept(ContentType.JSON)
             .contentType(ContentType.XML)
             .body(
                 IOUtils.toString(
@@ -138,6 +140,7 @@ public abstract class AbstractDocumentConverterTest {
   public void xmlConverterInvalidContentTypeTest() {
     final Response response =
         RestAssured.given()
+            .accept(ContentType.JSON)
             .contentType(ContentType.TEXT)
             .body(Commons.getInputStream("2.0/EPCIS/JSON/Capture/Documents/AggregationEvent.json"))
             .when()
@@ -296,6 +299,7 @@ public abstract class AbstractDocumentConverterTest {
   public void xmlConverter_1_2_InvalidContentTypeTest() {
     final Response response =
         RestAssured.given()
+            .accept(ContentType.JSON)
             .contentType(ContentType.TEXT)
             .body(Commons.getInputStream("2.0/EPCIS/JSON/Capture/Documents/AggregationEvent.json"))
             .when()

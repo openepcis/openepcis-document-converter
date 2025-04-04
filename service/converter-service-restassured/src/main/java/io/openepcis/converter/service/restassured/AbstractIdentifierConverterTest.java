@@ -95,6 +95,7 @@ public abstract class AbstractIdentifierConverterTest {
   @Test
   public void convertToWebURIInvalidContentTypeTest() {
     RestAssured.given()
+        .accept(ContentType.JSON)
         .contentType(ContentType.JSON)
         .body("urn:epc:idpat:itip:483478.7347834.92.93.*")
         .when()
@@ -161,14 +162,13 @@ public abstract class AbstractIdentifierConverterTest {
   // Invalid media type in request
   @Test
   public void convertToURNInvalidContentTypeTest() {
-    RestAssured.given()
-        .contentType(ContentType.JSON)
-        .body("https://eclipse.org/401/12345678901234A")
-        .when()
-        .post(urnConvertAPI)
-        .then()
-        .assertThat()
-        .statusCode(415)
-        .body("title", Matchers.equalTo("Unsupported Media Type"));
+    var t =
+        RestAssured.given()
+            .accept(ContentType.JSON)
+            .contentType(ContentType.JSON)
+            .body("https://eclipse.org/401/12345678901234A")
+            .when()
+            .post(urnConvertAPI);
+    t.then().assertThat().statusCode(415).body("title", Matchers.equalTo("Unsupported Media Type"));
   }
 }

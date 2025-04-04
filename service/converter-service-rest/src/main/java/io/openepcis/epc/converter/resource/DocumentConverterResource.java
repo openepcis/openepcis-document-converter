@@ -37,7 +37,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -55,6 +54,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestHeader;
 import org.jboss.resteasy.reactive.RestMulti;
+import org.jboss.resteasy.reactive.RestResponse;
 
 @RegisterForReflection
 @Path("/api")
@@ -173,8 +173,7 @@ public class DocumentConverterResource {
           @RestHeader(value = "GS1-EPC-Format")
           String epcFormat,
       @RestHeader(value = "GS1-Extensions") String gs1Extensions,
-      @Context HttpHeaders httpHeaders)
-      throws FormatConverterException {
+      @Context HttpHeaders httpHeaders) {
 
     final MediaType mediaType = httpHeaders.getMediaType();
 
@@ -562,18 +561,24 @@ public class DocumentConverterResource {
             description = "Bad Request: Input EPCIS document contains missing/invalid information.",
             content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
       })
-  public Uni<Response> versionDetection(final InputStream epcisDocument) throws IOException {
-    final String version =
-        versionTransformer
-            .versionDetector(new BufferedInputStream(epcisDocument, 8192))
-            .getVersion();
-    final Map<String, Object> response =
-        new HashMap<>() {
-          {
-            put("version", version);
-          }
-        };
-    return Uni.createFrom().item(Response.ok(response).build());
+  public Uni<RestResponse<Map<String, String>>> versionDetection(final InputStream epcisDocument)
+      throws IOException {
+    return Uni.createFrom()
+        .completionStage(
+            managedExecutor.supplyAsync(
+                () -> {
+                  try {
+                    return versionTransformer
+                        .versionDetector(new BufferedInputStream(epcisDocument, 8192))
+                        .getVersion();
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }))
+        .map(version -> Map.of("version", version))
+        .map(response -> RestResponse.ok(response))
+        .onFailure()
+        .transform(t -> t.getCause());
   }
 
   private StreamingOutput setupStreamingOutput(

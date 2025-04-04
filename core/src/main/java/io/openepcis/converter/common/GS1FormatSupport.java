@@ -54,7 +54,8 @@ public class GS1FormatSupport {
     return FormatPreference.getInstance(epcFormat, cbvFormat);
   }
 
-  public static final BiFunction<Object, List<Object>, Object> createMapper(final FormatPreference formatPreference) {
+  public static final BiFunction<Object, List<Object>, Object> createMapper(
+      final FormatPreference formatPreference) {
     if (formatPreference.getEpcFormat() != EPCFormat.Never_Translates
         || formatPreference.getCbvFormat() != CBVFormat.Never_Translates) {
       return (o, context) -> {

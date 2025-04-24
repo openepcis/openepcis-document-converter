@@ -50,21 +50,7 @@ jobs:
             --batch-mode \
             -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
             -Popenepcis-ossrh \
-            -B clean verify deploy
-
-      - name: install document converter modules
-        if: false
-        env:
-          OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
-          OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}
-        run: |
-          mvn \
-            -s .mvn/settings.xml \
-            --no-transfer-progress \
-            --batch-mode \
-            -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
-            -Popenepcis-ossrh \
-            -B clean verify install
+            -B clean install deploy
 
       - name: 'Get Version Number'
         env:

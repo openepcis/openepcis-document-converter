@@ -110,12 +110,6 @@
     </profiles>
 
     <dependencies>
-        <!-- local dependencies -->
-        <dependency>
-            <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-document-converter</artifactId>
-        </dependency>
-
         <!-- core models -->
         <!-- Converting the EPCIS Document XML <-> JSON -->
         <dependency>

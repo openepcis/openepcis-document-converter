@@ -64,8 +64,7 @@
     <modules>
         <module>core</module>
         <module>extensions</module>
-        <module>quarkus/runtime</module>
-        <module>quarkus/deployment</module>
+        <module>quarkus</module>
         <module>service/converter-service-restassured</module>
         <module>service/converter-service-rest</module>
         <module>service/converter-service-servlet</module>
@@ -156,6 +155,18 @@
     </dependencies>
     </dependencyManagement>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <configuration>
+                    <attach>false</attach>
+                    <defaultManifestFile/>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <repositories>
         <!-- sonatype releases -->
         <repository>

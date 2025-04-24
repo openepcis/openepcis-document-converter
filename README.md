@@ -9,6 +9,7 @@ An open-source application that transforms EPCIS documents from XML to JSON/JSON
 - [Introduction](#introduction)
     - [Need for an EPCIS Format Converter](#need-for-an-epcis-format-converter)
     - [Key Features](#key-features)
+    - [Notes on Vocabulary and SBDH Headers](#notes-on-vocabulary-and-sbdh-headers)
 - [Project Modules And Artifacts](#project-modules-and-artifacts)
     - [Core Modules](#core-modules)
     - [Quarkus Modules](#quarkus-modules)
@@ -58,6 +59,15 @@ Our application aims to fill this gap by providing a reliable solution for conve
 - **GraalVM-Community Native Builds**: Provides binary executable artifacts for Linux, macOS, and Windows, supporting both amd64 and arm64 architectures.
 
 By providing a robust and efficient EPCIS event format converter, we aim to support the EPCIS community and facilitate smoother data exchanges across different platforms.
+
+### Notes on Vocabulary and SBDH Headers
+The OpenEPCIS Document Converter focuses exclusively on converting EPCIS event data.
+It does not convert <EPCISMasterData> (Vocabulary) elements or SBDH (Standard Business Document Header) sections — these parts are intentionally skipped during conversion.
+
+In EPCIS 2.0:
+Master data should be provided externally via GS1 Digital Link (linkType=masterdata)
+SBDH headers, if used, must be handled separately as they are outside the EPCIS event scope
+This design supports clean, standards-aligned adoption of EPCIS 2.0 + JSON-LD, and enables better integration with the semantic web.
 
 ## Project Modules And Artifacts
 

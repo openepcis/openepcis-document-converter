@@ -75,7 +75,7 @@ This design supports clean, standards-aligned adoption of EPCIS 2.0 + JSON-LD, a
 - SHACL for RDF support
 - Updated XSDs for XML validation
 
-Using outdated extensions with EPCIS 2.0 may lead to compatibility and semantic integrity issues.
+Without these updates, attempting to use such extensions with EPCIS 2.0 can result in compatibility issues and loss of semantic integrity.
 
 ## Project Modules And Artifacts
 

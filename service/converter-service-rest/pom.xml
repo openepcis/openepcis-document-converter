@@ -120,7 +120,7 @@
         <!-- Converting the EPCIS Identifiers URN <-> WebURI -->
         <dependency>
             <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-epc-digitallink-translator</artifactId>
+            <artifactId>openepcis-digital-link-converter-core</artifactId>
         </dependency>
 
         <!-- repository common for URN to WebURI support -->

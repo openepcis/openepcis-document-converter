@@ -104,7 +104,7 @@ This project relies on a series of dependencies managed centrally to ensure cons
 - **io.openepcis.quarkus:quarkus-openepcis-model**: The model classes for EPCIS entities within the Quarkus framework.
 - **io.openepcis.quarkus:quarkus-openepcis-model-deployment**: Deployment-specific configurations for the EPCIS model in Quarkus.
 - **xalan:xalan** and **xalan:serializer**: Libraries for XML processing and transformation.
-- **io.openepcis:openepcis-epc-digitallink-translator**: Utilities for converting EPC identifiers between URN and WebURI formats.
+- **io.openepcis:openepcis-digital-link-converter-core**: Utilities for converting EPC identifiers between URN and WebURI formats.
 - **io.openepcis:openepcis-repository-common**: Common repository utilities supporting URN to WebURI conversions.
 - **io.openepcis:openepcis-test-resources**: Test resources for ensuring the quality and correctness of the conversion logic.
 

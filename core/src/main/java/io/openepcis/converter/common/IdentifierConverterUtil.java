@@ -16,7 +16,8 @@
 package io.openepcis.converter.common;
 
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.epc.translator.util.ConverterUtil;
+import io.openepcis.identifiers.converter.util.ConverterUtil;
+
 import java.util.Map;
 
 public class IdentifierConverterUtil {

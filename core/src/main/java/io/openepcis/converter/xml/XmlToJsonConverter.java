@@ -152,98 +152,97 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
       xmlStreamReader.next();
 
       // Read Until the end of the file and unmarshall event-by-event
+      boolean ended = false;
       while (xmlStreamReader.hasNext()) {
 
-        // Check if the initial element is one of the elements from "EVENT_TYPES" (one of EPCIS
-        // event)
-        if (xmlStreamReader.isStartElement()
-            && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName())) {
+        if(xmlStreamReader.isStartElement()){
+          final String name = xmlStreamReader.getLocalName();
 
-          // Get the event type
-          Object event = getEvent(xmlStreamReader, unmarshaller);
+          // Check if the initial element is one of the elements from "EVENT_TYPES" (one of EPCIS event)
+          if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
 
-          // Check if Object has some value
-          if (event != null) {
-            // map event
-            event = applyEventMapper(sequenceInEventList, event);
+            // Get the event type
+            Object event = getEvent(xmlStreamReader, unmarshaller);
 
-            // Create the JSON using Jackson ObjectMapper based on type of incoming event type and
-            // store
-            final String eventAsJson =
-                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(event);
+            // Check if Object has some value
+            if (event != null) {
+              // map event
+              event = applyEventMapper(sequenceInEventList, event);
 
-            // If the provided XML is EPCIS document then add the converted event to Collectors List
-            // and proceed to next event
-            if (isDocument) {
-              // Call the method to check if the event adheres to JSON-Schema or write into the
-              // OutputStream using the EventHandler
-              eventHandler.handler(eventAsJson);
-            } else {
-              // If the provided XML is Single EPCIS event then convert it and add to collector and
-              // End the execution.
-              eventHandler.startSingleEvent(contextAttributes);
-              eventHandler.collectSingleEvent(eventAsJson);
-              eventHandler.endSingleEvent();
-              return;
+              // Create the JSON using Jackson ObjectMapper based on type of incoming event type and store
+              final String eventAsJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(event);
+
+              // If the provided XML is EPCIS document then add the converted event to Collectors List and proceed to next event
+              if (isDocument) {
+                // Call the method to check if the event adheres to JSON-Schema or write into the OutputStream using the EventHandler
+                eventHandler.handler(eventAsJson);
+              } else {
+                // If the provided XML is Single EPCIS event then convert it and add to collector and End the execution.
+                eventHandler.startSingleEvent(contextAttributes);
+                eventHandler.collectSingleEvent(eventAsJson);
+                eventHandler.endSingleEvent();
+                return;
+              }
+            }
+
+          } else {
+
+            // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
+            if (!eventHandler.isEPCISDocument()) {
+              if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+                eventHandler.setSubscriptionID(xmlStreamReader.getElementText());
+              } else if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+                eventHandler.setQueryName(xmlStreamReader.getElementText());
+              } else if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
+                // For QueryDocument invoke EventHandle Start to create the header information at resultsBody
+                eventHandler.start(contextAttributes);
+              }
+            }
+
+            if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
+              // Get the information related to the XML header elements till "EventList", If the element is EPCISDocument get all namespaces
+
+              // Set the variable to true if the provided XML is EPCIS document else set to false for single EPCIS event
+              isDocument = true;
+              final boolean doc = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+
+              // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
+              eventHandler.setIsEPCISDocument(doc);
+
+              // Get all Namespaces from the XML header and store it within the xmlNamespaces MAP
+              prepareNameSpaces(xmlStreamReader);
+
+              // Get all the Attributes from XML header and store it within attributes MAP for creation of final JSON
+              prepareContextAttributes(contextAttributes, xmlStreamReader);
+
+              // For EPCISDocument invoke EventHandle Start to create the header information at EPCISDocument
+              if (doc) {
+                eventHandler.start(contextAttributes);
+              }
             }
           }
+        } else if(xmlStreamReader.isEndElement()){
+          // Call the EventHandle End method to end all the header objects created in the Start method.
+          final String name = xmlStreamReader.getLocalName();
 
-        } else if (xmlStreamReader.isStartElement()) {
-
-          // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
-          if (!eventHandler.isEPCISDocument()) {
-            if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
-              eventHandler.setSubscriptionID(xmlStreamReader.getElementText());
-            } else if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.QUERY_NAME)) {
-              eventHandler.setQueryName(xmlStreamReader.getElementText());
-            } else if (xmlStreamReader
-                .getLocalName()
-                .equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
-              // For QueryDocument invoke EventHandle Start to create the header information at
-              // resultsBody
-              eventHandler.start(contextAttributes);
-            }
-          }
-
-          if (xmlStreamReader.getLocalName().toLowerCase().contains(EPCIS.DOCUMENT)) {
-            // Get the information related to the XML header elements till "EventList", If the
-            // element is EPCISDocument get all namespaces
-
-            // Set the variable to true if the provided XML is EPCIS document else set to false for
-            // single EPCIS event
-            isDocument = true;
-
-            // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
-            eventHandler.setIsEPCISDocument(
-                xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT));
-
-            // Get all Namespaces from the XML header and store it within the xmlNamespaces MAP
-            prepareNameSpaces(xmlStreamReader);
-
-            // Get all the Attributes from XML header and store it within attributes MAP for
-            // creation of final JSON
-            prepareContextAttributes(contextAttributes, xmlStreamReader);
-
-            // For EPCISDocument invoke EventHandle Start to create the header information at
-            // EPCISDocument
-            if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
-              eventHandler.start(contextAttributes);
-            }
+          if(name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)){
+            eventHandler.end();
+            ended = true;
+            break;
           }
         }
-        // Move to the next event/element in InputStream
-        if (!(xmlStreamReader.isStartElement()
-            && EPCIS.EPCIS_EVENT_TYPES.contains(xmlStreamReader.getLocalName()))) {
-          xmlStreamReader.next();
-        }
+
+        // always advance to next
+        xmlStreamReader.next();
       }
 
-      // Call the EventHandle End method to end all the header objects created in the Start method
-      eventHandler.end();
+      // Call the EventHandle End method in case </EPCISDocument> never explicitly fired above
+      if (!ended) {
+        eventHandler.end();
+      }
 
     } catch (Exception e) {
-      throw new FormatConverterException(
-          "XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);
+      throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);
     }
   }
 

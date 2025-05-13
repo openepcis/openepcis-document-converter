@@ -144,11 +144,15 @@ public class VersionTransformer {
       throws UnsupportedOperationException, IOException {
 
     final BufferedInputStream inputDocument = new BufferedInputStream(in);
-    // Checking if mediaType is JSON_LD, and detecting version conditionally
-    EPCISVersion fromVersion =
-        EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
-            ? EPCISVersion.VERSION_2_0_0
-            : versionDetector(inputDocument, conversion);
+    EPCISVersion fromVersion;
+    try{
+      // Checking if mediaType is JSON_LD, and detecting version conditionally
+      fromVersion = EPCISFormat.JSON_LD.equals(conversion.fromMediaType()) ? EPCISVersion.VERSION_2_0_0 : versionDetector(inputDocument, conversion);
+    }catch (Exception e){
+        throw new FormatConverterException(e.getMessage(), e);
+    }
+
+
     InputStream inputStream = inputDocument;
     // If version detected, result won't be null, thus do InputStream operations
     final PipedInputStream pipe = new PipedInputStream();

@@ -72,6 +72,11 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-common</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

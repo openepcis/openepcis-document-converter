@@ -112,7 +112,7 @@ This project relies on a series of dependencies managed centrally to ensure cons
 
 The project uses repositories from Sonatype for managing dependencies. The snapshot repository is configured to receive frequent updates, ensuring that the latest development versions are always available:
 
-- **sonatype-staging**: Sonatype Snapshots ([https://s01.oss.sonatype.org/content/repositories/snapshots](https://s01.oss.sonatype.org/content/repositories/snapshots)) with snapshot updates enabled. Snapshots will be created on a frequent basis to provide the latest features and fixes.
+- **sonatype-staging**: Sonatype Snapshots ([https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots](https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots)) with snapshot updates enabled. Snapshots will be created on a frequent basis to provide the latest features and fixes.
 
 ## Getting Started
 

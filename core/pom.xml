@@ -29,8 +29,10 @@
 
     <artifactId>openepcis-document-converter</artifactId>
     <name>openepcis-document-converter</name>
-    <description>Project to convert EPCIS events in XML format to JSON/JSON-LD and vice-versa. Also, supports the conversion of EPCIS 1.2 XML document to 2.0 XML document and vice
-        versa.</description>
+    <description>Project to convert EPCIS events in XML format to JSON/JSON-LD and vice-versa. Also, supports the
+        conversion of EPCIS 1.2 XML document to 2.0 XML document and vice
+        versa.
+    </description>
     <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <licenses>
@@ -219,7 +221,9 @@
                                 <argument>-n</argument>
                                 <argument>-x</argument>
                                 <argument>-u</argument>
-                                <argument>file:${project.basedir}/src/main/resources/xalan-conversion/convert-2.0-to-1.2.xsl</argument>
+                                <argument>
+                                    file:${project.basedir}/src/main/resources/xalan-conversion/convert-2.0-to-1.2.xsl
+                                </argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -241,7 +245,9 @@
                                 <argument>-n</argument>
                                 <argument>-x</argument>
                                 <argument>-u</argument>
-                                <argument>file:${project.basedir}/src/main/resources/xalan-conversion/convert-1.2-to-2.0.xsl</argument>
+                                <argument>
+                                    file:${project.basedir}/src/main/resources/xalan-conversion/convert-1.2-to-2.0.xsl
+                                </argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -286,19 +292,28 @@
     </profiles>
 
     <repositories>
-        <!-- sonatype releases -->
+        <!-- Maven Central (for releases) -->
         <repository>
-            <id>sonatype-releases</id>
-            <url>https://ossrh-staging-api.central.sonatype.com/content/repositories/releases</url>
+            <id>central-releases</id>
+            <url>https://repo1.maven.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
         </repository>
-        <!-- sonatype snapshots -->
+        <!-- Sonatype Central snapshots -->
         <repository>
-            <id>sonatype-staging</id>
-            <url>https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots</url>
+            <id>central-snapshots</id>
+            <url>https://central.sonatype.com</url>
             <snapshots>
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
             </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
     </repositories>
 

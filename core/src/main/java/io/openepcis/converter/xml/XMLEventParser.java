@@ -40,6 +40,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public abstract class XMLEventParser {
@@ -155,14 +156,11 @@ public abstract class XMLEventParser {
     IntStream.range(0, xmlStreamReader.getNamespaceCount())
         .forEach(
             namespaceIndex -> {
-              // Omit the Namespace values which are already present within JSON-LD Schema
-              // by
-              // default
-              if (!PROTECTED_TERMS_OF_CONTEXT.contains(
-                  xmlStreamReader.getNamespacePrefix(namespaceIndex))) {
-                namespaceResolver.populateDocumentNamespaces(
-                    xmlStreamReader.getNamespaceURI(namespaceIndex),
-                    xmlStreamReader.getNamespacePrefix(namespaceIndex));
+              // Omit the Namespace values which are already present within JSON-LD Context by default and empty namespaces
+              final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
+              final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
+              if (StringUtils.isNotBlank(namespacePrefix) &&  StringUtils.isBlank(namespaceURI) && !PROTECTED_TERMS_OF_CONTEXT.contains(namespacePrefix)) {
+                namespaceResolver.populateDocumentNamespaces(namespaceURI, namespacePrefix);
               }
             });
   }

@@ -185,6 +185,8 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
               }
             }
 
+            // Directly proceed without going to xmlStreamReader.next to avoid skipping the next event.
+            continue;
           } else {
 
             // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing

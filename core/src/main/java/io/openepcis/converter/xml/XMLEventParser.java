@@ -16,6 +16,7 @@
 package io.openepcis.converter.xml;
 
 import static io.openepcis.constants.EPCIS.PROTECTED_TERMS_OF_CONTEXT;
+import static io.openepcis.constants.EPCIS.PROTECTED_URLS_OF_CONTEXT;
 
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.EPCISEventCollector;
@@ -159,7 +160,7 @@ public abstract class XMLEventParser {
               // Omit the Namespace values which are already present within JSON-LD Context by default and empty namespaces
               final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
               final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
-              if (StringUtils.isNotBlank(namespacePrefix) &&  StringUtils.isBlank(namespaceURI) && !PROTECTED_TERMS_OF_CONTEXT.contains(namespacePrefix)) {
+              if (StringUtils.isNotBlank(namespacePrefix) &&  StringUtils.isNotBlank(namespaceURI) && !PROTECTED_URLS_OF_CONTEXT.contains(namespaceURI)) {
                 namespaceResolver.populateDocumentNamespaces(namespaceURI, namespacePrefix);
               }
             });

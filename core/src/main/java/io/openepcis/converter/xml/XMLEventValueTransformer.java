@@ -161,6 +161,17 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
 
         } else if (xmlStreamReader.isStartElement()) {
 
+          // Skip the EPCISHeader until the end
+          if(EPCIS.EPCIS_HEADER.equals(xmlStreamReader.getLocalName())) {
+            while(xmlStreamReader.hasNext()){
+              int t = xmlStreamReader.next();
+              if(t == XMLStreamReader.END_ELEMENT && EPCIS.EPCIS_HEADER.equals(xmlStreamReader.getLocalName())){
+                break;
+              }
+            }
+            continue;
+          }
+
           // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
           setSubScriptionIdAndQueryName(eventHandler, contextAttributes, xmlStreamReader);
 

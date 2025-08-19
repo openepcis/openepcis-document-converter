@@ -32,7 +32,7 @@ public class AttributePreScanUtil {
     input.mark(READ_LIMIT);
     try {
       final StringBuilder sb = new StringBuilder();
-      final byte[] buffer = new byte[64];
+      final byte[] buffer = new byte[1024];
       int len = -1;
       int bytesReceived = 0;
       Matcher matcher = SCHEMA_VERSION_PATTERN.matcher(sb.toString());

@@ -401,7 +401,7 @@ public class VersionTransformer {
               })
           .emitOn(executorService)
           .await()
-          .atMost(Duration.ofMillis(5000));
+          .atMost(Duration.ofMinutes(1));
 
     } catch (Exception e) {
       throw new FormatConverterException(

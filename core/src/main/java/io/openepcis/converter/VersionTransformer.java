@@ -388,10 +388,9 @@ public class VersionTransformer {
                             },
                             handler);
                       } catch (Exception e) {
+                        log.error("Conversion failed due to : " + e.getMessage());
                         em.fail(e);
                         try {
-                          jsonOutputStream.write(
-                              objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                           jsonOutputStream.close();
                         } catch (IOException ioe) {
                           log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);

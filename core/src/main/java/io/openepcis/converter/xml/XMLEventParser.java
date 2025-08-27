@@ -15,9 +15,6 @@
  */
 package io.openepcis.converter.xml;
 
-import static io.openepcis.constants.EPCIS.PROTECTED_TERMS_OF_CONTEXT;
-import static io.openepcis.constants.EPCIS.PROTECTED_URLS_OF_CONTEXT;
-
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
@@ -155,15 +152,17 @@ public abstract class XMLEventParser {
 
   protected void prepareNameSpaces(XMLStreamReader xmlStreamReader) {
     IntStream.range(0, xmlStreamReader.getNamespaceCount())
-        .forEach(
-            namespaceIndex -> {
-              // Omit the Namespace values which are already present within JSON-LD Context by default and empty namespaces
-              final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
-              final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
-              if (StringUtils.isNotBlank(namespacePrefix) &&  StringUtils.isNotBlank(namespaceURI) && !PROTECTED_URLS_OF_CONTEXT.contains(namespaceURI)) {
-                namespaceResolver.populateDocumentNamespaces(namespaceURI, namespacePrefix);
-              }
-            });
+            .forEach(
+                    namespaceIndex -> {
+                      // Omit the Namespace values which are already present within JSON-LD Context by default and empty namespaces
+                      final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
+                      final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
+                      if (StringUtils.isNotBlank(namespacePrefix)
+                              &&  StringUtils.isNotBlank(namespaceURI)
+                              && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(namespaceURI)) {
+                        namespaceResolver.populateDocumentNamespaces(namespaceURI, namespacePrefix);
+                      }
+                    });
   }
 
   protected void prepareContextAttributes(
@@ -174,11 +173,11 @@ public abstract class XMLEventParser {
               // Omit the attribute values which are already present within JSON-LD Schema
               // by
               // default
-              if (!PROTECTED_TERMS_OF_CONTEXT.contains(
-                  xmlStreamReader.getAttributeName(attributeIndex))) {
+              if (!EPCIS.PROTECTED_TERMS_OF_CONTEXT.contains(xmlStreamReader.getAttributeName(attributeIndex))) {
                 contextAttributes.put(
-                    String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)),
-                    xmlStreamReader.getAttributeValue(attributeIndex));
+                        String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)),
+                    xmlStreamReader.getAttributeValue(attributeIndex)
+                );
               }
             });
   }

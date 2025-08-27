@@ -394,7 +394,7 @@ public class VersionTransformer {
                               objectMapper.writeValueAsBytes(ProblemResponseBody.fromException(e)));
                           jsonOutputStream.close();
                         } catch (IOException ioe) {
-                          log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
+                          // ignore this - we already failed on the emitter
                         }
                       }
                     });

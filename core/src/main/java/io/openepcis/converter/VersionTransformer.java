@@ -393,7 +393,7 @@ public class VersionTransformer {
                         try {
                           jsonOutputStream.close();
                         } catch (IOException ioe) {
-                          // ignore this - we already failed on the emitter
+                          log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
                         }
                       }
                     });

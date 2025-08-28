@@ -163,16 +163,13 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   @Override
   public void end() {
     try {
-      jsonGenerator.writeEndArray(); // End the eventList array
-
-      // Close additional wrapper tags for EPCISQueryDocument
-      if (!isEPCISDocument) {
-        jsonGenerator.writeEndObject(); // End resultsBody
-        jsonGenerator.writeEndObject(); // End queryResults
+      if (jsonGenerator.getOutputContext().inArray()) {
+        jsonGenerator.writeEndArray(); // End the eventList array
+      }
+      while (!jsonGenerator.getOutputContext().inRoot()) {
+        jsonGenerator.writeEndObject();
       }
 
-      jsonGenerator.writeEndObject(); // End epcisBody
-      jsonGenerator.writeEndObject(); // End whole json file
     } catch (IOException e) {
       throw new FormatConverterException(
           "Exception during XML-JSON-LD conversion, Error occurred during the closing of JSON-LD events file: "
@@ -180,8 +177,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
           e);
     } finally {
       try {
-        jsonGenerator.close();
         jsonGenerator.flush();
+        jsonGenerator.close();
       } catch (Exception e) {
         // do nothing
       }

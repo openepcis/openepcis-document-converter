@@ -51,4 +51,6 @@ public interface EPCISEventCollector<R> extends AutoCloseable {
   default void setQueryName(String queryName) {}
 
   boolean isEPCISDocument();
+
+  default void fail(Throwable throwable) {}
 }

@@ -23,15 +23,23 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.collector.JsonEPCISEventCollector;
+import io.openepcis.converter.collector.XmlEPCISEventCollector;
 import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.converter.json.JsonToXmlConverter;
 import io.openepcis.converter.validator.EventValidator;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import jakarta.xml.bind.JAXBException;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class XmlToJsonTest {
@@ -371,4 +379,21 @@ public class XmlToJsonTest {
       // ignored
     }
   }
+
+  @Test
+  void invalidData() throws Exception {
+    final AtomicReference<Throwable> failure = new AtomicReference<>();
+    final Consumer<Throwable> failureConsumer = failure::set;
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    InputStream inputStream = new ByteArrayInputStream("noop".getBytes(StandardCharsets.UTF_8));
+    try (final EventHandler handler =
+                 new EventHandler(
+                         new EventValidator(), new JsonEPCISEventCollector(byteArrayOutputStream))) {
+      Assertions.assertThrows(FormatConverterException.class, () ->{
+        new XmlToJsonConverter().convert(inputStream, handler.onFailure(failureConsumer));
+      });
+      Assertions.assertNotNull(failure.get());
+    }
+  }
+
 }

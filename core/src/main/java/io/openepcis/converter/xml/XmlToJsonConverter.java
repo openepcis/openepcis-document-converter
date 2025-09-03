@@ -244,6 +244,7 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
       }
 
     } catch (Exception e) {
+      eventHandler.fail(e);
       throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);
     }
   }

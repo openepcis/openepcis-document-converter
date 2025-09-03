@@ -18,6 +18,7 @@ package io.openepcis.converter;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class Conversion {
 
@@ -26,6 +27,7 @@ public class Conversion {
   private EPCISFormat toMediaType;
   private EPCISVersion toVersion;
   private Boolean generateGS1CompliantDocument = null;
+  private Consumer<Throwable> onFailure = null;
 
   public static final Conversion UNKNOWN = Conversion.of(null, null, null, null);
 
@@ -36,14 +38,30 @@ public class Conversion {
       final EPCISVersion fromVersion,
       final EPCISFormat toMediaType,
       final EPCISVersion toVersion,
-      final Boolean generateGS1CompliantDocument) {
+      final Boolean generateGS1CompliantDocument,
+      final Consumer<Throwable> onFailure) {
     final Conversion conversion = new Conversion();
     conversion.fromMediaType = fromMediaType;
     conversion.fromVersion = fromVersion;
     conversion.toMediaType = toMediaType;
     conversion.toVersion = toVersion;
     conversion.generateGS1CompliantDocument = generateGS1CompliantDocument;
+    conversion.onFailure = onFailure;
     return conversion;
+  }
+  static Conversion of(
+          final EPCISFormat fromMediaType,
+          final EPCISVersion fromVersion,
+          final EPCISFormat toMediaType,
+          final EPCISVersion toVersion,
+          final Boolean generateGS1CompliantDocument) {
+    final Conversion conversion = new Conversion();
+    conversion.fromMediaType = fromMediaType;
+    conversion.fromVersion = fromVersion;
+    conversion.toMediaType = toMediaType;
+    conversion.toVersion = toVersion;
+    conversion.generateGS1CompliantDocument = generateGS1CompliantDocument;
+    return of(fromMediaType, fromVersion, toMediaType, toVersion, true, null);
   }
 
   public static Conversion of(
@@ -52,6 +70,14 @@ public class Conversion {
       final EPCISFormat toMediaType,
       final EPCISVersion toVersion) {
     return of(fromMediaType, fromVersion, toMediaType, toVersion, true);
+  }
+  public static Conversion of(
+          final EPCISFormat fromMediaType,
+          final EPCISVersion fromVersion,
+          final EPCISFormat toMediaType,
+          final EPCISVersion toVersion,
+          final Consumer<Throwable> onFailure) {
+    return of(fromMediaType, fromVersion, toMediaType, toVersion, true, onFailure);
   }
 
   public EPCISFormat fromMediaType() {
@@ -74,14 +100,25 @@ public class Conversion {
     return Optional.ofNullable(generateGS1CompliantDocument);
   }
 
+  public Optional<Consumer<Throwable>> onFailure() {
+    return Optional.ofNullable(onFailure);
+  }
+  public Conversion onFailure(Consumer<Throwable> consumer) {
+    this.onFailure = consumer; return this;
+  }
   public static StartStage builder() {
     return new Stages();
+  }
+
+  public void fail(Throwable throwable) {
+    if (onFailure != null) onFailure.accept(throwable);
   }
 
   public interface StartStage {
     FromMediaTypeStage fromMediaType(EPCISFormat fromMediaType);
 
     StartStage generateGS1CompliantDocument(Boolean generateGS1CompliantDocument);
+    StartStage onFailure(Consumer<Throwable> consumer);
   }
 
   public interface FromMediaTypeStage {
@@ -117,6 +154,7 @@ public class Conversion {
     private EPCISFormat toMediaType;
     private EPCISVersion toVersion;
     private Boolean generateGS1CompliantDocument = null;
+    private Consumer<Throwable> onFailure = null;
 
     @Override
     public FromMediaTypeStage fromMediaType(EPCISFormat fromMediaType) {
@@ -127,6 +165,12 @@ public class Conversion {
     @Override
     public StartStage generateGS1CompliantDocument(final Boolean generateGS1CompliantDocument) {
       this.generateGS1CompliantDocument = generateGS1CompliantDocument;
+      return this;
+    }
+
+    @Override
+    public StartStage onFailure(final Consumer<Throwable> consumer) {
+      this.onFailure = consumer;
       return this;
     }
 
@@ -158,7 +202,9 @@ public class Conversion {
           this.fromVersion,
           this.toMediaType,
           toVersion != null ? toVersion : this.fromVersion,
-          generateGS1CompliantDocument);
+          generateGS1CompliantDocument,
+          onFailure
+      );
     }
   }
 }

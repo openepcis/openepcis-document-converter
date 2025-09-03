@@ -18,6 +18,7 @@ package io.openepcis.converter.collector;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.validator.EPCISEventValidator;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Class to delegate the incoming request to appropriate class to perform either XSD/Schema
@@ -27,6 +28,7 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
 
   private EPCISEventValidator validator;
   private final EPCISEventCollector<R> collector;
+  private Consumer<Throwable> onFailure;
 
   public EventHandler(EPCISEventValidator validator, EPCISEventCollector<R> collector) {
     if (validator == null && collector == null) {
@@ -39,6 +41,11 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
 
   public EventHandler(EPCISEventCollector<R> collector) {
     this.collector = collector;
+  }
+
+  public EventHandler onFailure(Consumer<Throwable> consumer) {
+    this.onFailure = consumer;
+    return this;
   }
 
   @Override
@@ -143,4 +150,11 @@ public class EventHandler<R> implements EPCISEventValidator, EPCISEventCollector
   public void close() throws Exception {
     if (collector != null) collector.close();
   }
+
+  @Override
+  public void fail(Throwable throwable) {
+    if (collector != null) collector.fail(throwable);
+    if (onFailure != null) onFailure.accept(throwable);
+  }
+
 }

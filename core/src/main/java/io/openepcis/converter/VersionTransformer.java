@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 
@@ -165,6 +166,7 @@ public class VersionTransformer {
             pipeConnected.set(true);
             ChannelUtil.copy(inputDocument, pipedOutputStream);
           } catch (Exception e) {
+            conversion.fail(e);
             throw new FormatConverterException(
                 "Exception occurred during reading of schema version from input document : "
                     + e.getMessage(),
@@ -182,7 +184,9 @@ public class VersionTransformer {
             fromVersion,
             conversion.toMediaType(),
             conversion.toVersion(),
-            conversion.generateGS1CompliantDocument().orElse(null));
+            conversion.generateGS1CompliantDocument().orElse(null),
+            conversion.onFailure().orElse(null)
+        );
     return performConversion(inputStream, conversionToPerform);
   }
 
@@ -251,39 +255,39 @@ public class VersionTransformer {
       if (conversion.toVersion().equals(EPCISVersion.VERSION_1_2_0)) {
         InputStream streamWithPreferences =
             conversion.fromVersion().equals(EPCISVersion.VERSION_2_0_0)
-                ? fromXmlToXml(inputDocument)
-                : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, conversion));
+                ? fromXmlToXml(inputDocument, conversion)
+                : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, conversion), conversion);
         return xmlVersionTransformer.xmlConverter(streamWithPreferences, conversion);
       } else {
         return conversion.fromVersion().equals(EPCISVersion.VERSION_2_0_0)
-            ? fromXmlToXml(inputDocument)
-            : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, conversion));
+            ? fromXmlToXml(inputDocument, conversion)
+            : fromXmlToXml(xmlVersionTransformer.xmlConverter(inputDocument, conversion), conversion);
       }
     } else if (EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
         && EPCISFormat.XML.equals(conversion.toMediaType())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.toVersion())) {
       // If fromMedia is json and toMedia is xml and both versions are 2.0
-      return toXml(inputDocument);
+      return toXml(inputDocument, conversion);
     } else if (EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
         && EPCISFormat.XML.equals(conversion.toMediaType())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
         && EPCISVersion.VERSION_1_2_0.equals(conversion.toVersion())) {
       // If fromMedia is json and toMedia is xml and fromVersion is 2.0 and toVersion is 1.2
-      return xmlVersionTransformer.xmlConverter(toXml(inputDocument), conversion);
+      return xmlVersionTransformer.xmlConverter(toXml(inputDocument, conversion), conversion);
     } else if (EPCISFormat.XML.equals(conversion.fromMediaType())
         && EPCISFormat.JSON_LD.equals(conversion.toMediaType())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.toVersion())) {
       // If fromMedia is xml and toMedia is json and both versions are 2.0 convert xml->json
-      return toJson(inputDocument);
+      return toJson(inputDocument, conversion);
     } else if (EPCISFormat.XML.equals(conversion.fromMediaType())
         && EPCISFormat.JSON_LD.equals(conversion.toMediaType())
         && EPCISVersion.VERSION_1_2_0.equals(conversion.fromVersion())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.toVersion())) {
       // If fromMedia is xml and toMedia is json and fromVersion is 1.2, toVersion 2.0 then convert
       // xml->2.0 and then to JSON
-      return toJson(xmlVersionTransformer.xmlConverter(inputDocument, conversion));
+      return toJson(xmlVersionTransformer.xmlConverter(inputDocument, conversion), conversion);
     } else if (EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
         && EPCISFormat.JSON_LD.equals(conversion.toMediaType())
         && EPCISVersion.VERSION_2_0_0.equals(conversion.fromVersion())
@@ -297,15 +301,16 @@ public class VersionTransformer {
   }
 
   // Private method to convert the JSON 2.0 document -> XML 2.0 and return it as InputStream
-  private InputStream toXml(final InputStream inputDocument) {
+  private InputStream toXml(final InputStream inputDocument, final Conversion conversion) {
     try {
       final PipedOutputStream xmlOutputStream = new PipedOutputStream();
       final PipedInputStream convertedDocument = new PipedInputStream(xmlOutputStream);
+      final Consumer<Throwable> throwableConsumer = conversion::fail;
 
       executorService.execute(
           () -> {
             try (final EventHandler<? extends XmlEPCISEventCollector> handler =
-                new EventHandler(new XmlEPCISEventCollector(xmlOutputStream)); ) {
+                new EventHandler(new XmlEPCISEventCollector(xmlOutputStream)).onFailure(throwableConsumer) ) {
               jsonToXmlConverter.convert(inputDocument, handler);
               xmlOutputStream.close();
             } catch (Exception e) {
@@ -314,8 +319,10 @@ public class VersionTransformer {
                     .marshal(ProblemResponseBody.fromException(e), xmlOutputStream);
                 xmlOutputStream.close();
               } catch (IOException ioe) {
+                conversion.fail(ioe);
                 log.warn(COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, ioe);
               } catch (JAXBException ex) {
+                conversion.fail(ex);
                 throw new RuntimeException(ex);
               }
             }
@@ -331,17 +338,18 @@ public class VersionTransformer {
   }
 
   // Private method to convert the XML 2.0 document -> JSON 2.0 document and return as InputStream
-  private InputStream toJson(final InputStream inputDocument) {
+  private InputStream toJson(final InputStream inputDocument, final Conversion conversion) {
     try {
       final PipedOutputStream jsonOutputStream = new PipedOutputStream();
       final InputStream convertedDocument = new PipedInputStream(jsonOutputStream);
+      final Consumer<Throwable> throwableConsumer = conversion::fail;
       return Uni.createFrom()
           .<InputStream>emitter(
               em -> {
                 executorService.execute(
                     () -> {
                       try (final EventHandler<? extends JsonEPCISEventCollector> handler =
-                          new EventHandler(new JsonEPCISEventCollector(jsonOutputStream)); ) {
+                          new EventHandler(new JsonEPCISEventCollector(jsonOutputStream)).onFailure(throwableConsumer) ) {
 
                         xmlToJsonConverter.convert(
                             new BufferedInputStream(inputDocument) {
@@ -443,7 +451,7 @@ public class VersionTransformer {
   }
 
   // Private method to convert the XML 2.0 document -> JSON 2.0 document and return as InputStream
-  private InputStream fromXmlToXml(final InputStream inputDocument) {
+  private InputStream fromXmlToXml(final InputStream inputDocument, final Conversion conversion) {
     try {
       final PipedOutputStream xmlOutputStream = new PipedOutputStream();
 

@@ -193,12 +193,9 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       // Write the info related to Context element in JSON
       jsonGenerator.writeFieldName(CONTEXT);
       jsonGenerator.writeStartArray();
-      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
 
-      // Get all the stored namespaces from jsonNamespaces
-      namespaceResolver
-          .getEventNamespaces()
-          .forEach(
+      // Add all custom namespaces collected during event conversion
+      namespaceResolver.getEventNamespaces().forEach(
               (key, value) -> {
                 try {
                   jsonGenerator.writeStartObject();
@@ -211,6 +208,10 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
                       e1);
                 }
               });
+
+      // Add default EPCIS JSON-LD context at the end of the context array
+      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
+
       jsonGenerator.writeEndArray();
 
       // Reset the event namespaces

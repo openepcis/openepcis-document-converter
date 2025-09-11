@@ -21,11 +21,9 @@ public class GS1EgyptContextHandler implements ContextHandler {
   public void buildJsonContext(
       final JsonGenerator jsonGenerator, final Map<String, String> allNamespaces) {
     try {
-      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
       jsonGenerator.writeString(GS1_EGYPT_AT_CONTEXT_URL);
 
-      // Add the namespaces if they do not belong to the GS1 Egypt specific as its already part of
-      // the GS1 Egypt Context
+      // Add the namespaces if they do not belong to the GS1 Egypt specific as its already part of the GS1 Egypt Context
       allNamespaces.forEach(
           (namespaceURI, prefix) -> {
             if (!GS1_EGYPT_2_0_NAMESPACE.equalsIgnoreCase(namespaceURI)) {
@@ -39,6 +37,9 @@ public class GS1EgyptContextHandler implements ContextHandler {
               }
             }
           });
+
+      // Add default EPCIS JSON-LD context at the end of the context array
+      jsonGenerator.writeString(EPCISVersion.getDefaultJSONContext());
     } catch (Exception e) {
       throw new FormatConverterException("Error adding GS1 Egypt context: " + e.getMessage(), e);
     }

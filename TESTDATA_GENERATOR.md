@@ -124,7 +124,7 @@ which will return us these 5 ObjectEvents in EPCIS 2.0 JSON-LD notation:
 ```json
 {
   "@context": [
-    "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"
+    "https://ref.gs1.org/standards/epcis/epcis-context.jsonld"
   ],
   "type": "EPCISDocument",
   "schemaVersion": "2.0",
@@ -434,7 +434,7 @@ Setting the syntax to WebURI will return the following EPCIS 2.0 JSON being gene
 ```json
 {
     "@context": [
-        "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"
+        "https://ref.gs1.org/standards/epcis/epcis-context.jsonld"
     ],
     "creationDate": "2023-05-10T16:14:32.445931507Z",
     "epcisBody": {

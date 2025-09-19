@@ -216,7 +216,7 @@ curl -X 'POST' \
  -H 'accept: application/xml' \
  -H 'Content-Type: application/ld+json' \
  -d '{
- "@context": ["https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"],
+ "@context": ["https://ref.gs1.org/standards/epcis/epcis-context.jsonld"],
  "type": "EPCISDocument",
  "schemaVersion": "2.0",
  "creationDate":"2019-11-01T14:00:00.000+01:00",
@@ -246,7 +246,7 @@ curl -X 'POST' \
  -H 'Content-Type: application/ld+json' \
  -H 'GS1-EPC-Format: Always_GS1_Digital_Link' \
  -d '{
- "@context": ["https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"],
+ "@context": ["https://ref.gs1.org/standards/epcis/epcis-context.jsonld"],
  "type": "EPCISDocument",
  "schemaVersion": "2.0",
  "creationDate":"2019-11-01T14:00:00.000+01:00",
@@ -277,7 +277,7 @@ curl -X 'POST' \
  -H 'GS1-CBV-XML-Format: Always_Web_URI' \
  -H 'GS1-EPC-Format: Always_GS1_Digital_Link' \
  -d '{
- "@context": ["https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"],
+ "@context": ["https://ref.gs1.org/standards/epcis/epcis-context.jsonld"],
  "type": "EPCISDocument",
  "schemaVersion": "2.0",
  "creationDate":"2019-11-01T14:00:00.000+01:00",
@@ -308,7 +308,7 @@ curl -X 'POST' \
  -H 'GS1-CBV-XML-Format: Always_URN' \
  -H 'GS1-EPC-Format: Always_EPC_URN' \
  -d '{
- "@context": ["https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"],
+ "@context": ["https://ref.gs1.org/standards/epcis/epcis-context.jsonld"],
  "type": "EPCISDocument",
  "schemaVersion": "2.0",
  "creationDate":"2019-11-01T14:00:00.000+01:00",

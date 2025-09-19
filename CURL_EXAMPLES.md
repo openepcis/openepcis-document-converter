@@ -48,7 +48,7 @@ curl -X 'POST' \
  -H 'GS1-EPC-Format: Always_EPC_URN' \
  -d '{
   "@context": [
-    "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"
+    "https://ref.gs1.org/standards/epcis/epcis-context.jsonld"
   ],
   "type": "EPCISDocument",
   "schemaVersion": "2.0",
@@ -91,7 +91,7 @@ curl -X 'POST' \
  -H 'Content-Type: application/ld+json' \
  -d '{
   "@context": [
-    "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld"
+    "https://ref.gs1.org/standards/epcis/epcis-context.jsonld"
   ],
   "type": "EPCISDocument",
   "schemaVersion": "2.0",

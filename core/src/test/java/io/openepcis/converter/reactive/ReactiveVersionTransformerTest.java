@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
+import io.openepcis.reactive.util.ReactiveSource;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
@@ -239,7 +240,7 @@ class ReactiveVersionTransformerTest {
         .build();
 
     assertThrows(NullPointerException.class, () ->
-        transformer.convert((ReactiveConversionSource) null, conversion));
+        transformer.convert((ReactiveSource) null, conversion));
   }
 
   @Test

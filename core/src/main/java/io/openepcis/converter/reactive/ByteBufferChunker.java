@@ -16,38 +16,35 @@
 package io.openepcis.converter.reactive;
 
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.subscription.MultiEmitter;
-import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.util.List;
 
 /**
  * Utility for chunking byte streams at fixed boundaries for efficient network transmission.
  *
- * <p>This class accumulates bytes and emits them in fixed-size chunks (default 8KB).
- * It's designed to work with reactive streams.
+ * <p>This class delegates to {@link io.openepcis.reactive.util.ByteBufferChunker} in the
+ * openepcis-reactive-event-publisher module and provides backward compatibility for
+ * existing code using this class.
  *
- * <p><strong>Usage with Multi:</strong>
- * <pre>{@code
- * Multi<byte[]> chunkedOutput = sourceMulti
- *     .plug(ByteBufferChunker::chunkBytes);
- * }</pre>
+ * <p>For new code, consider using {@link io.openepcis.reactive.util.ByteBufferChunker} directly.
  *
- * <p><strong>Thread safety:</strong> The static {@code chunkBytes()} methods are thread-safe
- * and create isolated state per subscription. Instance methods are NOT thread-safe and
- * should be used from a single thread.
+ * @see io.openepcis.reactive.util.ByteBufferChunker
+ * @deprecated Use {@link io.openepcis.reactive.util.ByteBufferChunker} instead
  */
+@Deprecated(since = "999-SNAPSHOT", forRemoval = false)
 public final class ByteBufferChunker {
 
   /** Default chunk size of 8KB */
-  public static final int DEFAULT_CHUNK_SIZE = 8192;
+  public static final int DEFAULT_CHUNK_SIZE =
+      io.openepcis.reactive.util.ByteBufferChunker.DEFAULT_CHUNK_SIZE;
 
-  private final int chunkSize;
-  private final ByteArrayOutputStream buffer;
+  private final io.openepcis.reactive.util.ByteBufferChunker delegate;
 
   /**
    * Creates a new chunker with default 8KB chunk size.
    */
   public ByteBufferChunker() {
-    this(DEFAULT_CHUNK_SIZE);
+    this.delegate = new io.openepcis.reactive.util.ByteBufferChunker();
   }
 
   /**
@@ -57,111 +54,130 @@ public final class ByteBufferChunker {
    * @throws IllegalArgumentException if chunkSize is not positive
    */
   public ByteBufferChunker(int chunkSize) {
-    if (chunkSize <= 0) {
-      throw new IllegalArgumentException("Chunk size must be positive: " + chunkSize);
-    }
-    this.chunkSize = chunkSize;
-    this.buffer = new ByteArrayOutputStream(chunkSize);
+    this.delegate = new io.openepcis.reactive.util.ByteBufferChunker(chunkSize);
+  }
+
+  // ==================== Synchronous Chunking ====================
+
+  /**
+   * Chunks a byte array into fixed-size chunks.
+   *
+   * @param data the byte array to chunk
+   * @param chunkSize the maximum size of each chunk
+   * @return list of byte array chunks
+   * @throws IllegalArgumentException if chunkSize is not positive
+   */
+  public static List<byte[]> chunk(byte[] data, int chunkSize) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunk(data, chunkSize);
   }
 
   /**
-   * Transforms a Multi of byte arrays into chunked output at 8KB boundaries.
+   * Chunks a byte array into default 8KB chunks.
    *
-   * <p>This is the primary entry point for use with Mutiny's plug operator.
+   * @param data the byte array to chunk
+   * @return list of byte array chunks
+   */
+  public static List<byte[]> chunk(byte[] data) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunk(data);
+  }
+
+  // ==================== Reactive Chunking: Multi<byte[]> ====================
+
+  /**
+   * Transforms a Multi of byte arrays into chunked output at 8KB boundaries.
    *
    * @param source the source Multi of byte arrays
    * @return Multi emitting byte arrays in approximately 8KB chunks
    */
   public static Multi<byte[]> chunkBytes(Multi<byte[]> source) {
-    return chunkBytes(source, DEFAULT_CHUNK_SIZE);
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkBytes(source);
   }
 
   /**
    * Transforms a Multi of byte arrays into chunked output at specified boundaries.
-   *
-   * <p>Each subscription gets its own buffer, making this method safe for concurrent use.
    *
    * @param source the source Multi of byte arrays
    * @param chunkSize the target chunk size in bytes
    * @return Multi emitting byte arrays in approximately chunkSize chunks
    */
   public static Multi<byte[]> chunkBytes(Multi<byte[]> source, int chunkSize) {
-    // Use emitter pattern - creates isolated buffer per subscription
-    return Multi.createFrom().emitter(emitter -> {
-      // Buffer is created fresh for each subscription - no shared state
-      ByteArrayOutputStream buffer = new ByteArrayOutputStream(chunkSize);
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkBytes(source, chunkSize);
+  }
 
-      source.subscribe().with(
-          bytes -> emitChunksToEmitter(bytes, buffer, chunkSize, emitter),
-          emitter::fail,
-          () -> {
-            // Emit any remaining buffered data on completion
-            if (buffer.size() > 0) {
-              emitter.emit(buffer.toByteArray());
-            }
-            emitter.complete();
-          }
-      );
-    });
+  // ==================== Reactive Conversion: Multi<ByteBuffer> ====================
+
+  /**
+   * Converts a Multi of byte arrays to a Multi of ByteBuffers.
+   *
+   * @param source the source Multi emitting byte arrays
+   * @return Multi emitting ByteBuffers
+   */
+  public static Multi<ByteBuffer> toByteBuffers(Multi<byte[]> source) {
+    return io.openepcis.reactive.util.ByteBufferChunker.toByteBuffers(source);
   }
 
   /**
-   * Processes input bytes, emitting complete chunks and buffering remainder.
+   * Converts a Multi of ByteBuffers to a Multi of byte arrays.
+   *
+   * @param source the source Multi emitting ByteBuffers
+   * @return Multi emitting byte arrays
    */
-  private static void emitChunksToEmitter(
-      byte[] input,
-      ByteArrayOutputStream buffer,
-      int chunkSize,
-      MultiEmitter<? super byte[]> emitter) {
-
-    int inputOffset = 0;
-    int remaining = input.length;
-
-    while (remaining > 0) {
-      int bufferSpace = chunkSize - buffer.size();
-      int toWrite = Math.min(remaining, bufferSpace);
-
-      buffer.write(input, inputOffset, toWrite);
-      inputOffset += toWrite;
-      remaining -= toWrite;
-
-      if (buffer.size() >= chunkSize) {
-        // Buffer is full, emit chunk
-        emitter.emit(buffer.toByteArray());
-        buffer.reset();
-      }
-    }
+  public static Multi<byte[]> fromByteBuffers(Multi<ByteBuffer> source) {
+    return io.openepcis.reactive.util.ByteBufferChunker.fromByteBuffers(source);
   }
+
+  /**
+   * Chunks a Multi of ByteBuffers into fixed-size byte array chunks.
+   *
+   * @param source the source Multi emitting ByteBuffers
+   * @param chunkSize the target chunk size
+   * @return Multi emitting fixed-size byte array chunks
+   */
+  public static Multi<byte[]> chunkByteBuffers(Multi<ByteBuffer> source, int chunkSize) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkByteBuffers(source, chunkSize);
+  }
+
+  /**
+   * Chunks a Multi of ByteBuffers into default 8KB byte array chunks.
+   *
+   * @param source the source Multi emitting ByteBuffers
+   * @return Multi emitting 8KB byte array chunks
+   */
+  public static Multi<byte[]> chunkByteBuffers(Multi<ByteBuffer> source) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkByteBuffers(source);
+  }
+
+  /**
+   * Chunks and converts a Multi of ByteBuffers to chunked ByteBuffers.
+   *
+   * @param source the source Multi emitting ByteBuffers
+   * @param chunkSize the target chunk size
+   * @return Multi emitting fixed-size ByteBuffers
+   */
+  public static Multi<ByteBuffer> chunkToByteBuffers(Multi<ByteBuffer> source, int chunkSize) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkToByteBuffers(source, chunkSize);
+  }
+
+  /**
+   * Chunks and converts a Multi of ByteBuffers to default 8KB chunked ByteBuffers.
+   *
+   * @param source the source Multi emitting ByteBuffers
+   * @return Multi emitting 8KB ByteBuffers
+   */
+  public static Multi<ByteBuffer> chunkToByteBuffers(Multi<ByteBuffer> source) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkToByteBuffers(source);
+  }
+
+  // ==================== Instance Methods ====================
 
   /**
    * Adds bytes to the internal buffer and returns any complete chunks.
-   *
-   * <p>This method is for manual chunking outside of the reactive stream context.
    *
    * @param bytes the bytes to add
    * @return Multi of complete chunks (may be empty if buffer not yet full)
    */
   public Multi<byte[]> add(byte[] bytes) {
-    return Multi.createFrom().emitter(emitter -> {
-      int inputOffset = 0;
-      int remaining = bytes.length;
-
-      while (remaining > 0) {
-        int bufferSpace = chunkSize - buffer.size();
-        int toWrite = Math.min(remaining, bufferSpace);
-
-        buffer.write(bytes, inputOffset, toWrite);
-        inputOffset += toWrite;
-        remaining -= toWrite;
-
-        if (buffer.size() >= chunkSize) {
-          emitter.emit(buffer.toByteArray());
-          buffer.reset();
-        }
-      }
-
-      emitter.complete();
-    });
+    return delegate.add(bytes);
   }
 
   /**
@@ -170,12 +186,7 @@ public final class ByteBufferChunker {
    * @return the remaining bytes, or empty array if buffer is empty
    */
   public byte[] flush() {
-    if (buffer.size() == 0) {
-      return new byte[0];
-    }
-    byte[] result = buffer.toByteArray();
-    buffer.reset();
-    return result;
+    return delegate.flush();
   }
 
   /**
@@ -184,14 +195,14 @@ public final class ByteBufferChunker {
    * @return buffered byte count
    */
   public int bufferedSize() {
-    return buffer.size();
+    return delegate.bufferedSize();
   }
 
   /**
    * Resets the internal buffer.
    */
   public void reset() {
-    buffer.reset();
+    delegate.reset();
   }
 
   /**
@@ -200,6 +211,56 @@ public final class ByteBufferChunker {
    * @return chunk size in bytes
    */
   public int chunkSize() {
-    return chunkSize;
+    return delegate.chunkSize();
+  }
+
+  // ==================== Netty ByteBuf Support ====================
+
+  /**
+   * Chunks and converts a Multi of byte arrays to Netty ByteBufs.
+   *
+   * @param source the source Multi emitting byte arrays
+   * @param chunkSize the target chunk size
+   * @return Multi emitting Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public static Multi<io.netty.buffer.ByteBuf> chunkToNettyBuffers(
+      Multi<byte[]> source, int chunkSize) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkToNettyBuffers(source, chunkSize);
+  }
+
+  /**
+   * Chunks and converts a Multi of byte arrays to default 8KB Netty ByteBufs.
+   *
+   * @param source the source Multi emitting byte arrays
+   * @return Multi emitting 8KB Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public static Multi<io.netty.buffer.ByteBuf> chunkToNettyBuffers(Multi<byte[]> source) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkToNettyBuffers(source);
+  }
+
+  /**
+   * Chunks and converts a Multi of byte arrays to pooled Netty ByteBufs.
+   *
+   * @param source the source Multi emitting byte arrays
+   * @param chunkSize the target chunk size
+   * @return Multi emitting pooled Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public static Multi<io.netty.buffer.ByteBuf> chunkToPooledNettyBuffers(
+      Multi<byte[]> source, int chunkSize) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkToPooledNettyBuffers(source, chunkSize);
+  }
+
+  /**
+   * Chunks and converts a Multi of byte arrays to default 8KB pooled Netty ByteBufs.
+   *
+   * @param source the source Multi emitting byte arrays
+   * @return Multi emitting 8KB pooled Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public static Multi<io.netty.buffer.ByteBuf> chunkToPooledNettyBuffers(Multi<byte[]> source) {
+    return io.openepcis.reactive.util.ByteBufferChunker.chunkToPooledNettyBuffers(source);
   }
 }

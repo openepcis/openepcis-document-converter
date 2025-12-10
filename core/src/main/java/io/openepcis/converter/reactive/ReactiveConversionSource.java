@@ -15,86 +15,53 @@
  */
 package io.openepcis.converter.reactive;
 
+import io.openepcis.reactive.util.ReactiveSource;
 import io.smallrye.mutiny.Multi;
-import java.io.IOException;
 import java.io.InputStream;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Flow;
 
 /**
  * Abstraction for reactive input sources in the document conversion pipeline.
  *
- * <p>This class provides factory methods to create reactive sources from various input types:
- * <ul>
- *   <li>{@link Flow.Publisher}&lt;{@link ByteBuffer}&gt; - Primary reactive input for HTTP streaming, messaging</li>
- *   <li>{@link InputStream} - Backward compatibility, wrapped as reactive source</li>
- *   <li>byte[] - Convenience method for in-memory data</li>
- * </ul>
+ * <p>This class delegates to {@link io.openepcis.reactive.util.ReactiveSource} in the
+ * openepcis-reactive-event-publisher module and provides backward compatibility for
+ * existing code using this class.
  *
- * <p><strong>Backpressure:</strong> All sources respect downstream demand. Data is only read
- * from the underlying source when subscribers request it via {@link Flow.Subscription#request(long)}.
+ * <p>For new code, consider using {@link io.openepcis.reactive.util.ReactiveSource} directly.
  *
- * <p><strong>Usage:</strong>
- * <pre>{@code
- * // From reactive publisher (e.g., HTTP body)
- * Flow.Publisher<ByteBuffer> httpBody = ...;
- * ReactiveConversionSource source = ReactiveConversionSource.fromPublisher(httpBody);
- *
- * // From InputStream (backward compatibility)
- * try (InputStream is = new FileInputStream("document.xml")) {
- *     ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(is);
- *     // Use source...
- * }
- *
- * // From byte array (testing/convenience)
- * byte[] data = Files.readAllBytes(path);
- * ReactiveConversionSource source = ReactiveConversionSource.fromBytes(data);
- * }</pre>
- *
+ * @see io.openepcis.reactive.util.ReactiveSource
  * @see ReactiveVersionTransformer
+ * @deprecated Use {@link io.openepcis.reactive.util.ReactiveSource} instead
  */
+@Deprecated(since = "999-SNAPSHOT", forRemoval = false)
 public final class ReactiveConversionSource {
 
-  private static final Logger LOG = System.getLogger(ReactiveConversionSource.class.getName());
-
   /** Default buffer size for InputStream reading (8KB as per requirements) */
-  public static final int DEFAULT_BUFFER_SIZE = 8192;
+  public static final int DEFAULT_BUFFER_SIZE = ReactiveSource.DEFAULT_BUFFER_SIZE;
 
-  private final Flow.Publisher<ByteBuffer> publisher;
-  private final Callable<Flow.Publisher<ByteBuffer>> retrySource;
+  private final ReactiveSource delegate;
 
-  private ReactiveConversionSource(
-      Flow.Publisher<ByteBuffer> publisher,
-      Callable<Flow.Publisher<ByteBuffer>> retrySource) {
-    this.publisher = Objects.requireNonNull(publisher, "Publisher cannot be null");
-    this.retrySource = retrySource;
+  private ReactiveConversionSource(ReactiveSource delegate) {
+    this.delegate = delegate;
   }
 
-  // ==================== Factory Methods ====================
+  // ==================== Factory Methods: Flow.Publisher<ByteBuffer> ====================
 
   /**
    * Creates a source from a reactive ByteBuffer publisher.
-   *
-   * <p>This is the primary input method for truly non-blocking I/O from HTTP streams,
-   * message queues, or other reactive sources.
    *
    * @param publisher the reactive ByteBuffer source
    * @return new ReactiveConversionSource
    * @throws NullPointerException if publisher is null
    */
   public static ReactiveConversionSource fromPublisher(Flow.Publisher<ByteBuffer> publisher) {
-    return new ReactiveConversionSource(publisher, null);
+    return new ReactiveConversionSource(ReactiveSource.fromPublisher(publisher));
   }
 
   /**
    * Creates a source from a reactive ByteBuffer publisher with retry support.
-   *
-   * <p>The retry source is used for early-eventList handling in EPCIS documents,
-   * where the eventList appears before the @context field.
    *
    * @param publisher the reactive ByteBuffer source
    * @param retrySource callable to get a fresh source for retry
@@ -104,43 +71,74 @@ public final class ReactiveConversionSource {
   public static ReactiveConversionSource fromPublisher(
       Flow.Publisher<ByteBuffer> publisher,
       Callable<Flow.Publisher<ByteBuffer>> retrySource) {
-    return new ReactiveConversionSource(publisher, retrySource);
+    return new ReactiveConversionSource(ReactiveSource.fromPublisher(publisher, retrySource));
   }
 
+  // ==================== Factory Methods: Multi<ByteBuffer> ====================
+
   /**
-   * Creates a source from a Mutiny Multi.
-   *
-   * <p>Convenience method for Mutiny-based applications.
+   * Creates a source from a Mutiny Multi of ByteBuffers.
    *
    * @param multi the Mutiny Multi source
    * @return new ReactiveConversionSource
    * @throws NullPointerException if multi is null
    */
   public static ReactiveConversionSource fromMulti(Multi<ByteBuffer> multi) {
-    Objects.requireNonNull(multi, "Multi cannot be null");
-    return new ReactiveConversionSource(multi, null);
+    return new ReactiveConversionSource(ReactiveSource.fromMulti(multi));
   }
 
   /**
+   * Creates a source from a Mutiny Multi with retry support.
+   *
+   * @param multi the Mutiny Multi source
+   * @param retrySource callable to get a fresh Multi for retry
+   * @return new ReactiveConversionSource
+   * @throws NullPointerException if multi is null
+   */
+  public static ReactiveConversionSource fromMulti(
+      Multi<ByteBuffer> multi,
+      Callable<Multi<ByteBuffer>> retrySource) {
+    return new ReactiveConversionSource(ReactiveSource.fromMulti(multi, retrySource));
+  }
+
+  // ==================== Factory Methods: Netty ByteBuf ====================
+
+  /**
+   * Creates a source from a Netty ByteBuf publisher.
+   *
+   * @param publisher the Netty ByteBuf publisher
+   * @return new ReactiveConversionSource
+   * @throws NullPointerException if publisher is null
+   * @throws IllegalStateException if Netty is not available
+   */
+  public static ReactiveConversionSource fromNettyPublisher(
+      Flow.Publisher<io.netty.buffer.ByteBuf> publisher) {
+    return new ReactiveConversionSource(ReactiveSource.fromNettyPublisher(publisher));
+  }
+
+  /**
+   * Creates a source from a Mutiny Multi of Netty ByteBufs.
+   *
+   * @param multi the Mutiny Multi of ByteBufs
+   * @return new ReactiveConversionSource
+   * @throws NullPointerException if multi is null
+   * @throws IllegalStateException if Netty is not available
+   */
+  public static ReactiveConversionSource fromNettyMulti(Multi<io.netty.buffer.ByteBuf> multi) {
+    return new ReactiveConversionSource(ReactiveSource.fromNettyMulti(multi));
+  }
+
+  // ==================== Factory Methods: InputStream ====================
+
+  /**
    * Creates a source from an InputStream.
-   *
-   * <p>The InputStream is read in chunks on-demand as subscribers request items.
-   * Uses default buffer size of 8KB.
-   *
-   * <p><strong>Resource lifecycle:</strong> The InputStream will be automatically closed when:
-   * <ul>
-   *   <li>The stream is fully consumed (normal completion)</li>
-   *   <li>An error occurs during reading</li>
-   *   <li>The subscription is cancelled by the downstream subscriber</li>
-   * </ul>
-   * Callers should still wrap in try-with-resources for exception safety during setup.
    *
    * @param inputStream the InputStream to read from
    * @return new ReactiveConversionSource
    * @throws NullPointerException if inputStream is null
    */
   public static ReactiveConversionSource fromInputStream(InputStream inputStream) {
-    return fromInputStream(inputStream, DEFAULT_BUFFER_SIZE);
+    return new ReactiveConversionSource(ReactiveSource.fromInputStream(inputStream));
   }
 
   /**
@@ -153,19 +151,11 @@ public final class ReactiveConversionSource {
    * @throws IllegalArgumentException if bufferSize is not positive
    */
   public static ReactiveConversionSource fromInputStream(InputStream inputStream, int bufferSize) {
-    Objects.requireNonNull(inputStream, "InputStream cannot be null");
-    if (bufferSize <= 0) {
-      throw new IllegalArgumentException("Buffer size must be positive: " + bufferSize);
-    }
-    return new ReactiveConversionSource(
-        createInputStreamPublisher(inputStream, bufferSize),
-        null);
+    return new ReactiveConversionSource(ReactiveSource.fromInputStream(inputStream, bufferSize));
   }
 
   /**
    * Creates a source from an InputStream with retry support.
-   *
-   * <p>The retry callable is used for early-eventList handling.
    *
    * @param inputStream the primary InputStream
    * @param retryInputStream callable to get a fresh InputStream for retry
@@ -175,7 +165,8 @@ public final class ReactiveConversionSource {
   public static ReactiveConversionSource fromInputStream(
       InputStream inputStream,
       Callable<InputStream> retryInputStream) {
-    return fromInputStream(inputStream, retryInputStream, DEFAULT_BUFFER_SIZE);
+    return new ReactiveConversionSource(
+        ReactiveSource.fromInputStream(inputStream, retryInputStream));
   }
 
   /**
@@ -192,33 +183,21 @@ public final class ReactiveConversionSource {
       InputStream inputStream,
       Callable<InputStream> retryInputStream,
       int bufferSize) {
-    Objects.requireNonNull(inputStream, "InputStream cannot be null");
-    if (bufferSize <= 0) {
-      throw new IllegalArgumentException("Buffer size must be positive: " + bufferSize);
-    }
-
-    Callable<Flow.Publisher<ByteBuffer>> retryPublisher = retryInputStream == null ? null : () -> {
-      InputStream retryStream = retryInputStream.call();
-      return createInputStreamPublisher(retryStream, bufferSize);
-    };
-
     return new ReactiveConversionSource(
-        createInputStreamPublisher(inputStream, bufferSize),
-        retryPublisher);
+        ReactiveSource.fromInputStream(inputStream, retryInputStream, bufferSize));
   }
+
+  // ==================== Factory Methods: byte[] ====================
 
   /**
    * Creates a source from a byte array.
-   *
-   * <p>Useful for testing or parsing in-memory data.
    *
    * @param bytes the byte array containing document data
    * @return new ReactiveConversionSource
    * @throws NullPointerException if bytes is null
    */
   public static ReactiveConversionSource fromBytes(byte[] bytes) {
-    Objects.requireNonNull(bytes, "Bytes array cannot be null");
-    return new ReactiveConversionSource(createBytesPublisher(bytes), null);
+    return new ReactiveConversionSource(ReactiveSource.fromBytes(bytes));
   }
 
   /**
@@ -230,10 +209,7 @@ public final class ReactiveConversionSource {
    * @throws NullPointerException if bytes is null
    */
   public static ReactiveConversionSource fromBytes(byte[] bytes, Callable<byte[]> retryBytes) {
-    Objects.requireNonNull(bytes, "Bytes array cannot be null");
-    Callable<Flow.Publisher<ByteBuffer>> retryPublisher = retryBytes == null ? null
-        : () -> createBytesPublisher(retryBytes.call());
-    return new ReactiveConversionSource(createBytesPublisher(bytes), retryPublisher);
+    return new ReactiveConversionSource(ReactiveSource.fromBytes(bytes, retryBytes));
   }
 
   // ==================== Accessors ====================
@@ -244,7 +220,7 @@ public final class ReactiveConversionSource {
    * @return the publisher
    */
   public Flow.Publisher<ByteBuffer> toPublisher() {
-    return publisher;
+    return delegate.toPublisher();
   }
 
   /**
@@ -253,7 +229,7 @@ public final class ReactiveConversionSource {
    * @return Multi wrapping this source
    */
   public Multi<ByteBuffer> toMulti() {
-    return Multi.createFrom().publisher(publisher);
+    return delegate.toMulti();
   }
 
   /**
@@ -262,7 +238,7 @@ public final class ReactiveConversionSource {
    * @return retry source callable, or null if not configured
    */
   public Callable<Flow.Publisher<ByteBuffer>> retrySource() {
-    return retrySource;
+    return delegate.retrySource();
   }
 
   /**
@@ -271,88 +247,25 @@ public final class ReactiveConversionSource {
    * @return true if retry source is available
    */
   public boolean hasRetrySupport() {
-    return retrySource != null;
-  }
-
-  // ==================== Internal Publisher Factories ====================
-
-  /**
-   * Creates a Flow.Publisher from an InputStream with backpressure support.
-   */
-  private static Flow.Publisher<ByteBuffer> createInputStreamPublisher(
-      InputStream inputStream, int bufferSize) {
-    return subscriber -> {
-      subscriber.onSubscribe(new Flow.Subscription() {
-        private volatile boolean cancelled = false;
-        private final byte[] buffer = new byte[bufferSize];
-
-        @Override
-        public void request(long n) {
-          if (cancelled) return;
-
-          try {
-            for (long i = 0; i < n && !cancelled; i++) {
-              int bytesRead = inputStream.read(buffer);
-              if (bytesRead == -1) {
-                if (!cancelled) {
-                  closeQuietly();
-                  subscriber.onComplete();
-                }
-                return;
-              }
-              // Create a copy for the ByteBuffer
-              byte[] chunk = new byte[bytesRead];
-              System.arraycopy(buffer, 0, chunk, 0, bytesRead);
-              subscriber.onNext(ByteBuffer.wrap(chunk));
-            }
-          } catch (IOException e) {
-            if (!cancelled) {
-              closeQuietly();
-              subscriber.onError(e);
-            }
-          }
-        }
-
-        private void closeQuietly() {
-          try {
-            inputStream.close();
-          } catch (IOException e) {
-            LOG.log(Level.DEBUG, "Error closing InputStream", e);
-          }
-        }
-
-        @Override
-        public void cancel() {
-          cancelled = true;
-          // Close the underlying stream on cancellation to prevent resource leaks
-          closeQuietly();
-        }
-      });
-    };
+    return delegate.hasRetrySupport();
   }
 
   /**
-   * Creates a Flow.Publisher from a byte array.
+   * Checks if this source was created from a Netty ByteBuf publisher.
+   *
+   * @return true if this is a Netty source
    */
-  private static Flow.Publisher<ByteBuffer> createBytesPublisher(byte[] bytes) {
-    return subscriber -> {
-      subscriber.onSubscribe(new Flow.Subscription() {
-        private boolean completed = false;
+  public boolean isNettySource() {
+    return delegate.isNettySource();
+  }
 
-        @Override
-        public void request(long n) {
-          if (!completed && n > 0) {
-            completed = true;
-            subscriber.onNext(ByteBuffer.wrap(bytes));
-            subscriber.onComplete();
-          }
-        }
-
-        @Override
-        public void cancel() {
-          completed = true;
-        }
-      });
-    };
+  /**
+   * Returns the original Netty ByteBuf Multi if this source was created from Netty.
+   *
+   * @return the original Netty Multi, or throws if not a Netty source
+   * @throws IllegalStateException if this is not a Netty source
+   */
+  public Multi<io.netty.buffer.ByteBuf> toNettyMulti() {
+    return delegate.toNettyMulti();
   }
 }

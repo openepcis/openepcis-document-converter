@@ -229,6 +229,56 @@ public class ReactiveVersionTransformer {
     return convertToEvents(ReactiveConversionSource.fromPublisher(source), conversion);
   }
 
+  // ==================== Multi<ByteBuffer> Input ====================
+
+  /**
+   * Converts a document from Mutiny Multi of ByteBuffers.
+   *
+   * @param source the Mutiny Multi source
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document in 8KB chunks
+   */
+  public Multi<byte[]> convert(Multi<ByteBuffer> source, Conversion conversion) {
+    return convert(ReactiveConversionSource.fromMulti(source), conversion);
+  }
+
+  /**
+   * Converts a document using functional conversion specification.
+   *
+   * @param source the Mutiny Multi source
+   * @param fn function to build conversion specification
+   * @return Multi emitting converted document in 8KB chunks
+   */
+  public Multi<byte[]> convert(
+      Multi<ByteBuffer> source,
+      Function<Conversion.StartStage, Conversion.BuildStage> fn) {
+    return convert(source, fn.apply(Conversion.builder()).build());
+  }
+
+  /**
+   * Converts a document to event stream from Mutiny Multi of ByteBuffers.
+   *
+   * @param source the Mutiny Multi source
+   * @param conversion the conversion specification
+   * @return Multi emitting EPCISEvent objects
+   */
+  public Multi<EPCISEvent> convertToEvents(Multi<ByteBuffer> source, Conversion conversion) {
+    return convertToEvents(ReactiveConversionSource.fromMulti(source), conversion);
+  }
+
+  /**
+   * Converts a document to event stream using functional conversion specification.
+   *
+   * @param source the Mutiny Multi source
+   * @param fn function to build conversion specification
+   * @return Multi emitting EPCISEvent objects
+   */
+  public Multi<EPCISEvent> convertToEvents(
+      Multi<ByteBuffer> source,
+      Function<Conversion.StartStage, Conversion.BuildStage> fn) {
+    return convertToEvents(source, fn.apply(Conversion.builder()).build());
+  }
+
   // ==================== InputStream Input (Backward Compatibility) ====================
 
   /**
@@ -328,6 +378,189 @@ public class ReactiveVersionTransformer {
       byte[] bytes,
       Function<Conversion.StartStage, Conversion.BuildStage> fn) {
     return convertToEvents(bytes, fn.apply(Conversion.builder()).build());
+  }
+
+  // ==================== Multi<ByteBuffer> Output Methods ====================
+
+  /**
+   * Converts a document and returns Multi of ByteBuffers.
+   *
+   * @param source the reactive input source
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   */
+  public Multi<ByteBuffer> convertToByteBuffers(
+      Flow.Publisher<ByteBuffer> source, Conversion conversion) {
+    return ByteBufferChunker.toByteBuffers(convert(source, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of ByteBuffers.
+   *
+   * @param source the Mutiny Multi source
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   */
+  public Multi<ByteBuffer> convertToByteBuffers(
+      Multi<ByteBuffer> source, Conversion conversion) {
+    return ByteBufferChunker.toByteBuffers(convert(source, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of ByteBuffers.
+   *
+   * @param inputStream the input stream
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   */
+  public Multi<ByteBuffer> convertToByteBuffers(
+      InputStream inputStream, Conversion conversion) {
+    return ByteBufferChunker.toByteBuffers(convert(inputStream, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of ByteBuffers.
+   *
+   * @param bytes the input bytes
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   */
+  public Multi<ByteBuffer> convertToByteBuffers(byte[] bytes, Conversion conversion) {
+    return ByteBufferChunker.toByteBuffers(convert(bytes, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of ByteBuffers.
+   *
+   * @param source the conversion source
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   */
+  public Multi<ByteBuffer> convertToByteBuffers(
+      ReactiveConversionSource source, Conversion conversion) {
+    return ByteBufferChunker.toByteBuffers(convert(source, conversion));
+  }
+
+  // ==================== Netty ByteBuf Input Methods ====================
+
+  /**
+   * Converts a document from Netty ByteBuf publisher.
+   *
+   * <p>ByteBufs are automatically converted to ByteBuffers. The original ByteBufs
+   * are released after conversion.
+   *
+   * @param source the Netty ByteBuf publisher
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document in 8KB chunks
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<byte[]> convertFromNetty(
+      Flow.Publisher<io.netty.buffer.ByteBuf> source, Conversion conversion) {
+    return convert(ReactiveConversionSource.fromNettyPublisher(source), conversion);
+  }
+
+  /**
+   * Converts a document from Mutiny Multi of Netty ByteBufs.
+   *
+   * @param source the Mutiny Multi of ByteBufs
+   * @param conversion the conversion specification
+   * @return Multi emitting converted document in 8KB chunks
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<byte[]> convertFromNetty(
+      Multi<io.netty.buffer.ByteBuf> source, Conversion conversion) {
+    return convert(ReactiveConversionSource.fromNettyMulti(source), conversion);
+  }
+
+  /**
+   * Converts a document to event stream from Netty ByteBuf publisher.
+   *
+   * @param source the Netty ByteBuf publisher
+   * @param conversion the conversion specification
+   * @return Multi emitting EPCISEvent objects
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<EPCISEvent> convertToEventsFromNetty(
+      Flow.Publisher<io.netty.buffer.ByteBuf> source, Conversion conversion) {
+    return convertToEvents(ReactiveConversionSource.fromNettyPublisher(source), conversion);
+  }
+
+  /**
+   * Converts a document to event stream from Mutiny Multi of Netty ByteBufs.
+   *
+   * @param source the Mutiny Multi of ByteBufs
+   * @param conversion the conversion specification
+   * @return Multi emitting EPCISEvent objects
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<EPCISEvent> convertToEventsFromNetty(
+      Multi<io.netty.buffer.ByteBuf> source, Conversion conversion) {
+    return convertToEvents(ReactiveConversionSource.fromNettyMulti(source), conversion);
+  }
+
+  // ==================== Netty ByteBuf Output Methods ====================
+
+  /**
+   * Converts a document and returns Multi of Netty ByteBufs.
+   *
+   * <p><strong>Important:</strong> Consumers MUST call {@code ByteBuf.release()}
+   * on each emitted buffer to prevent memory leaks.
+   *
+   * @param source the Netty ByteBuf publisher
+   * @param conversion the conversion specification
+   * @return Multi emitting Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<io.netty.buffer.ByteBuf> convertToNettyBuffers(
+      Flow.Publisher<io.netty.buffer.ByteBuf> source, Conversion conversion) {
+    return NettyBufferSupport.toNettyBuffers(convertFromNetty(source, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of Netty ByteBufs.
+   *
+   * <p><strong>Important:</strong> Consumers MUST call {@code ByteBuf.release()}
+   * on each emitted buffer to prevent memory leaks.
+   *
+   * @param source the Mutiny Multi of ByteBufs
+   * @param conversion the conversion specification
+   * @return Multi emitting Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<io.netty.buffer.ByteBuf> convertToNettyBuffers(
+      Multi<io.netty.buffer.ByteBuf> source, Conversion conversion) {
+    return NettyBufferSupport.toNettyBuffers(convertFromNetty(source, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of Netty ByteBufs.
+   *
+   * <p><strong>Important:</strong> Consumers MUST call {@code ByteBuf.release()}
+   * on each emitted buffer to prevent memory leaks.
+   *
+   * @param bytes the input bytes
+   * @param conversion the conversion specification
+   * @return Multi emitting Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<io.netty.buffer.ByteBuf> convertToNettyBuffers(byte[] bytes, Conversion conversion) {
+    return NettyBufferSupport.toNettyBuffers(convert(bytes, conversion));
+  }
+
+  /**
+   * Converts a document and returns Multi of Netty ByteBufs.
+   *
+   * <p><strong>Important:</strong> Consumers MUST call {@code ByteBuf.release()}
+   * on each emitted buffer to prevent memory leaks.
+   *
+   * @param source the conversion source
+   * @param conversion the conversion specification
+   * @return Multi emitting Netty ByteBufs
+   * @throws IllegalStateException if Netty is not available
+   */
+  public Multi<io.netty.buffer.ByteBuf> convertToNettyBuffers(
+      ReactiveConversionSource source, Conversion conversion) {
+    return NettyBufferSupport.toNettyBuffers(convert(source, conversion));
   }
 
   // ==================== Core Conversion Logic ====================

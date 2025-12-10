@@ -88,6 +88,13 @@
             <artifactId>mutiny</artifactId>
         </dependency>
 
+        <!-- Reactive event publisher for non-blocking JSON parsing with backpressure -->
+        <dependency>
+            <groupId>io.openepcis</groupId>
+            <artifactId>openepcis-reactive-event-publisher</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>jakarta.enterprise</groupId>
             <artifactId>jakarta.enterprise.cdi-api</artifactId>
@@ -155,6 +162,13 @@
         <dependency>
             <groupId>xalan</groupId>
             <artifactId>serializer</artifactId>
+        </dependency>
+
+        <!-- Optional Netty dependency for zero-copy buffer operations -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

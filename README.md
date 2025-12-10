@@ -27,6 +27,7 @@ An open-source application that transforms EPCIS documents from XML to JSON/JSON
         - [Local Docker cURL Examples](#local-docker-curl-examples)
         - [Additional cURL Examples](#additional-curl-examples)
         - [Java Code Examples](#java-code-examples)
+        - [Reactive API](#reactive-api-recommended-for-high-throughput)
 - [All-In-One Tools Docker Image](#all-in-one-tools-docker-image)
     - [OpenEPCIS Tools](#openepcis-tools)
         - [Format Converter Web Application](#format-converter-web-application)
@@ -391,6 +392,106 @@ If you have a EPCIS 2.0 JSON/JSON-LD document which you want to convert to XML t
     final EventHandler handler = new EventHandler(new EventValidator(), collector);
     new JsonToXmlConverter().convert(jsonStream, handler);
     System.out.println(out.toString());
+```
+
+##### Reactive API (Recommended for High-Throughput)
+
+For high-throughput scenarios or when working in reactive frameworks (Quarkus, Vert.x), use the `ReactiveVersionTransformer`:
+
+```java
+import io.openepcis.converter.Conversion;
+import io.openepcis.converter.reactive.ReactiveVersionTransformer;
+import io.openepcis.constants.EPCISFormat;
+import io.openepcis.constants.EPCISVersion;
+import io.smallrye.mutiny.Multi;
+
+// Create transformer (reusable, thread-safe for configuration)
+ReactiveVersionTransformer transformer = ReactiveVersionTransformer.builder()
+    .blockingExecutor(Infrastructure.getDefaultWorkerPool()) // Recommended for async contexts
+    .build();
+
+// Define conversion
+Conversion conversion = Conversion.builder()
+    .fromMediaType(EPCISFormat.XML)
+    .fromVersion(EPCISVersion.VERSION_2_0_0)
+    .toMediaType(EPCISFormat.JSON_LD)
+    .toVersion(EPCISVersion.VERSION_2_0_0)
+    .build();
+
+// Convert from byte array
+Multi<byte[]> result = transformer.convert(inputBytes, conversion);
+
+// Collect to String
+String json = result
+    .collect().in(ByteArrayOutputStream::new, (baos, bytes) -> baos.writeBytes(bytes))
+    .map(ByteArrayOutputStream::toString)
+    .await().atMost(Duration.ofSeconds(30));
+```
+
+**Functional Style Conversion:**
+```java
+Multi<byte[]> result = transformer.convert(inputBytes, c -> c
+    .fromMediaType(EPCISFormat.XML)
+    .toMediaType(EPCISFormat.JSON_LD)
+    .toVersion(EPCISVersion.VERSION_2_0_0));
+```
+
+**Event-Level Streaming:**
+```java
+import io.openepcis.model.epcis.EPCISEvent;
+
+Multi<EPCISEvent> events = transformer.convertToEvents(inputBytes, conversion);
+events.subscribe().with(
+    event -> System.out.println("Event: " + event.getType()),
+    error -> System.err.println("Error: " + error.getMessage()),
+    () -> System.out.println("Completed"));
+```
+
+**Event Transformation with Typed Mapper:**
+```java
+import io.openepcis.converter.reactive.EPCISEventMapper;
+
+EPCISEventMapper mapper = (event, context) -> {
+    // Transform or enrich events during conversion
+    return event;
+};
+
+ReactiveVersionTransformer mapped = transformer.mapWithTyped(mapper);
+```
+
+**Memory Considerations:**
+- XML documents are fully buffered before conversion (StAX requirement)
+- XSLT transformations require the full document
+- For documents >100MB, ensure sufficient heap space
+- JSON parsing supports true event-level streaming with backpressure
+
+**Optional Netty Support for Zero-Copy Buffers:**
+
+For high-throughput scenarios, add `netty-buffer` as a dependency to enable zero-copy buffer operations:
+
+```xml
+<dependency>
+    <groupId>io.netty</groupId>
+    <artifactId>netty-buffer</artifactId>
+</dependency>
+```
+
+```java
+import io.openepcis.converter.reactive.NettyBufferSupport;
+
+if (NettyBufferSupport.isAvailable()) {
+    Multi<io.netty.buffer.ByteBuf> nettyStream =
+        NettyBufferSupport.toNettyBuffers(transformer.convert(source, conversion));
+
+    nettyStream.subscribe().with(buf -> {
+        try {
+            // Process ByteBuf directly without copying
+            channel.write(buf);
+        } finally {
+            buf.release(); // IMPORTANT: Release to prevent memory leaks
+        }
+    });
+}
 ```
 
 ## All-In-One Tools Docker Image

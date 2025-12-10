@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.reactive.util.ReactiveSource;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
@@ -135,7 +134,7 @@ public class ReactiveJsonToXmlConverter {
    * @return Multi emitting XML byte chunks
    */
   public Multi<byte[]> convert(Flow.Publisher<ByteBuffer> source) {
-    return convert(ReactiveSource.fromPublisher(source));
+    return convert(ReactiveConversionSource.fromPublisher(source));
   }
 
   /**
@@ -144,7 +143,7 @@ public class ReactiveJsonToXmlConverter {
    * @param source the conversion source
    * @return Multi emitting XML byte chunks
    */
-  public Multi<byte[]> convert(ReactiveSource source) {
+  public Multi<byte[]> convert(ReactiveConversionSource source) {
     try {
       ObjectNodePublisher<ObjectNode> publisher = createPublisher(source);
 
@@ -168,7 +167,7 @@ public class ReactiveJsonToXmlConverter {
    * @return Multi emitting EPCISEvent objects
    */
   public Multi<EPCISEvent> convertToEvents(Flow.Publisher<ByteBuffer> source) {
-    return convertToEvents(ReactiveSource.fromPublisher(source));
+    return convertToEvents(ReactiveConversionSource.fromPublisher(source));
   }
 
   /**
@@ -177,7 +176,7 @@ public class ReactiveJsonToXmlConverter {
    * @param source the conversion source
    * @return Multi emitting EPCISEvent objects
    */
-  public Multi<EPCISEvent> convertToEvents(ReactiveSource source) {
+  public Multi<EPCISEvent> convertToEvents(ReactiveConversionSource source) {
     try {
       ObjectNodePublisher<ObjectNode> publisher = createPublisher(source);
 
@@ -213,7 +212,7 @@ public class ReactiveJsonToXmlConverter {
 
   // ==================== Internal Methods ====================
 
-  private ObjectNodePublisher<ObjectNode> createPublisher(ReactiveSource source)
+  private ObjectNodePublisher<ObjectNode> createPublisher(ReactiveConversionSource source)
       throws IOException {
     if (source.hasRetrySupport()) {
       return new ObjectNodePublisher<>(source.toPublisher(), source.retrySource());

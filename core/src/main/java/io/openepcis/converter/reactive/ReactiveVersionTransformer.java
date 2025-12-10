@@ -20,7 +20,6 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.reactive.util.ByteBufferChunker;
 import io.openepcis.reactive.util.NettyBufferSupport;
-import io.openepcis.reactive.util.ReactiveSource;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
@@ -112,7 +111,7 @@ import org.eclipse.persistence.jaxb.JAXBContextProperties;
  * <p><strong>Thread safety:</strong> Instances are thread-safe for configuration but
  * individual conversion operations should not be shared across threads.
  *
- * @see ReactiveSource
+ * @see ReactiveConversionSource
  * @see Conversion
  */
 public class ReactiveVersionTransformer {
@@ -204,7 +203,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting converted document in 8KB chunks
    */
   public Multi<byte[]> convert(Flow.Publisher<ByteBuffer> source, Conversion conversion) {
-    return convert(ReactiveSource.fromPublisher(source), conversion);
+    return convert(ReactiveConversionSource.fromPublisher(source), conversion);
   }
 
   /**
@@ -229,7 +228,7 @@ public class ReactiveVersionTransformer {
    */
   public Multi<EPCISEvent> convertToEvents(
       Flow.Publisher<ByteBuffer> source, Conversion conversion) {
-    return convertToEvents(ReactiveSource.fromPublisher(source), conversion);
+    return convertToEvents(ReactiveConversionSource.fromPublisher(source), conversion);
   }
 
   // ==================== Multi<ByteBuffer> Input ====================
@@ -242,7 +241,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting converted document in 8KB chunks
    */
   public Multi<byte[]> convert(Multi<ByteBuffer> source, Conversion conversion) {
-    return convert(ReactiveSource.fromMulti(source), conversion);
+    return convert(ReactiveConversionSource.fromMulti(source), conversion);
   }
 
   /**
@@ -266,7 +265,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting EPCISEvent objects
    */
   public Multi<EPCISEvent> convertToEvents(Multi<ByteBuffer> source, Conversion conversion) {
-    return convertToEvents(ReactiveSource.fromMulti(source), conversion);
+    return convertToEvents(ReactiveConversionSource.fromMulti(source), conversion);
   }
 
   /**
@@ -292,7 +291,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting converted document in 8KB chunks
    */
   public Multi<byte[]> convert(InputStream inputStream, Conversion conversion) {
-    return convert(ReactiveSource.fromInputStream(inputStream, bufferSize), conversion);
+    return convert(ReactiveConversionSource.fromInputStream(inputStream, bufferSize), conversion);
   }
 
   /**
@@ -317,7 +316,7 @@ public class ReactiveVersionTransformer {
    */
   public Multi<EPCISEvent> convertToEvents(InputStream inputStream, Conversion conversion) {
     return convertToEvents(
-        ReactiveSource.fromInputStream(inputStream, bufferSize), conversion);
+        ReactiveConversionSource.fromInputStream(inputStream, bufferSize), conversion);
   }
 
   /**
@@ -343,7 +342,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting converted document in 8KB chunks
    */
   public Multi<byte[]> convert(byte[] bytes, Conversion conversion) {
-    return convert(ReactiveSource.fromBytes(bytes), conversion);
+    return convert(ReactiveConversionSource.fromBytes(bytes), conversion);
   }
 
   /**
@@ -367,7 +366,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting EPCISEvent objects
    */
   public Multi<EPCISEvent> convertToEvents(byte[] bytes, Conversion conversion) {
-    return convertToEvents(ReactiveSource.fromBytes(bytes), conversion);
+    return convertToEvents(ReactiveConversionSource.fromBytes(bytes), conversion);
   }
 
   /**
@@ -440,7 +439,7 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting converted document as ByteBuffers
    */
   public Multi<ByteBuffer> convertToByteBuffers(
-      ReactiveSource source, Conversion conversion) {
+      ReactiveConversionSource source, Conversion conversion) {
     return ByteBufferChunker.toByteBuffers(convert(source, conversion));
   }
 
@@ -459,7 +458,7 @@ public class ReactiveVersionTransformer {
    */
   public Multi<byte[]> convertFromNetty(
       Flow.Publisher<io.netty.buffer.ByteBuf> source, Conversion conversion) {
-    return convert(ReactiveSource.fromNettyPublisher(source), conversion);
+    return convert(ReactiveConversionSource.fromNettyPublisher(source), conversion);
   }
 
   /**
@@ -472,7 +471,7 @@ public class ReactiveVersionTransformer {
    */
   public Multi<byte[]> convertFromNetty(
       Multi<io.netty.buffer.ByteBuf> source, Conversion conversion) {
-    return convert(ReactiveSource.fromNettyMulti(source), conversion);
+    return convert(ReactiveConversionSource.fromNettyMulti(source), conversion);
   }
 
   /**
@@ -485,7 +484,7 @@ public class ReactiveVersionTransformer {
    */
   public Multi<EPCISEvent> convertToEventsFromNetty(
       Flow.Publisher<io.netty.buffer.ByteBuf> source, Conversion conversion) {
-    return convertToEvents(ReactiveSource.fromNettyPublisher(source), conversion);
+    return convertToEvents(ReactiveConversionSource.fromNettyPublisher(source), conversion);
   }
 
   /**
@@ -498,7 +497,7 @@ public class ReactiveVersionTransformer {
    */
   public Multi<EPCISEvent> convertToEventsFromNetty(
       Multi<io.netty.buffer.ByteBuf> source, Conversion conversion) {
-    return convertToEvents(ReactiveSource.fromNettyMulti(source), conversion);
+    return convertToEvents(ReactiveConversionSource.fromNettyMulti(source), conversion);
   }
 
   // ==================== Netty ByteBuf Output Methods ====================
@@ -562,20 +561,20 @@ public class ReactiveVersionTransformer {
    * @throws IllegalStateException if Netty is not available
    */
   public Multi<io.netty.buffer.ByteBuf> convertToNettyBuffers(
-      ReactiveSource source, Conversion conversion) {
+      ReactiveConversionSource source, Conversion conversion) {
     return NettyBufferSupport.toNettyBuffers(convert(source, conversion));
   }
 
   // ==================== Core Conversion Logic ====================
 
   /**
-   * Converts a document from ReactiveSource.
+   * Converts a document from ReactiveConversionSource.
    *
    * @param source the conversion source
    * @param conversion the conversion specification
    * @return Multi emitting converted document in 8KB chunks
    */
-  public Multi<byte[]> convert(ReactiveSource source, Conversion conversion) {
+  public Multi<byte[]> convert(ReactiveConversionSource source, Conversion conversion) {
     Objects.requireNonNull(source, "Source cannot be null");
     Objects.requireNonNull(conversion, "Conversion cannot be null");
 
@@ -583,13 +582,13 @@ public class ReactiveVersionTransformer {
   }
 
   /**
-   * Converts a document to event stream from ReactiveSource.
+   * Converts a document to event stream from ReactiveConversionSource.
    *
    * @param source the conversion source
    * @param conversion the conversion specification
    * @return Multi emitting EPCISEvent objects
    */
-  public Multi<EPCISEvent> convertToEvents(ReactiveSource source, Conversion conversion) {
+  public Multi<EPCISEvent> convertToEvents(ReactiveConversionSource source, Conversion conversion) {
     Objects.requireNonNull(source, "Source cannot be null");
     Objects.requireNonNull(conversion, "Conversion cannot be null");
 
@@ -651,7 +650,7 @@ public class ReactiveVersionTransformer {
         .orElse(multi);
   }
 
-  private Multi<byte[]> routeConversion(ReactiveSource source, Conversion conversion) {
+  private Multi<byte[]> routeConversion(ReactiveConversionSource source, Conversion conversion) {
     EPCISFormat fromFormat = conversion.fromMediaType();
     EPCISFormat toFormat = conversion.toMediaType();
     EPCISVersion fromVersion = conversion.fromVersion();
@@ -676,7 +675,7 @@ public class ReactiveVersionTransformer {
           chainMultiToMulti(
               jsonToXmlConverter.convert(source),
               xml20Bytes -> xmlVersionTransformer.transform(
-                  ReactiveSource.fromMulti(xml20Bytes.onItem().transform(ByteBuffer::wrap)),
+                  ReactiveConversionSource.fromMulti(xml20Bytes.onItem().transform(ByteBuffer::wrap)),
                   Conversion.of(null, EPCISVersion.VERSION_2_0_0, null, EPCISVersion.VERSION_1_2_0))));
     }
 
@@ -692,7 +691,7 @@ public class ReactiveVersionTransformer {
       return withBlockingExecutor(xmlVersionTransformer.transform(source,
               Conversion.of(null, fromVersion, null, EPCISVersion.VERSION_2_0_0))
           .plug(bytes -> xmlToJsonConverter.convert(
-              ReactiveSource.fromMulti(
+              ReactiveConversionSource.fromMulti(
                   bytes.onItem().transform(b -> ByteBuffer.wrap(b))))));
     }
 
@@ -733,7 +732,7 @@ public class ReactiveVersionTransformer {
   }
 
   private Multi<EPCISEvent> routeConversionToEvents(
-      ReactiveSource source, Conversion conversion) {
+      ReactiveConversionSource source, Conversion conversion) {
     EPCISFormat fromFormat = conversion.fromMediaType();
     EPCISVersion fromVersion = conversion.fromVersion();
 
@@ -753,7 +752,7 @@ public class ReactiveVersionTransformer {
       return withBlockingExecutor(xmlVersionTransformer.transform(source,
               Conversion.of(null, fromVersion, null, EPCISVersion.VERSION_2_0_0))
           .plug(bytes -> xmlToJsonConverter.convertToEvents(
-              ReactiveSource.fromMulti(
+              ReactiveConversionSource.fromMulti(
                   bytes.onItem().transform(b -> ByteBuffer.wrap(b))))));
     }
 

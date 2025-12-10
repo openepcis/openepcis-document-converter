@@ -19,7 +19,6 @@ import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformerFeature;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.reactive.util.ReactiveSource;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import java.io.*;
@@ -108,7 +107,7 @@ public class ReactiveXmlVersionTransformer {
    * @return Multi emitting transformed XML in chunks
    */
   public Multi<byte[]> transform(Flow.Publisher<ByteBuffer> source, Conversion conversion) {
-    return transform(ReactiveSource.fromPublisher(source), conversion);
+    return transform(ReactiveConversionSource.fromPublisher(source), conversion);
   }
 
   /**
@@ -118,7 +117,7 @@ public class ReactiveXmlVersionTransformer {
    * @param conversion the conversion specification
    * @return Multi emitting transformed XML in chunks
    */
-  public Multi<byte[]> transform(ReactiveSource source, Conversion conversion) {
+  public Multi<byte[]> transform(ReactiveConversionSource source, Conversion conversion) {
     Objects.requireNonNull(source, "Source cannot be null");
     Objects.requireNonNull(conversion, "Conversion cannot be null");
 
@@ -177,7 +176,7 @@ public class ReactiveXmlVersionTransformer {
    * @param source the conversion source
    * @return Multi emitting transformed XML in chunks
    */
-  public Multi<byte[]> transform12To20(ReactiveSource source) {
+  public Multi<byte[]> transform12To20(ReactiveConversionSource source) {
     return transform(source, Conversion.of(
         null, EPCISVersion.VERSION_1_2_0, null, EPCISVersion.VERSION_2_0_0));
   }
@@ -190,7 +189,7 @@ public class ReactiveXmlVersionTransformer {
    * @return Multi emitting transformed XML in chunks
    */
   public Multi<byte[]> transform20To12(
-      ReactiveSource source,
+      ReactiveConversionSource source,
       List<VersionTransformerFeature> enabledFeatures) {
     Conversion conversion = Conversion.builder()
         .generateGS1CompliantDocument(true)
@@ -203,7 +202,7 @@ public class ReactiveXmlVersionTransformer {
 
   // ==================== Internal Methods ====================
 
-  private Multi<byte[]> passThrough(ReactiveSource source) {
+  private Multi<byte[]> passThrough(ReactiveConversionSource source) {
     return source.toMulti()
         .onItem().transform(buffer -> {
           byte[] bytes = new byte[buffer.remaining()];

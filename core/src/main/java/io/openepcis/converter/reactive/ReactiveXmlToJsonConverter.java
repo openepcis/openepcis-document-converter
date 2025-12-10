@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.reactive.util.ReactiveSource;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
@@ -151,7 +150,7 @@ public class ReactiveXmlToJsonConverter {
    * @return Multi emitting JSON byte chunks
    */
   public Multi<byte[]> convert(Flow.Publisher<ByteBuffer> source) {
-    return convert(ReactiveSource.fromPublisher(source));
+    return convert(ReactiveConversionSource.fromPublisher(source));
   }
 
   /**
@@ -160,7 +159,7 @@ public class ReactiveXmlToJsonConverter {
    * @param source the conversion source
    * @return Multi emitting JSON byte chunks
    */
-  public Multi<byte[]> convert(ReactiveSource source) {
+  public Multi<byte[]> convert(ReactiveConversionSource source) {
     // Collect all bytes first (StAX needs complete document), then convert
     return source.toMulti()
         .onItem().transform(buffer -> {
@@ -189,7 +188,7 @@ public class ReactiveXmlToJsonConverter {
    * @return Multi emitting EPCISEvent objects
    */
   public Multi<EPCISEvent> convertToEvents(Flow.Publisher<ByteBuffer> source) {
-    return convertToEvents(ReactiveSource.fromPublisher(source));
+    return convertToEvents(ReactiveConversionSource.fromPublisher(source));
   }
 
   /**
@@ -198,7 +197,7 @@ public class ReactiveXmlToJsonConverter {
    * @param source the conversion source
    * @return Multi emitting EPCISEvent objects
    */
-  public Multi<EPCISEvent> convertToEvents(ReactiveSource source) {
+  public Multi<EPCISEvent> convertToEvents(ReactiveConversionSource source) {
     // Collect all bytes first (StAX needs complete document), then parse events
     return source.toMulti()
         .onItem().transform(buffer -> {

@@ -20,7 +20,7 @@ import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.*;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
@@ -45,15 +45,15 @@ public abstract class XMLEventParser {
 
   protected final JAXBContext jaxbContext;
 
-  protected final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
-      DefaultJsonSchemaNamespaceURIResolver.getContext();
+  protected final ConversionNamespaceContext nsContext;
 
   protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
 
   protected static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
-  public XMLEventParser(JAXBContext jaxbContext) {
+  public XMLEventParser(JAXBContext jaxbContext, ConversionNamespaceContext nsContext) {
     this.jaxbContext = jaxbContext;
+    this.nsContext = nsContext;
   }
 
   protected void validateXmlEvent(Unmarshaller unmarshaller) throws JAXBException {
@@ -121,9 +121,10 @@ public abstract class XMLEventParser {
     if (epcisEventMapper.isPresent() && EPCISEvent.class.isAssignableFrom(event.getClass())) {
       final EPCISEvent ev = (EPCISEvent) event;
       // Change the key value to keep key as localname and value as namespaceURI
-      final Map<String, String> swappedMap =
-          namespaceResolver.getAllNamespaces().entrySet().stream()
-              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+      final Map<String, String> swappedMap = nsContext != null
+          ? nsContext.getAllNamespaces().entrySet().stream()
+              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey))
+          : Map.of();
       ev.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
       event = epcisEventMapper.get().apply(event, List.of(swappedMap));
     }
@@ -151,6 +152,10 @@ public abstract class XMLEventParser {
   }
 
   protected void prepareNameSpaces(XMLStreamReader xmlStreamReader) {
+    if (nsContext == null) {
+      return;
+    }
+
     IntStream.range(0, xmlStreamReader.getNamespaceCount())
             .forEach(
                     namespaceIndex -> {
@@ -160,7 +165,7 @@ public abstract class XMLEventParser {
                       if (StringUtils.isNotBlank(namespacePrefix)
                               &&  StringUtils.isNotBlank(namespaceURI)
                               && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(namespaceURI)) {
-                        namespaceResolver.populateDocumentNamespaces(namespaceURI, namespacePrefix);
+                        nsContext.populateDocumentNamespaces(namespaceURI, namespacePrefix);
                       }
                     });
   }

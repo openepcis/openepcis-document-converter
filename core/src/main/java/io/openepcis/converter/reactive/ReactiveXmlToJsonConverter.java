@@ -23,7 +23,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.MultiEmitter;
@@ -87,7 +87,6 @@ public class ReactiveXmlToJsonConverter {
 
   private final JAXBContext jaxbContext;
   private final ObjectMapper objectMapper;
-  private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver;
   private final Optional<BiFunction<Object, List<Object>, Object>> eventMapper;
 
   static {
@@ -131,7 +130,6 @@ public class ReactiveXmlToJsonConverter {
         .configure(SerializationFeature.INDENT_OUTPUT, true)
         .setSerializationInclusion(JsonInclude.Include.NON_NULL)
         .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-    this.namespaceResolver = DefaultJsonSchemaNamespaceURIResolver.getContext();
   }
 
   private static JAXBContext createDefaultJAXBContext() throws JAXBException {
@@ -160,6 +158,10 @@ public class ReactiveXmlToJsonConverter {
    * @return Multi emitting JSON byte chunks
    */
   public Multi<byte[]> convert(ReactiveConversionSource source) {
+    // Create conversion-scoped namespace context - captured by lambdas below
+    // This replaces the ThreadLocal singleton to avoid thread-switching issues
+    final ConversionNamespaceContext nsContext = new ConversionNamespaceContext();
+
     // Collect all bytes first (StAX needs complete document), then convert
     return source.toMulti()
         .onItem().transform(buffer -> {
@@ -175,7 +177,7 @@ public class ReactiveXmlToJsonConverter {
           }
         })
         .onItem().transformToMulti(baos ->
-            Multi.createFrom().emitter(emitter -> convertFromBytes(baos.toByteArray(), emitter)));
+            Multi.createFrom().emitter(emitter -> convertFromBytes(baos.toByteArray(), emitter, nsContext)));
   }
 
   /**
@@ -198,6 +200,9 @@ public class ReactiveXmlToJsonConverter {
    * @return Multi emitting EPCISEvent objects
    */
   public Multi<EPCISEvent> convertToEvents(ReactiveConversionSource source) {
+    // Create conversion-scoped namespace context - captured by lambdas below
+    final ConversionNamespaceContext nsContext = new ConversionNamespaceContext();
+
     // Collect all bytes first (StAX needs complete document), then parse events
     return source.toMulti()
         .onItem().transform(buffer -> {
@@ -213,7 +218,7 @@ public class ReactiveXmlToJsonConverter {
           }
         })
         .onItem().transformToMulti(baos ->
-            Multi.createFrom().emitter(emitter -> parseEvents(baos.toByteArray(), emitter)));
+            Multi.createFrom().emitter(emitter -> parseEvents(baos.toByteArray(), emitter, nsContext)));
   }
 
   /**
@@ -228,7 +233,8 @@ public class ReactiveXmlToJsonConverter {
 
   // ==================== Internal Methods ====================
 
-  private void convertFromBytes(byte[] xmlBytes, MultiEmitter<? super byte[]> emitter) {
+  private void convertFromBytes(byte[] xmlBytes, MultiEmitter<? super byte[]> emitter,
+                                ConversionNamespaceContext nsContext) {
     XMLStreamReader reader = null;
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
@@ -247,12 +253,12 @@ public class ReactiveXmlToJsonConverter {
 
           // Check for document root
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
-            prepareNamespaces(reader);
+            prepareNamespaces(reader, nsContext);
             prepareContextAttributes(contextAttributes, reader);
 
             // Emit JSON header
             if (!headerEmitted.getAndSet(true)) {
-              byte[] header = buildJsonHeader(contextAttributes);
+              byte[] header = buildJsonHeader(contextAttributes, nsContext);
               emitter.emit(header);
             }
           }
@@ -262,11 +268,14 @@ public class ReactiveXmlToJsonConverter {
             Object event = unmarshallEvent(reader, unmarshaller);
 
             if (event != null) {
+              // Track if this is the first event (sequence starts at 0, increments in applyEventMapper)
+              boolean isFirstEvent = sequenceInEventList.get() == 0;
+
               // Apply mapper if configured
-              event = applyEventMapper(sequenceInEventList, event);
+              event = applyEventMapper(sequenceInEventList, event, nsContext);
 
               // Convert to JSON
-              byte[] jsonBytes = serializeEvent(event);
+              byte[] jsonBytes = serializeEvent(event, isFirstEvent);
               emitter.emit(jsonBytes);
             }
             continue;
@@ -299,7 +308,8 @@ public class ReactiveXmlToJsonConverter {
     }
   }
 
-  private void parseEvents(byte[] xmlBytes, MultiEmitter<? super EPCISEvent> emitter) {
+  private void parseEvents(byte[] xmlBytes, MultiEmitter<? super EPCISEvent> emitter,
+                           ConversionNamespaceContext nsContext) {
     XMLStreamReader reader = null;
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
@@ -314,14 +324,14 @@ public class ReactiveXmlToJsonConverter {
           String name = reader.getLocalName();
 
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
-            prepareNamespaces(reader);
+            prepareNamespaces(reader, nsContext);
           }
 
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
             Object event = unmarshallEvent(reader, unmarshaller);
 
             if (event != null) {
-              event = applyEventMapper(sequenceInEventList, event);
+              event = applyEventMapper(sequenceInEventList, event, nsContext);
 
               if (event instanceof EPCISEvent) {
                 emitter.emit((EPCISEvent) event);
@@ -363,24 +373,27 @@ public class ReactiveXmlToJsonConverter {
     }
   }
 
-  private Object applyEventMapper(AtomicInteger sequence, Object event) {
+  private Object applyEventMapper(AtomicInteger sequence, Object event, ConversionNamespaceContext nsContext) {
     if (event instanceof EPCISEvent epcisEvent) {
       epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
     }
 
+    // Create swapped map for mapper (prefix -> URI format)
+    Map<String, String> swappedMap = nsContext.getAllNamespaces().entrySet().stream()
+        .collect(java.util.stream.Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     return eventMapper
-        .map(mapper -> mapper.apply(event, Collections.emptyList()))
+        .map(mapper -> mapper.apply(event, List.of(swappedMap)))
         .orElse(event);
   }
 
-  private void prepareNamespaces(XMLStreamReader reader) {
-    namespaceResolver.resetAllNamespaces();
+  private void prepareNamespaces(XMLStreamReader reader, ConversionNamespaceContext nsContext) {
+    // Context is fresh per conversion, no need to reset
     int nsCount = reader.getNamespaceCount();
     for (int i = 0; i < nsCount; i++) {
       String prefix = reader.getNamespacePrefix(i);
       String uri = reader.getNamespaceURI(i);
       if (prefix != null && !prefix.isEmpty() && uri != null) {
-        namespaceResolver.populateDocumentNamespaces(uri, prefix);
+        nsContext.populateDocumentNamespaces(uri, prefix);
       }
     }
   }
@@ -396,7 +409,8 @@ public class ReactiveXmlToJsonConverter {
     }
   }
 
-  private byte[] buildJsonHeader(Map<String, String> contextAttributes) throws IOException {
+  private byte[] buildJsonHeader(Map<String, String> contextAttributes,
+                                  ConversionNamespaceContext nsContext) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
     JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
 
@@ -406,13 +420,16 @@ public class ReactiveXmlToJsonConverter {
     generator.writeArrayFieldStart("@context");
     generator.writeString("https://ref.gs1.org/standards/epcis/epcis-context.jsonld");
 
-    // Add custom namespaces
-    Map<String, String> namespaces = namespaceResolver.getAllNamespaces();
+    // Add custom namespaces from context (getAllNamespaces returns URI->prefix)
+    // But for JSON-LD @context, we need prefix->URI format
+    Map<String, String> namespaces = nsContext.getNamespacesForXml(); // This returns prefix->URI
     if (!namespaces.isEmpty()) {
       generator.writeStartObject();
       for (Map.Entry<String, String> ns : namespaces.entrySet()) {
-        if (!isStandardNamespace(ns.getKey())) {
-          generator.writeStringField(ns.getKey(), ns.getValue());
+        String prefix = ns.getKey();
+        String uri = ns.getValue();
+        if (!isStandardNamespace(prefix)) {
+          generator.writeStringField(prefix, uri);
         }
       }
       generator.writeEndObject();
@@ -439,11 +456,13 @@ public class ReactiveXmlToJsonConverter {
     return baos.toByteArray();
   }
 
-  private byte[] serializeEvent(Object event) throws IOException {
+  private byte[] serializeEvent(Object event, boolean isFirstEvent) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
 
-    // Write comma separator (for events after first)
-    baos.write(',');
+    // Write comma separator for events after the first
+    if (!isFirstEvent) {
+      baos.write(',');
+    }
     baos.write('\n');
 
     objectMapper.writeValue(baos, event);

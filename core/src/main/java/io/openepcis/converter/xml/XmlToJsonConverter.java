@@ -24,6 +24,7 @@ import io.openepcis.converter.EventsConverter;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -58,13 +59,17 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
           .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
+  public XmlToJsonConverter(final JAXBContext jaxbContext, final ConversionNamespaceContext nsContext) {
+    super(jaxbContext, nsContext);
+  }
+
   public XmlToJsonConverter(final JAXBContext jaxbContext) {
-    super(jaxbContext);
+    this(jaxbContext, new ConversionNamespaceContext());
   }
 
   private XmlToJsonConverter(
       final XmlToJsonConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
-    this(parent.jaxbContext);
+    this(parent.jaxbContext, parent.nsContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
@@ -127,7 +132,7 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
       boolean isDocument = false;
 
       // Clear the namespaces before reading the document
-      namespaceResolver.resetAllNamespaces();
+      nsContext.resetAllNamespaces();
 
       // Map to store the attributes from the XML Header so can be added to final JSON
       final Map<String, String> contextAttributes = new HashMap<>();

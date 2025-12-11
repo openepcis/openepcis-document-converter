@@ -25,6 +25,7 @@ import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.xml.bind.JAXBContext;
@@ -59,13 +60,18 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
 
   private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
-  public JsonToXmlConverter(final JAXBContext jaxbContext) {
+  public JsonToXmlConverter(final JAXBContext jaxbContext, final ConversionNamespaceContext nsContext) {
+    super(nsContext);
     this.jaxbContext = jaxbContext;
+  }
+
+  public JsonToXmlConverter(final JAXBContext jaxbContext) {
+    this(jaxbContext, new ConversionNamespaceContext());
   }
 
   private JsonToXmlConverter(
       final JsonToXmlConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
-    this(parent.jaxbContext);
+    this(parent.jaxbContext, parent.nsContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
@@ -122,7 +128,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
     validateJsonStream(jsonStream);
 
     // Clear the namespaces before reading the document
-    defaultJsonSchemaNamespaceURIResolver.resetAllNamespaces();
+    nsContext.resetAllNamespaces();
 
     // Create a Marshaller instance to convert to XML
     final Marshaller marshaller = jaxbContext.createMarshaller();
@@ -156,7 +162,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
         // Set the namespaces for the marshaller
         marshaller.setProperty(
             MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-            defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
+            nsContext.getAllNamespaces());
 
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();

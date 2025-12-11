@@ -23,6 +23,7 @@ import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import java.io.IOException;
@@ -37,9 +38,16 @@ import javax.xml.stream.XMLStreamException;
 
 public class JSONEventValueTransformer extends JsonEventParser implements EventsConverter {
 
-  public JSONEventValueTransformer() {}
+  public JSONEventValueTransformer(final ConversionNamespaceContext nsContext) {
+    super(nsContext);
+  }
 
-  private JSONEventValueTransformer(BiFunction<Object, List<Object>, Object> epcisEventMapper) {
+  public JSONEventValueTransformer() {
+    this(new ConversionNamespaceContext());
+  }
+
+  private JSONEventValueTransformer(final JSONEventValueTransformer parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
+    this(parent.nsContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
@@ -60,7 +68,7 @@ public class JSONEventValueTransformer extends JsonEventParser implements Events
     validateJsonStream(jsonStream);
 
     // Clear the namespaces before reading the document
-    defaultJsonSchemaNamespaceURIResolver.resetAllNamespaces();
+    nsContext.resetAllNamespaces();
 
     // Store the information from JSON header for creation of final XML
     final Map<String, String> contextValues = new HashMap<>();
@@ -116,6 +124,6 @@ public class JSONEventValueTransformer extends JsonEventParser implements Events
 
   public final JSONEventValueTransformer mapWith(
       final BiFunction<Object, List<Object>, Object> mapper) {
-    return new JSONEventValueTransformer(mapper);
+    return new JSONEventValueTransformer(this, mapper);
   }
 }

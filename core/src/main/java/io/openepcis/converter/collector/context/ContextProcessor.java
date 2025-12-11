@@ -4,9 +4,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.converter.collector.context.handler.ContextHandler;
 import io.openepcis.converter.collector.context.impl.DefaultContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import java.net.URI;
 import java.util.*;
+import java.util.Comparator;
 
 /** Factory for resolving the appropriate {@link ContextHandler} implementation. */
 public class ContextProcessor {
@@ -14,10 +15,12 @@ public class ContextProcessor {
   private final List<ContextHandler> handlers;
 
   private ContextProcessor(final List<ContextHandler> handlers) {
-    this.handlers = handlers == null || handlers.isEmpty() ? new ArrayList<>() : handlers;
+    this.handlers = handlers == null || handlers.isEmpty() ? new ArrayList<>() : new ArrayList<>(handlers);
     if (this.handlers.isEmpty()) {
       this.handlers.add(new DefaultContextHandler());
     }
+    // Sort handlers by priority (lower priority number = checked first)
+    this.handlers.sort(Comparator.comparingInt(ContextHandler::getPriority));
   }
 
   public Map<String, URI> getContextUrls() {
@@ -59,11 +62,11 @@ public class ContextProcessor {
 
   public void resolveForXmlConversion(
       final Map<String, String> contextNamespaces,
-      final DefaultJsonSchemaNamespaceURIResolver namespaceURIResolver) {
+      final ConversionNamespaceContext namespaceContext) {
     // Iterate and find the matching handler GS1 Egypt or Default during the JSON -> XML conversion
     for (final ContextHandler handler : handlers) {
       if (handler.isContextHandler(contextNamespaces)) {
-        handler.populateXmlNamespaces(namespaceURIResolver);
+        handler.populateXmlNamespaces(namespaceContext);
         return;
       }
     }

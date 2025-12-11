@@ -22,6 +22,7 @@ import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
@@ -44,14 +45,18 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 
 public class XMLEventValueTransformer extends XMLEventParser implements EventsConverter {
 
+  public XMLEventValueTransformer(final JAXBContext jaxbContext, final ConversionNamespaceContext nsContext) {
+    super(jaxbContext, nsContext);
+  }
+
   public XMLEventValueTransformer(final JAXBContext jaxbContext) {
-    super(jaxbContext);
+    this(jaxbContext, new ConversionNamespaceContext());
   }
 
   private XMLEventValueTransformer(
       final XMLEventValueTransformer parent,
       BiFunction<Object, List<Object>, Object> epcisEventMapper) {
-    this(parent.jaxbContext);
+    this(parent.jaxbContext, parent.nsContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
@@ -91,7 +96,7 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
       boolean isDocument = false;
 
       // Clear the namespaces before reading the document
-      namespaceResolver.resetAllNamespaces();
+      nsContext.resetAllNamespaces();
 
       // Map to store the attributes from the XML Header so can be added to final JSON
       final Map<String, String> contextAttributes = new HashMap<>();
@@ -133,7 +138,7 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
 
             // Set the namespaces for the marshaller
             marshaller.setProperty(
-                MarshallerProperties.NAMESPACE_PREFIX_MAPPER, namespaceResolver.getAllNamespaces());
+                MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getAllNamespaces());
 
             final XMLStreamWriter skipEPCISNamespaceWriter =
                 new NonEPCISNamespaceXMLStreamWriter(

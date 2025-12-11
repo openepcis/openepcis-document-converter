@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.collector.context.handler.ContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
@@ -46,9 +46,8 @@ public class GS1EgyptContextHandler implements ContextHandler {
   }
 
   @Override
-  public void populateXmlNamespaces(
-      final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver) {
-    defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(
+  public void populateXmlNamespaces(final ConversionNamespaceContext namespaceContext) {
+    namespaceContext.populateDocumentNamespaces(
         GS1_EGYPT_2_0_NAMESPACE, GS1_EGYPT_DEFAULT_PREFIX);
   }
 

@@ -30,7 +30,7 @@ import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.XmlSupportExtension;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import java.io.IOException;
@@ -53,8 +53,7 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 public abstract class JsonEventParser {
 
   private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
-  protected final DefaultJsonSchemaNamespaceURIResolver defaultJsonSchemaNamespaceURIResolver =
-      DefaultJsonSchemaNamespaceURIResolver.getContext();
+  protected final ConversionNamespaceContext nsContext;
   protected final ContextProcessor contextProcessor = ContextProcessor.getInstance();
 
   protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
@@ -70,6 +69,10 @@ public abstract class JsonEventParser {
                   .addDeserializer(JsonNode.class, new JsonNodeDupeFieldHandlingDeserializer()))
           .registerModule(new JavaTimeModule());
 
+  public JsonEventParser(ConversionNamespaceContext nsContext) {
+    this.nsContext = nsContext;
+  }
+
   protected void validateJsonStream(InputStream jsonStream) {
     if (jsonStream == null) {
       throw new FormatConverterException(
@@ -84,9 +87,10 @@ public abstract class JsonEventParser {
     EPCISEvent event = (EPCISEvent) singleEvent.xmlSupport();
     if (epcisEventMapper.isPresent()) {
       // Change the key value to keep key as localname and value as namespaceURI
-      final Map<String, String> swappedNamespace =
-          defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream()
-              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+      final Map<String, String> swappedNamespace = nsContext != null
+          ? nsContext.getAllNamespaces().entrySet().stream()
+              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey))
+          : Map.of();
       // event.setContextInfo(!swappedNamespace.isEmpty() ? List.of(swappedNamespace) : null);
       event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
       return (EPCISEvent) epcisEventMapper.get().apply(event, List.of(swappedNamespace));
@@ -120,10 +124,10 @@ public abstract class JsonEventParser {
 
           // Get the default context value from the JSON @context using the ContextLogicDelegator
           // find if its custom context or Default GS1 context
-          if (jsonParser.currentToken() == JsonToken.VALUE_STRING) {
+          if (jsonParser.currentToken() == JsonToken.VALUE_STRING && nsContext != null) {
             contextProcessor.resolveForXmlConversion(
                 Map.of(jsonParser.getText(), jsonParser.getText()),
-                defaultJsonSchemaNamespaceURIResolver);
+                nsContext);
           }
 
           // Store namespace/context with prefix in Map if valid (ignores @ namespaces and default
@@ -132,11 +136,11 @@ public abstract class JsonEventParser {
               && jsonParser.currentToken() == JsonToken.VALUE_STRING
               && !jsonParser.currentName().startsWith("@")
               && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsValue(jsonParser.getText())
-              && !EPCIS.GS1_EPCIS_DOMAIN.equalsIgnoreCase(jsonParser.getText())) {
+              && !EPCIS.GS1_EPCIS_DOMAIN.equalsIgnoreCase(jsonParser.getText())
+              && nsContext != null) {
             // Add namespaces from JSON schema to the map (key: remote URL/URN and value: prefix
             // associated to URL)
-            defaultJsonSchemaNamespaceURIResolver.populateDocumentNamespaces(
-                jsonParser.getText(), jsonParser.currentName());
+            nsContext.populateDocumentNamespaces(jsonParser.getText(), jsonParser.currentName());
           }
         }
       }
@@ -218,13 +222,14 @@ public abstract class JsonEventParser {
           Object xmlSupport = event.xmlSupport();
           if (epcisEventMapper.isPresent()
               && EPCISEvent.class.isAssignableFrom(xmlSupport.getClass())) {
-            final Map<String, String> swappedNamespace =
-                defaultJsonSchemaNamespaceURIResolver.getAllNamespaces().entrySet().stream()
+            final Map<String, String> swappedNamespace = nsContext != null
+                ? nsContext.getAllNamespaces().entrySet().stream()
                     .collect(
                         Collectors.toMap(
                             Map.Entry::getValue,
                             Map.Entry::getKey,
-                            (existing, replacement) -> existing));
+                            (existing, replacement) -> existing))
+                : Map.of();
             final EPCISEvent epcisEvent = (EPCISEvent) xmlSupport;
             epcisEvent
                 .getOpenEPCISExtension()
@@ -239,9 +244,12 @@ public abstract class JsonEventParser {
                         XML_OUTPUT_FACTORY.createXMLStreamWriter(xmlEvent)));
 
             // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
+            final Map<String, String> allNamespaces = nsContext != null
+                ? nsContext.getAllNamespaces()
+                : Map.of();
             marshaller.setProperty(
                 MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-                defaultJsonSchemaNamespaceURIResolver.getAllNamespaces());
+                allNamespaces);
 
             marshaller.marshal(xmlSupport, skipEPCISNamespaceWriter);
 
@@ -263,7 +271,9 @@ public abstract class JsonEventParser {
           }
 
           // Reset the namespaces stored for particular event
-          defaultJsonSchemaNamespaceURIResolver.resetEventNamespaces();
+          if (nsContext != null) {
+            nsContext.resetEventNamespaces();
+          }
         }
 
       } else {

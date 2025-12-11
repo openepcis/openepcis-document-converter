@@ -19,6 +19,7 @@ import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.json.JsonToXmlConverter;
+import io.openepcis.converter.reactive.ReactiveConversionSource;
 import io.openepcis.converter.reactive.ReactiveVersionTransformer;
 import io.openepcis.converter.util.ChannelUtil;
 import io.openepcis.converter.xml.XmlToJsonConverter;
@@ -126,7 +127,8 @@ public class VersionTransformer {
   public final InputStream convert(final InputStream in, final Conversion conversion)
       throws UnsupportedOperationException, IOException {
 
-    final BufferedInputStream inputDocument = new BufferedInputStream(in);
+    // Use larger buffer for BufferedInputStream to match mark limit in version detection
+    final BufferedInputStream inputDocument = new BufferedInputStream(in, 1024 * 1024);
     EPCISVersion fromVersion;
     try{
       // Checking if mediaType is JSON_LD, and detecting version conditionally
@@ -135,37 +137,8 @@ public class VersionTransformer {
         throw new FormatConverterException(e.getMessage(), e);
     }
 
-
-    InputStream inputStream = inputDocument;
-    // If version detected, result won't be null, thus do InputStream operations
-    // Use larger buffer size to prevent deadlock when producer writes faster than consumer
-    final PipedInputStream pipe = new PipedInputStream(PIPE_BUFFER_SIZE);
-    // Use CountDownLatch instead of spin-lock for proper blocking
-    final CountDownLatch pipeReady = new CountDownLatch(1);
-    executorService.execute(
-        () -> {
-          final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-          try (pipedOutputStream) {
-            pipe.connect(pipedOutputStream);
-            pipeReady.countDown();
-            ChannelUtil.copy(inputDocument, pipedOutputStream);
-          } catch (Exception e) {
-            conversion.fail(e);
-            pipeReady.countDown(); // Ensure latch is released even on failure
-            throw new FormatConverterException(
-                "Exception occurred during reading of schema version from input document : "
-                    + e.getMessage(),
-                e);
-          }
-        });
-    try {
-      pipeReady.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new FormatConverterException("Interrupted while waiting for pipe connection", e);
-    }
-    inputStream = pipe;
-
+    // After version detection, the stream is reset. Pass it directly to conversion.
+    // No intermediate pipe needed since version detection uses mark/reset properly.
     final Conversion conversionToPerform =
         Conversion.of(
             conversion.fromMediaType(),
@@ -175,7 +148,7 @@ public class VersionTransformer {
             conversion.generateGS1CompliantDocument().orElse(null),
             conversion.onFailure().orElse(null)
         );
-    return performConversion(inputStream, conversionToPerform);
+    return performConversion(inputDocument, conversionToPerform);
   }
 
   /**
@@ -245,54 +218,47 @@ public class VersionTransformer {
   }
 
   /**
-   * Converts using the reactive API and pumps the result to a PipedInputStream.
-   * The executor thread runs the reactive pipeline synchronously, writing each chunk to the pipe.
-   * The caller gets the PipedInputStream immediately and reads as data becomes available.
+   * Converts using the reactive API.
+   * Collects output into a ByteArrayOutputStream for reliability,
+   * then wraps it as a ByteArrayInputStream.
    */
   private InputStream convertViaReactiveApi(final InputStream inputDocument, final Conversion conversion) {
+    // Build reactive transformer
+    final ReactiveVersionTransformer reactiveTransformer = ReactiveVersionTransformer.builder()
+        .eventMapper(epcisEventMapper.orElse(null))
+        .build();
+
+    // Create reactive source directly from InputStream
+    final ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(inputDocument);
+
+    // Collect all output into a ByteArrayOutputStream
+    final java.io.ByteArrayOutputStream outputBuffer = new java.io.ByteArrayOutputStream();
+
     try {
-      // Read input into byte array (reactive API needs this for XML/JSON parsing)
-      final byte[] inputBytes = inputDocument.readAllBytes();
+      reactiveTransformer.convert(source, conversion)
+          .onItem().invoke(bytes -> {
+            try {
+              outputBuffer.write(bytes);
+            } catch (IOException e) {
+              throw new FormatConverterException("Failed to write to buffer", e);
+            }
+          })
+          .onFailure().invoke(conversion::fail)
+          .collect().last()
+          .await().atMost(CONVERSION_TIMEOUT);
+    } catch (Exception e) {
+      conversion.fail(e);
+      throw new FormatConverterException("Conversion failed: " + e.getMessage(), e);
+    }
 
-      // Create pipe for streaming output with larger buffer to prevent deadlock
-      final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-      final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream, PIPE_BUFFER_SIZE);
+    return new java.io.ByteArrayInputStream(outputBuffer.toByteArray());
+  }
 
-      // Get reactive transformer
-      final ReactiveVersionTransformer reactiveTransformer = reactive();
-
-      // Pump data from reactive Multi to PipedOutputStream on executor thread.
-      // The executor thread runs the entire reactive pipeline synchronously,
-      // writing chunks to the pipe as they are produced.
-      executorService.execute(() -> {
-        try {
-          reactiveTransformer.convert(inputBytes, conversion)
-              .onItem().invoke(bytes -> {
-                try {
-                  pipedOutputStream.write(bytes);
-                } catch (IOException e) {
-                  throw new FormatConverterException("Failed to write to pipe", e);
-                }
-              })
-              .onFailure().invoke(conversion::fail)
-              .collect().last()
-              .await().atMost(CONVERSION_TIMEOUT);
-        } catch (Exception e) {
-          conversion.fail(e);
-        } finally {
-          try {
-            pipedOutputStream.close();
-          } catch (IOException e) {
-            LOG.log(Level.WARNING, COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, e);
-          }
-        }
-      });
-
-      return pipedInputStream;
-
+  private void closeQuietly(Closeable closeable) {
+    try {
+      closeable.close();
     } catch (IOException e) {
-      throw new FormatConverterException(
-          "Exception occurred during conversion: " + e.getMessage(), e);
+      LOG.log(Level.WARNING, COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, e);
     }
   }
 
@@ -337,6 +303,7 @@ public class VersionTransformer {
         if (result == null) {
           result = ReactiveVersionTransformer.builder()
               .eventMapper(epcisEventMapper.orElse(null))
+              .blockingExecutor(executorService)
               .build();
           reactiveVersionTransformer = result;
         }

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
@@ -43,12 +43,12 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
   private boolean isEPCISDocument;
   private String subscriptionID;
   private String queryName;
-  private final DefaultJsonSchemaNamespaceURIResolver namespaceResolver =
-      DefaultJsonSchemaNamespaceURIResolver.getContext();
+  private final ConversionNamespaceContext nsContext;
   protected final ContextProcessor contextProcessor = ContextProcessor.getInstance();
 
-  public JsonEPCISEventCollector(OutputStream stream) {
+  public JsonEPCISEventCollector(OutputStream stream, ConversionNamespaceContext nsContext) {
     this.stream = stream;
+    this.nsContext = nsContext;
 
     // Create the final JSON-LD with Header and event information
     try {
@@ -60,6 +60,14 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
               + e,
           e);
     }
+  }
+
+  /**
+   * Convenience constructor that creates a default ConversionNamespaceContext.
+   * @param stream the output stream to write JSON to
+   */
+  public JsonEPCISEventCollector(OutputStream stream) {
+    this(stream, new ConversionNamespaceContext());
   }
 
   @Override
@@ -100,7 +108,9 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeStartArray(); // Start of context array
 
       // Get all document level namespaces for adding within context
-      final Map<String, String> allNamespaces = namespaceResolver.getAllNamespaces();
+      final Map<String, String> allNamespaces = nsContext != null
+          ? nsContext.getAllNamespaces()
+          : Map.of();
 
       // Use SPI approach to add either Default GS1 context from DefaultContext or add custom
       // context such as GS1 Egypt or other
@@ -195,7 +205,10 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeStartArray();
 
       // Add all custom namespaces collected during event conversion
-      namespaceResolver.getEventNamespaces().forEach(
+      final Map<String, String> eventNamespaces = nsContext != null
+          ? nsContext.getEventNamespaces()
+          : Map.of();
+      eventNamespaces.forEach(
               (key, value) -> {
                 try {
                   jsonGenerator.writeStartObject();
@@ -215,7 +228,9 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
       jsonGenerator.writeEndArray();
 
       // Reset the event namespaces
-      namespaceResolver.resetEventNamespaces();
+      if (nsContext != null) {
+        nsContext.resetEventNamespaces();
+      }
 
       // Add comma to separate the context and serialized event
       jsonGenerator.writeRaw(",");

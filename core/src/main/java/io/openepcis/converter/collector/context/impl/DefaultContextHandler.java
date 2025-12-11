@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.collector.context.handler.ContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.model.epcis.util.DefaultJsonSchemaNamespaceURIResolver;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 
 import java.io.IOException;
 import java.util.Map;
@@ -34,13 +34,19 @@ public class DefaultContextHandler implements ContextHandler {
     }
 
     @Override
-    public void populateXmlNamespaces(
-            final DefaultJsonSchemaNamespaceURIResolver defaultNamespaceResolver) {
+    public void populateXmlNamespaces(final ConversionNamespaceContext namespaceContext) {
         // No additional handling needed for default context.
     }
 
     @Override
     public boolean isContextHandler(final Map<String, String> namespaces) {
         return true;
+    }
+
+    @Override
+    public int getPriority() {
+        // Lowest priority - this is a fallback handler that should only be used
+        // when no more specific handler matches
+        return Integer.MAX_VALUE;
     }
 }

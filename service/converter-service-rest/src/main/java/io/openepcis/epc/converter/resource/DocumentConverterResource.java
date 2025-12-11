@@ -21,7 +21,8 @@ import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.converter.util.ChannelUtil;
+import io.openepcis.converter.reactive.ReactiveConversionSource;
+import io.openepcis.converter.reactive.ReactiveVersionTransformer;
 import io.openepcis.epc.converter.util.GS1FormatProvider;
 import io.openepcis.model.epcis.EPCISDocument;
 import io.openepcis.model.epcis.EPCISEvent;
@@ -36,10 +37,7 @@ import jakarta.ws.rs.core.*;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
@@ -53,7 +51,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestHeader;
-import org.jboss.resteasy.reactive.RestMulti;
 import org.jboss.resteasy.reactive.RestResponse;
 
 @RegisterForReflection
@@ -64,6 +61,8 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentConverterResource {
 
   @Inject VersionTransformer versionTransformer;
+
+  @Inject ReactiveVersionTransformer reactiveVersionTransformer;
 
   @Inject GS1FormatProvider gs1FormatProvider;
 
@@ -181,27 +180,42 @@ public class DocumentConverterResource {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
 
-    return setupStreamingOutput(
-        inputDocument,
-        GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),
-        Conversion.builder()
-            .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-            .toMediaType(EPCISFormat.JSON_LD)
-            .toVersion(EPCISVersion.VERSION_2_0_0)
-            .build(),
-        gs1Extensions);
+    final EPCISFormat fromFormat = GS1FormatSupport.getEPCISFormat(mediaType);
 
-    /*        return Uni.createFrom().item(versionTransformer
-    .mapWith(GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()))
-    .convert(
-            inputDocument,
-            Conversion.builder()
-                    .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-                    .toMediaType(EPCISFormat.JSON_LD)
-                    .toVersion(EPCISVersion.VERSION_2_0_0)
-                    .build())).runSubscriptionOn(managedExecutor);
-                    */
+    // For JSON-LD input, version is always 2.0.0
+    // For XML input, we need to detect the version
+    final BufferedInputStream bufferedInput = new BufferedInputStream(inputDocument, 1024 * 1024);
+    final EPCISVersion fromVersion;
+    try {
+      fromVersion = EPCISFormat.JSON_LD.equals(fromFormat)
+          ? EPCISVersion.VERSION_2_0_0
+          : versionTransformer.versionDetector(bufferedInput);
+    } catch (IOException e) {
+      throw new FormatConverterException("Failed to detect document version", e);
+    }
 
+    // Build conversion spec with detected version
+    final Conversion conversion = Conversion.builder()
+        .fromMediaType(fromFormat)
+        .fromVersion(fromVersion)
+        .toMediaType(EPCISFormat.JSON_LD)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    // Use StreamingOutput with reactive transformer internally
+    return output -> {
+      final ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(bufferedInput);
+      reactiveVersionTransformer.convert(source, conversion)
+          .onItem().invoke(bytes -> {
+            try {
+              output.write(bytes);
+            } catch (IOException e) {
+              throw new FormatConverterException("Failed to write output", e);
+            }
+          })
+          .collect().last()
+          .await().indefinitely();
+    };
   }
 
   // Method to convert the input JSON 2.0 EPCIS events into XML 2.0 EPCIS events
@@ -287,7 +301,7 @@ public class DocumentConverterResource {
                 "Internal Server Error: Unable to convert document or single event as server encountered problem.",
             content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
       })
-  public RestMulti<byte[]> convertToXml_2_0(
+  public StreamingOutput convertToXml_2_0(
       final InputStream inputDocument,
       @Parameter(
               name = "GS1-EPC-Format",
@@ -320,8 +334,7 @@ public class DocumentConverterResource {
           @RestHeader(value = "GS1-CBV-XML-Format")
           String cbvFormat,
       @RestHeader(value = "GS1-Extensions") String gs1Extensions,
-      @Context HttpHeaders httpHeaders)
-      throws FormatConverterException, IOException {
+      @Context HttpHeaders httpHeaders) {
 
     final MediaType mediaType = httpHeaders.getMediaType();
 
@@ -329,29 +342,36 @@ public class DocumentConverterResource {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
 
-    return setupRestMultiByteArray(
-        inputDocument,
-        GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),
-        Conversion.builder()
-            .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-            .toMediaType(EPCISFormat.XML)
-            .toVersion(EPCISVersion.VERSION_2_0_0)
-            .build(),
-        gs1Extensions);
-    /*
-           return RestMulti.fromMultiData(
-                   ChannelUtil.toMulti(versionTransformer
-                                   .mapWith(GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()))
-                                   .convert(
-                                           new BufferedInputStream(jsonEvents, 8192),
-                                           Conversion.builder()
-                                                   .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-                                                   .toMediaType(EPCISFormat.XML)
-                                                   .toVersion(EPCISVersion.VERSION_2_0_0)
-                                                   .build()))
-                           .runSubscriptionOn(managedExecutor)
-           ).build();
-    */
+    final EPCISFormat fromFormat = GS1FormatSupport.getEPCISFormat(mediaType);
+
+    // For JSON-LD input, version is always 2.0.0
+    // For XML input, we need to detect the version
+    final BufferedInputStream bufferedInput = new BufferedInputStream(inputDocument, 1024 * 1024);
+    final EPCISVersion fromVersion;
+    try {
+      fromVersion = EPCISFormat.JSON_LD.equals(fromFormat)
+          ? EPCISVersion.VERSION_2_0_0
+          : versionTransformer.versionDetector(bufferedInput);
+    } catch (IOException e) {
+      throw new FormatConverterException("Failed to detect document version", e);
+    }
+
+    // Build conversion spec with detected version
+    final Conversion conversion = Conversion.builder()
+        .fromMediaType(fromFormat)
+        .fromVersion(fromVersion)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    // Use synchronous VersionTransformer for XML output (XSLT produces complete documents)
+    return output -> {
+      try (InputStream result = versionTransformer.performConversion(bufferedInput, conversion)) {
+        result.transferTo(output);
+      } catch (IOException e) {
+        throw new FormatConverterException("Failed to write XML output", e);
+      }
+    };
   }
 
   // Method to convert the input JSON 2.0 EPCIS events into XML 1.2 EPCIS events
@@ -437,7 +457,7 @@ public class DocumentConverterResource {
                 "Internal Server Error: Unable to convert EPCIS JSON/JSON-LD document or EPCIS 1.2 XML or single event as server encountered problem.",
             content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
       })
-  public RestMulti<byte[]> convertToXml_1_2(
+  public StreamingOutput convertToXml_1_2(
       final InputStream inputDocument,
       @Parameter(
               name = "GS1-EPC-Format",
@@ -470,36 +490,44 @@ public class DocumentConverterResource {
           @RestHeader(value = "GS1-CBV-XML-Format")
           String cbvFormat,
       @RestHeader(value = "GS1-Extensions") String gs1Extensions,
-      @Context HttpHeaders httpHeaders)
-      throws FormatConverterException, IOException {
+      @Context HttpHeaders httpHeaders) {
 
     final MediaType mediaType = httpHeaders.getMediaType();
 
     if (mediaType == null || !GS1FormatSupport.isValidMediaType(mediaType)) {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
-    return setupRestMultiByteArray(
-        inputDocument,
-        GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()),
-        Conversion.builder()
-            .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-            .toMediaType(EPCISFormat.XML)
-            .toVersion(EPCISVersion.VERSION_1_2_0)
-            .build(),
-        gs1Extensions);
-    /*
-           return RestMulti.fromMultiData(ChannelUtil.toMulti(versionTransformer
-                   .mapWith(GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()))
-                   .convert(
-                           jsonEvents,
-                           Conversion.builder()
-                                   .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
-                                   .toMediaType(EPCISFormat.XML)
-                                   .toVersion(EPCISVersion.VERSION_1_2_0)
-                                   .build())).runSubscriptionOn(managedExecutor)
-           ).build();
 
-    */
+    final EPCISFormat fromFormat = GS1FormatSupport.getEPCISFormat(mediaType);
+
+    // For JSON-LD input, version is always 2.0.0
+    // For XML input, we need to detect the version
+    final BufferedInputStream bufferedInput = new BufferedInputStream(inputDocument, 1024 * 1024);
+    final EPCISVersion fromVersion;
+    try {
+      fromVersion = EPCISFormat.JSON_LD.equals(fromFormat)
+          ? EPCISVersion.VERSION_2_0_0
+          : versionTransformer.versionDetector(bufferedInput);
+    } catch (IOException e) {
+      throw new FormatConverterException("Failed to detect document version", e);
+    }
+
+    // Build conversion spec with detected version
+    final Conversion conversion = Conversion.builder()
+        .fromMediaType(fromFormat)
+        .fromVersion(fromVersion)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_1_2_0)
+        .build();
+
+    // Use synchronous VersionTransformer for XML output (XSLT produces complete documents)
+    return output -> {
+      try (InputStream result = versionTransformer.performConversion(bufferedInput, conversion)) {
+        result.transferTo(output);
+      } catch (IOException e) {
+        throw new FormatConverterException("Failed to write XML output", e);
+      }
+    };
   }
 
   @Operation(summary = "Detect the version of provided EPCIS document.", hidden = false)
@@ -579,36 +607,5 @@ public class DocumentConverterResource {
         .map(response -> RestResponse.ok(response))
         .onFailure()
         .transform(t -> t.getCause());
-  }
-
-  private StreamingOutput setupStreamingOutput(
-      final InputStream inputStream,
-      final BiFunction<Object, List<Object>, Object> mapper,
-      final Conversion conversion,
-      final String gs1Extensions) {
-    return new StreamingOutput() {
-      @Override
-      public void write(OutputStream output) throws IOException, WebApplicationException {
-        versionTransformer
-            .mapWith(mapper, gs1Extensions)
-            .convert(inputStream, conversion)
-            .transferTo(output);
-      }
-    };
-  }
-
-  private RestMulti<byte[]> setupRestMultiByteArray(
-      final InputStream inputStream,
-      final BiFunction<Object, List<Object>, Object> mapper,
-      final Conversion conversion,
-      final String gs1Extensions)
-      throws IOException {
-    return RestMulti.fromMultiData(
-            ChannelUtil.toMulti(
-                    versionTransformer
-                        .mapWith(mapper, gs1Extensions)
-                        .convert(inputStream, conversion))
-                .runSubscriptionOn(managedExecutor))
-        .build();
   }
 }

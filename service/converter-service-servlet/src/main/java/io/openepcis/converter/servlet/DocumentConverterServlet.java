@@ -19,8 +19,9 @@ import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
-import io.openepcis.converter.common.GS1FormatSupport;
-import io.openepcis.model.epcis.format.FormatPreference;
+import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.converter.reactive.ReactiveConversionSource;
+import io.openepcis.converter.reactive.ReactiveVersionTransformer;
 import io.openepcis.model.rest.servlet.ServletSupport;
 import jakarta.inject.Inject;
 import jakarta.servlet.ServletException;
@@ -30,12 +31,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.MediaType;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @WebServlet(name = "DocumentConverterServlet", urlPatterns = "/api/convert/*")
 public class DocumentConverterServlet extends HttpServlet {
+
+  private static final Logger LOG = Logger.getLogger(DocumentConverterServlet.class.getName());
 
   private static final List<String> PRODUCES =
       List.of(
@@ -54,6 +60,8 @@ public class DocumentConverterServlet extends HttpServlet {
   private static final String CONVERT_XML_1_2 = "/convert/xml/1.2";
 
   @Inject VersionTransformer versionTransformer;
+
+  @Inject ReactiveVersionTransformer reactiveVersionTransformer;
 
   @Inject ServletSupport servletSupport;
 
@@ -97,6 +105,7 @@ public class DocumentConverterServlet extends HttpServlet {
         }
       }
     } catch (Exception e) {
+      LOG.log(Level.SEVERE, "Conversion failed", e);
       servletSupport.writeException(new BadRequestException(e.getMessage(), e), accept.get(), resp);
     }
   }
@@ -106,18 +115,36 @@ public class DocumentConverterServlet extends HttpServlet {
       HttpServletResponse resp,
       final EPCISFormat from,
       final EPCISFormat to,
-      final EPCISVersion version)
+      final EPCISVersion toVersion)
       throws IOException {
-    versionTransformer
-        .mapWith(GS1FormatSupport.createMapper(getFormatPreference(req)))
-        .convert(
-            req.getInputStream(),
-            Conversion.builder().fromMediaType(from).toMediaType(to).toVersion(version).build())
-        .transferTo(resp.getOutputStream());
-  }
+    // Wrap in BufferedInputStream to support mark/reset for version detection
+    final BufferedInputStream bufferedInput = new BufferedInputStream(req.getInputStream(), 1024 * 1024);
 
-  private FormatPreference getFormatPreference(HttpServletRequest req) {
-    return GS1FormatSupport.getFormatPreference(
-        GS1FormatSupport.createRequestFacade(req::getHeader));
+    // Detect fromVersion: JSON-LD is always 2.0, XML needs version detection
+    final EPCISVersion fromVersion = EPCISFormat.JSON_LD.equals(from)
+        ? EPCISVersion.VERSION_2_0_0
+        : versionTransformer.versionDetector(bufferedInput);
+
+    // Build conversion with detected fromVersion
+    final Conversion conversion = Conversion.builder()
+        .fromMediaType(from)
+        .fromVersion(fromVersion)
+        .toMediaType(to)
+        .toVersion(toVersion)
+        .build();
+
+    // Use reactive transformer directly (same approach as REST service)
+    final ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(bufferedInput);
+    reactiveVersionTransformer
+        .convert(source, conversion)
+        .onItem().invoke(bytes -> {
+          try {
+            resp.getOutputStream().write(bytes);
+          } catch (IOException e) {
+            throw new FormatConverterException("Failed to write output", e);
+          }
+        })
+        .collect().last()
+        .await().indefinitely();
   }
 }

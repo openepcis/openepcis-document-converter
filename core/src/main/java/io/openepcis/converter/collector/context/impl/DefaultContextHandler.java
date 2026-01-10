@@ -1,6 +1,7 @@
 package io.openepcis.converter.collector.context.impl;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import io.openepcis.constants.EPCIS;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.collector.context.handler.ContextHandler;
 import io.openepcis.converter.exception.FormatConverterException;
@@ -35,7 +36,15 @@ public class DefaultContextHandler implements ContextHandler {
 
     @Override
     public void populateXmlNamespaces(final ConversionNamespaceContext namespaceContext) {
-        // No additional handling needed for default context.
+        // Populate default EPCIS namespaces that are implicitly defined by the standard JSON-LD context.
+        // This ensures prefixes like cbvmda, gs1, cbv are properly mapped during JSON->XML conversion.
+        if (namespaceContext != null) {
+            EPCIS.EPCIS_DEFAULT_NAMESPACES.forEach((prefix, uri) -> {
+                if (uri instanceof String uriString) {
+                    namespaceContext.populateDocumentNamespaces(uriString, prefix);
+                }
+            });
+        }
     }
 
     @Override

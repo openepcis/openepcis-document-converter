@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
@@ -265,6 +266,8 @@ public class ReactiveXmlToJsonConverter {
 
           // Check for event types
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
+            // Capture event-level namespaces before unmarshalling (O(1) - no blocking)
+            prepareEventNamespaces(reader, nsContext);
             Object event = unmarshallEvent(reader, unmarshaller);
 
             if (event != null) {
@@ -274,8 +277,8 @@ public class ReactiveXmlToJsonConverter {
               // Apply mapper if configured
               event = applyEventMapper(sequenceInEventList, event, nsContext);
 
-              // Convert to JSON
-              byte[] jsonBytes = serializeEvent(event, isFirstEvent);
+              // Convert to JSON (with event-level @context if namespaces were discovered)
+              byte[] jsonBytes = serializeEvent(event, isFirstEvent, nsContext);
               emitter.emit(jsonBytes);
             }
             continue;
@@ -328,6 +331,8 @@ public class ReactiveXmlToJsonConverter {
           }
 
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
+            // Capture event-level namespaces before unmarshalling (O(1) - no blocking)
+            prepareEventNamespaces(reader, nsContext);
             Object event = unmarshallEvent(reader, unmarshaller);
 
             if (event != null) {
@@ -386,14 +391,36 @@ public class ReactiveXmlToJsonConverter {
         .orElse(event);
   }
 
+  /**
+   * Captures document-level namespaces from XMLStreamReader.
+   * Called when document root element is encountered.
+   * These namespaces go into the document-level @context.
+   */
   private void prepareNamespaces(XMLStreamReader reader, ConversionNamespaceContext nsContext) {
-    // Context is fresh per conversion, no need to reset
     int nsCount = reader.getNamespaceCount();
     for (int i = 0; i < nsCount; i++) {
       String prefix = reader.getNamespacePrefix(i);
       String uri = reader.getNamespaceURI(i);
       if (prefix != null && !prefix.isEmpty() && uri != null) {
         nsContext.populateDocumentNamespaces(uri, prefix);
+      }
+    }
+  }
+
+  /**
+   * Captures event-level namespaces from XMLStreamReader.
+   * Called before unmarshalling each event element.
+   * These namespaces go into the event-level @context and are reset after each event.
+   * This is O(1) access to already-parsed namespace data - no blocking.
+   */
+  private void prepareEventNamespaces(XMLStreamReader reader, ConversionNamespaceContext nsContext) {
+    int nsCount = reader.getNamespaceCount();
+    for (int i = 0; i < nsCount; i++) {
+      String prefix = reader.getNamespacePrefix(i);
+      String uri = reader.getNamespaceURI(i);
+      // Only capture non-standard namespaces as event-level
+      if (prefix != null && !prefix.isEmpty() && uri != null && !isStandardNamespace(prefix)) {
+        nsContext.populateEventNamespaces(uri, prefix);
       }
     }
   }
@@ -456,7 +483,8 @@ public class ReactiveXmlToJsonConverter {
     return baos.toByteArray();
   }
 
-  private byte[] serializeEvent(Object event, boolean isFirstEvent) throws IOException {
+  private byte[] serializeEvent(Object event, boolean isFirstEvent,
+                                 ConversionNamespaceContext nsContext) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
 
     // Write comma separator for events after the first
@@ -465,7 +493,42 @@ public class ReactiveXmlToJsonConverter {
     }
     baos.write('\n');
 
-    objectMapper.writeValue(baos, event);
+    // Check for event-level namespaces discovered during unmarshalling
+    Map<String, String> eventNamespaces = nsContext != null
+        ? nsContext.getEventNamespaces()
+        : Map.of();
+
+    if (!eventNamespaces.isEmpty()) {
+      // Inject event-level @context - serialize event to string first
+      String eventJson = objectMapper.writeValueAsString(event);
+
+      // Build @context array for event-level namespaces
+      JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
+      generator.writeStartObject();
+
+      // Write @context array with event namespaces
+      generator.writeArrayFieldStart("@context");
+      for (Map.Entry<String, String> ns : eventNamespaces.entrySet()) {
+        generator.writeStartObject();
+        generator.writeStringField(ns.getValue(), ns.getKey()); // prefix: uri
+        generator.writeEndObject();
+      }
+      // Add default EPCIS context
+      generator.writeString(EPCISVersion.getDefaultJSONContext());
+      generator.writeEndArray();
+
+      // Write the rest of the event fields (strip outer braces from serialized event)
+      generator.writeRaw("," + eventJson.substring(1, eventJson.length() - 1));
+      generator.writeEndObject();
+      generator.flush();
+
+      // Reset event namespaces after processing
+      nsContext.resetEventNamespaces();
+    } else {
+      // No event-level namespaces, serialize normally
+      objectMapper.writeValue(baos, event);
+    }
+
     return baos.toByteArray();
   }
 
@@ -476,9 +539,8 @@ public class ReactiveXmlToJsonConverter {
   }
 
   private boolean isStandardNamespace(String prefix) {
-    return "epcis".equals(prefix) ||
-        "cbvmda".equals(prefix) ||
-        "xsi".equals(prefix) ||
+    return EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix) ||
+        EPCIS.XSI.equals(prefix) ||
         "xmlns".equals(prefix);
   }
 }

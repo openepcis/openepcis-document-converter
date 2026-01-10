@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
@@ -423,11 +424,14 @@ public class ReactiveJsonToXmlConverter {
       String uri = ns.getValue();
       // Skip invalid prefixes: must be valid XML NCName (no colons, slashes, etc.)
       // and not start with "xmlns" or be a URL
+      // Also skip standard EPCIS namespaces (already written above) and xsi
       if (prefix != null && !prefix.isEmpty()
           && !prefix.startsWith("xmlns")
           && !prefix.contains(":")
           && !prefix.contains("/")
-          && !prefix.startsWith("http")) {
+          && !prefix.startsWith("http")
+          && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix)
+          && !EPCIS.XSI.equals(prefix)) {
         writer.writeNamespace(prefix, uri);
       }
     }

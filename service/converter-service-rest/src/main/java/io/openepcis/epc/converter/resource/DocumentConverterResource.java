@@ -202,19 +202,19 @@ public class DocumentConverterResource {
         .toVersion(EPCISVersion.VERSION_2_0_0)
         .build();
 
-    // Use StreamingOutput with reactive transformer internally
+    // If GS1 format headers are provided, use mapWith to apply header preferences.
+    // Otherwise, let VersionTransformer's internal defaults apply (Digital Link for 2.0).
+    final VersionTransformer transformer = (epcFormat != null)
+        ? versionTransformer.mapWith(GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()), gs1Extensions)
+        : versionTransformer;
+
+    // Use VersionTransformer to perform conversion
     return output -> {
-      final ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(bufferedInput);
-      reactiveVersionTransformer.convert(source, conversion)
-          .onItem().invoke(bytes -> {
-            try {
-              output.write(bytes);
-            } catch (IOException e) {
-              throw new FormatConverterException("Failed to write output", e);
-            }
-          })
-          .collect().last()
-          .await().indefinitely();
+      try (InputStream result = transformer.performConversion(bufferedInput, conversion)) {
+        result.transferTo(output);
+      } catch (IOException e) {
+        throw new FormatConverterException("Failed to write JSON output", e);
+      }
     };
   }
 
@@ -364,9 +364,15 @@ public class DocumentConverterResource {
         .toVersion(EPCISVersion.VERSION_2_0_0)
         .build();
 
-    // Use synchronous VersionTransformer for XML output (XSLT produces complete documents)
+    // If GS1 format headers are provided, use mapWith to apply header preferences.
+    // Otherwise, let VersionTransformer's internal defaults apply (Digital Link for 2.0).
+    final VersionTransformer transformer = (epcFormat != null || cbvFormat != null)
+        ? versionTransformer.mapWith(GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()), gs1Extensions)
+        : versionTransformer;
+
+    // Use VersionTransformer to perform conversion
     return output -> {
-      try (InputStream result = versionTransformer.performConversion(bufferedInput, conversion)) {
+      try (InputStream result = transformer.performConversion(bufferedInput, conversion)) {
         result.transferTo(output);
       } catch (IOException e) {
         throw new FormatConverterException("Failed to write XML output", e);
@@ -520,9 +526,15 @@ public class DocumentConverterResource {
         .toVersion(EPCISVersion.VERSION_1_2_0)
         .build();
 
-    // Use synchronous VersionTransformer for XML output (XSLT produces complete documents)
+    // If GS1 format headers are provided, use mapWith to apply header preferences.
+    // Otherwise, let VersionTransformer's internal defaults apply (no conversion for 1.2).
+    final VersionTransformer transformer = (epcFormat != null || cbvFormat != null)
+        ? versionTransformer.mapWith(GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference()), gs1Extensions)
+        : versionTransformer;
+
+    // Use VersionTransformer to perform conversion
     return output -> {
-      try (InputStream result = versionTransformer.performConversion(bufferedInput, conversion)) {
+      try (InputStream result = transformer.performConversion(bufferedInput, conversion)) {
         result.transferTo(output);
       } catch (IOException e) {
         throw new FormatConverterException("Failed to write XML output", e);

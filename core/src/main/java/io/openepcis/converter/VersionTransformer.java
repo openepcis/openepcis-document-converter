@@ -17,6 +17,7 @@ package io.openepcis.converter;
 
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.json.JsonToXmlConverter;
 import io.openepcis.converter.reactive.ReactiveConversionSource;
@@ -24,6 +25,9 @@ import io.openepcis.converter.reactive.ReactiveVersionTransformer;
 import io.openepcis.converter.util.ChannelUtil;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import io.openepcis.converter.xml.XmlVersionTransformer;
+import io.openepcis.model.epcis.format.CBVFormat;
+import io.openepcis.model.epcis.format.EPCFormat;
+import io.openepcis.model.epcis.format.FormatPreference;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import java.io.*;
@@ -223,9 +227,34 @@ public class VersionTransformer {
    * then wraps it as a ByteArrayInputStream.
    */
   private InputStream convertViaReactiveApi(final InputStream inputDocument, final Conversion conversion) {
-    // Build reactive transformer
+    // Determine effective event mapper based on conversion settings
+    BiFunction<Object, List<Object>, Object> effectiveMapper = epcisEventMapper.orElse(null);
+
+    // If a mapper is already set via mapWith(), use it directly without adding internal GS1 conversion.
+    // This allows header-based format preferences to take full control.
+    // Only apply internal GS1 conversion defaults when no external mapper is configured.
+    if (effectiveMapper == null) {
+      // Default: true for XML 2.0 and JSON 2.0, false for XML 1.2 (Digital Link URI not supported)
+      final boolean isXml12Target = EPCISFormat.XML.equals(conversion.toMediaType()) && EPCISVersion.VERSION_1_2_0.equals(conversion.toVersion());
+      final boolean defaultGS1Conversion = !isXml12Target;
+
+      final Boolean gs1Compliant = conversion.generateGS1CompliantDocument().orElse(defaultGS1Conversion);
+      if (Boolean.TRUE.equals(gs1Compliant)) {
+        // Determine CBV format based on target media type:
+        // - JSON-LD: Use bare strings (No_Preference) as JSON-LD context provides expansion
+        // - XML: Use Web URI format
+        final boolean isJsonTarget = EPCISFormat.JSON_LD.equals(conversion.toMediaType());
+        final String cbvFormat = isJsonTarget ? CBVFormat.No_Preference.getCbvFormat() : CBVFormat.Always_Web_URI.getCbvFormat();
+
+        // Create FormatPreference for GS1 Digital Link conversion
+        final FormatPreference formatPreference = new FormatPreference(EPCFormat.Always_GS1_Digital_Link.getEPCFormat(), cbvFormat);
+        effectiveMapper = GS1FormatSupport.createMapper(formatPreference);
+      }
+    }
+
+    // Build reactive transformer with the effective mapper
     final ReactiveVersionTransformer reactiveTransformer = ReactiveVersionTransformer.builder()
-        .eventMapper(epcisEventMapper.orElse(null))
+        .eventMapper(effectiveMapper)
         .build();
 
     // Create reactive source directly from InputStream

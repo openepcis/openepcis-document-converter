@@ -25,11 +25,35 @@ import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 public class ExceptionMapper {
 
   @ServerExceptionMapper
-  public final RestResponse<ProblemResponseBody> mapException(
-      final FormatConverterException exception) {
+  public final RestResponse<ProblemResponseBody> mapException(final FormatConverterException exception) {
     log.error(exception.getMessage(), exception);
-    ProblemResponseBody responseBody =
-        ProblemResponseBody.fromException(exception, RestResponse.Status.BAD_REQUEST);
+
+    // Build detailed message including root cause for better error diagnostics
+    final String rootCauseMsg = getRootCauseMessage(exception);
+    String detailMessage = exception.getMessage();
+    if (!rootCauseMsg.equals(exception.getMessage())) {
+      detailMessage = detailMessage + " [Root cause: " + rootCauseMsg + "]";
+    }
+
+    ProblemResponseBody responseBody = new ProblemResponseBody()
+        .type(exception.getClass().getSimpleName())
+        .title("Bad Request")
+        .status(RestResponse.Status.BAD_REQUEST.getStatusCode())
+        .detail(detailMessage);
     return RestResponse.status(RestResponse.Status.BAD_REQUEST, responseBody);
+  }
+
+  /**
+   * Extracts the root cause message from an exception chain.
+   *
+   * @param e the exception to extract the root cause from
+   * @return the root cause message, or the original exception message if no root cause found
+   */
+  private String getRootCauseMessage(Throwable e) {
+    Throwable root = e;
+    while (root.getCause() != null && root.getCause() != root) {
+      root = root.getCause();
+    }
+    return root.getMessage() != null ? root.getMessage() : e.getMessage();
   }
 }

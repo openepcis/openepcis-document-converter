@@ -21,8 +21,6 @@ import io.openepcis.converter.Conversion;
 import io.openepcis.converter.VersionTransformer;
 import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.converter.exception.FormatConverterException;
-import io.openepcis.converter.reactive.ReactiveConversionSource;
-import io.openepcis.converter.reactive.ReactiveVersionTransformer;
 import io.openepcis.epc.converter.util.GS1FormatProvider;
 import io.openepcis.model.epcis.EPCISDocument;
 import io.openepcis.model.epcis.EPCISEvent;
@@ -37,7 +35,9 @@ import jakarta.ws.rs.core.*;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
@@ -61,8 +61,6 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentConverterResource {
 
   @Inject VersionTransformer versionTransformer;
-
-  @Inject ReactiveVersionTransformer reactiveVersionTransformer;
 
   @Inject GS1FormatProvider gs1FormatProvider;
 
@@ -180,41 +178,26 @@ public class DocumentConverterResource {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
 
-    final EPCISFormat fromFormat = GS1FormatSupport.getEPCISFormat(mediaType);
+    // Get the mapper from header-based format preferences
+    final BiFunction<Object, List<Object>, Object> mapper =
+        GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference());
 
-    // For JSON-LD input, version is always 2.0.0
-    // For XML input, we need to detect the version
-    final BufferedInputStream bufferedInput = new BufferedInputStream(inputDocument, 1024 * 1024);
-    final EPCISVersion fromVersion;
-    try {
-      fromVersion = EPCISFormat.JSON_LD.equals(fromFormat)
-          ? EPCISVersion.VERSION_2_0_0
-          : versionTransformer.versionDetector(bufferedInput);
-    } catch (IOException e) {
-      throw new FormatConverterException("Failed to detect document version", e);
-    }
-
-    // Build conversion spec with detected version
+    // Build conversion spec
     final Conversion conversion = Conversion.builder()
-        .fromMediaType(fromFormat)
-        .fromVersion(fromVersion)
+        .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
         .toMediaType(EPCISFormat.JSON_LD)
         .toVersion(EPCISVersion.VERSION_2_0_0)
         .build();
 
-    // Use StreamingOutput with reactive transformer internally
+    // Use mapWith() to apply header-based format preferences
     return output -> {
-      final ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(bufferedInput);
-      reactiveVersionTransformer.convert(source, conversion)
-          .onItem().invoke(bytes -> {
-            try {
-              output.write(bytes);
-            } catch (IOException e) {
-              throw new FormatConverterException("Failed to write output", e);
-            }
-          })
-          .collect().last()
-          .await().indefinitely();
+      try (InputStream result = versionTransformer
+              .mapWith(mapper, gs1Extensions)
+              .convert(inputDocument, conversion)) {
+        result.transferTo(output);
+      } catch (IOException e) {
+        throw new FormatConverterException("Failed to write JSON output", e);
+      }
     };
   }
 
@@ -342,31 +325,22 @@ public class DocumentConverterResource {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
 
-    final EPCISFormat fromFormat = GS1FormatSupport.getEPCISFormat(mediaType);
+    // Get the mapper from header-based format preferences
+    final BiFunction<Object, List<Object>, Object> mapper =
+        GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference());
 
-    // For JSON-LD input, version is always 2.0.0
-    // For XML input, we need to detect the version
-    final BufferedInputStream bufferedInput = new BufferedInputStream(inputDocument, 1024 * 1024);
-    final EPCISVersion fromVersion;
-    try {
-      fromVersion = EPCISFormat.JSON_LD.equals(fromFormat)
-          ? EPCISVersion.VERSION_2_0_0
-          : versionTransformer.versionDetector(bufferedInput);
-    } catch (IOException e) {
-      throw new FormatConverterException("Failed to detect document version", e);
-    }
-
-    // Build conversion spec with detected version
+    // Build conversion spec
     final Conversion conversion = Conversion.builder()
-        .fromMediaType(fromFormat)
-        .fromVersion(fromVersion)
+        .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_2_0_0)
         .build();
 
-    // Use synchronous VersionTransformer for XML output (XSLT produces complete documents)
+    // Use mapWith() to apply header-based format preferences
     return output -> {
-      try (InputStream result = versionTransformer.performConversion(bufferedInput, conversion)) {
+      try (InputStream result = versionTransformer
+              .mapWith(mapper, gs1Extensions)
+              .convert(inputDocument, conversion)) {
         result.transferTo(output);
       } catch (IOException e) {
         throw new FormatConverterException("Failed to write XML output", e);
@@ -498,31 +472,22 @@ public class DocumentConverterResource {
       throw new UnsupportedMediaTypeException("Unsupported media type: " + mediaType);
     }
 
-    final EPCISFormat fromFormat = GS1FormatSupport.getEPCISFormat(mediaType);
+    // Get the mapper from header-based format preferences
+    final BiFunction<Object, List<Object>, Object> mapper =
+        GS1FormatSupport.createMapper(gs1FormatProvider.getFormatPreference());
 
-    // For JSON-LD input, version is always 2.0.0
-    // For XML input, we need to detect the version
-    final BufferedInputStream bufferedInput = new BufferedInputStream(inputDocument, 1024 * 1024);
-    final EPCISVersion fromVersion;
-    try {
-      fromVersion = EPCISFormat.JSON_LD.equals(fromFormat)
-          ? EPCISVersion.VERSION_2_0_0
-          : versionTransformer.versionDetector(bufferedInput);
-    } catch (IOException e) {
-      throw new FormatConverterException("Failed to detect document version", e);
-    }
-
-    // Build conversion spec with detected version
+    // Build conversion spec
     final Conversion conversion = Conversion.builder()
-        .fromMediaType(fromFormat)
-        .fromVersion(fromVersion)
+        .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_1_2_0)
         .build();
 
-    // Use synchronous VersionTransformer for XML output (XSLT produces complete documents)
+    // Use mapWith() to apply header-based format preferences
     return output -> {
-      try (InputStream result = versionTransformer.performConversion(bufferedInput, conversion)) {
+      try (InputStream result = versionTransformer
+              .mapWith(mapper, gs1Extensions)
+              .convert(inputDocument, conversion)) {
         result.transferTo(output);
       } catch (IOException e) {
         throw new FormatConverterException("Failed to write XML output", e);

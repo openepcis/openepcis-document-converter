@@ -268,7 +268,7 @@ public class ReactiveXmlToJsonConverter {
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
             // Capture event-level namespaces before unmarshalling (O(1) - no blocking)
             prepareEventNamespaces(reader, nsContext);
-            Object event = unmarshallEvent(reader, unmarshaller);
+            Object event = unmarshallEvent(reader, unmarshaller, nsContext);
 
             if (event != null) {
               // Track if this is the first event (sequence starts at 0, increments in applyEventMapper)
@@ -333,7 +333,7 @@ public class ReactiveXmlToJsonConverter {
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
             // Capture event-level namespaces before unmarshalling (O(1) - no blocking)
             prepareEventNamespaces(reader, nsContext);
-            Object event = unmarshallEvent(reader, unmarshaller);
+            Object event = unmarshallEvent(reader, unmarshaller, nsContext);
 
             if (event != null) {
               event = applyEventMapper(sequenceInEventList, event, nsContext);
@@ -370,9 +370,17 @@ public class ReactiveXmlToJsonConverter {
     }
   }
 
-  private Object unmarshallEvent(XMLStreamReader reader, Unmarshaller unmarshaller) {
+  private Object unmarshallEvent(XMLStreamReader reader, Unmarshaller unmarshaller,
+                                  ConversionNamespaceContext nsContext) {
     try {
-      return unmarshaller.unmarshal(reader);
+      // Set ThreadLocal context for EPCISEvent.afterUnmarshal() to discover extension namespaces
+      // This is safe because unmarshal is synchronous/blocking
+      ConversionNamespaceContext.setUnmarshalContext(nsContext);
+      try {
+        return unmarshaller.unmarshal(reader);
+      } finally {
+        ConversionNamespaceContext.clearUnmarshalContext();
+      }
     } catch (JAXBException e) {
       throw new FormatConverterException("Failed to unmarshal event", e);
     }
@@ -450,14 +458,15 @@ public class ReactiveXmlToJsonConverter {
     // Add custom namespaces from context (getAllNamespaces returns URI->prefix)
     // But for JSON-LD @context, we need prefix->URI format
     Map<String, String> namespaces = nsContext.getNamespacesForXml(); // This returns prefix->URI
-    if (!namespaces.isEmpty()) {
+    // Filter to only custom namespaces first, then write object only if non-empty
+    Map<String, String> customNamespaces = namespaces.entrySet().stream()
+        .filter(e -> !isStandardNamespace(e.getKey()))
+        .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (!customNamespaces.isEmpty()) {
       generator.writeStartObject();
-      for (Map.Entry<String, String> ns : namespaces.entrySet()) {
-        String prefix = ns.getKey();
-        String uri = ns.getValue();
-        if (!isStandardNamespace(prefix)) {
-          generator.writeStringField(prefix, uri);
-        }
+      for (Map.Entry<String, String> ns : customNamespaces.entrySet()) {
+        generator.writeStringField(ns.getKey(), ns.getValue());
       }
       generator.writeEndObject();
     }
@@ -506,15 +515,13 @@ public class ReactiveXmlToJsonConverter {
       JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
       generator.writeStartObject();
 
-      // Write @context array with event namespaces
+      // Write @context array with event namespaces only (no default context - it belongs at document level)
       generator.writeArrayFieldStart("@context");
       for (Map.Entry<String, String> ns : eventNamespaces.entrySet()) {
         generator.writeStartObject();
         generator.writeStringField(ns.getValue(), ns.getKey()); // prefix: uri
         generator.writeEndObject();
       }
-      // Add default EPCIS context
-      generator.writeString(EPCISVersion.getDefaultJSONContext());
       generator.writeEndArray();
 
       // Write the rest of the event fields (strip outer braces from serialized event)

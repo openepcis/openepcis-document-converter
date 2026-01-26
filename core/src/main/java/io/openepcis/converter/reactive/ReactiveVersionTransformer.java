@@ -37,6 +37,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.ServiceLoader;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -159,7 +160,27 @@ public class ReactiveVersionTransformer {
 
     this.xmlToJsonConverter = new ReactiveXmlToJsonConverter(jaxbContext, eventMapper);
     this.jsonToXmlConverter = new ReactiveJsonToXmlConverter(jaxbContext, eventMapper);
-    this.xmlVersionTransformer = new ReactiveXmlVersionTransformer();
+    this.xmlVersionTransformer = createXmlVersionTransformer();
+  }
+
+  /**
+   * Creates a ReactiveXmlVersionTransformer using ServiceLoader discovery.
+   * If a factory is found via ServiceLoader (e.g., SAX-based), it is used.
+   * Otherwise, falls back to the default XSLT-based transformer.
+   *
+   * @return a ReactiveXmlVersionTransformer instance
+   */
+  private static ReactiveXmlVersionTransformer createXmlVersionTransformer() {
+    final Optional<ReactiveXmlVersionTransformerFactory> optionalFactory =
+        ServiceLoader.load(ReactiveXmlVersionTransformerFactory.class).findFirst();
+    if (optionalFactory.isPresent()) {
+      final ReactiveXmlVersionTransformer transformer = optionalFactory.get().newReactiveXmlVersionTransformer();
+      LOG.log(Level.INFO, "Using XML version transformer: {0} (via ServiceLoader)", transformer.getClass().getName());
+      return transformer;
+    }
+    // Fallback to default XSLT-based transformer
+    LOG.log(Level.INFO, "Using default XSLT-based XML version transformer (no ServiceLoader factory found)");
+    return new ReactiveXmlVersionTransformer();
   }
 
   private ReactiveVersionTransformer(

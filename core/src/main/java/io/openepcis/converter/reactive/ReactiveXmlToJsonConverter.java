@@ -18,12 +18,13 @@ package io.openepcis.converter.reactive;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
-import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import io.smallrye.mutiny.Multi;
@@ -240,6 +241,8 @@ public class ReactiveXmlToJsonConverter {
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
       Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
+      unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
       Map<String, String> contextAttributes = new HashMap<>();
       AtomicInteger sequenceInEventList = new AtomicInteger(0);
@@ -317,6 +320,8 @@ public class ReactiveXmlToJsonConverter {
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
       Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
+      unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
       AtomicInteger sequenceInEventList = new AtomicInteger(0);
 
@@ -391,11 +396,12 @@ public class ReactiveXmlToJsonConverter {
       epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
     }
 
-    // Create swapped map for mapper (prefix -> URI format)
-    Map<String, String> swappedMap = nsContext.getAllNamespaces().entrySet().stream()
-        .collect(java.util.stream.Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    // Use getNamespacesForXml() which returns prefix -> URI format directly
+    // This preserves ALL prefixes, even when multiple prefixes map to the same URI
+    // (e.g., ns0, ns3, ns4 all mapping to http://example.com/cbvmda/)
+    Map<String, String> prefixToUri = nsContext.getNamespacesForXml();
     return eventMapper
-        .map(mapper -> mapper.apply(event, List.of(swappedMap)))
+        .map(mapper -> mapper.apply(event, List.of(prefixToUri)))
         .orElse(event);
   }
 
@@ -502,38 +508,19 @@ public class ReactiveXmlToJsonConverter {
     }
     baos.write('\n');
 
-    // Check for event-level namespaces discovered during unmarshalling
-    Map<String, String> eventNamespaces = nsContext != null
-        ? nsContext.getEventNamespaces()
-        : Map.of();
+    // Create ObjectWriter with namespace context attribute
+    // This allows CustomContextSerializer to access the namespaces via SerializerProvider.getAttribute()
+    ObjectWriter writer = objectMapper.writer();
+    if (nsContext != null) {
+      writer = writer.withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
+    }
 
-    if (!eventNamespaces.isEmpty()) {
-      // Inject event-level @context - serialize event to string first
-      String eventJson = objectMapper.writeValueAsString(event);
+    // Serialize event - CustomContextSerializer will generate proper @context
+    writer.writeValue(baos, event);
 
-      // Build @context array for event-level namespaces
-      JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
-      generator.writeStartObject();
-
-      // Write @context array with event namespaces only (no default context - it belongs at document level)
-      generator.writeArrayFieldStart("@context");
-      for (Map.Entry<String, String> ns : eventNamespaces.entrySet()) {
-        generator.writeStartObject();
-        generator.writeStringField(ns.getValue(), ns.getKey()); // prefix: uri
-        generator.writeEndObject();
-      }
-      generator.writeEndArray();
-
-      // Write the rest of the event fields (strip outer braces from serialized event)
-      generator.writeRaw("," + eventJson.substring(1, eventJson.length() - 1));
-      generator.writeEndObject();
-      generator.flush();
-
-      // Reset event namespaces after processing
+    // Reset event namespaces after serialization
+    if (nsContext != null) {
       nsContext.resetEventNamespaces();
-    } else {
-      // No event-level namespaces, serialize normally
-      objectMapper.writeValue(baos, event);
     }
 
     return baos.toByteArray();

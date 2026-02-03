@@ -120,13 +120,14 @@ public abstract class XMLEventParser {
   protected Object applyEventMapper(AtomicInteger sequenceInEventList, Object event) {
     if (epcisEventMapper.isPresent() && EPCISEvent.class.isAssignableFrom(event.getClass())) {
       final EPCISEvent ev = (EPCISEvent) event;
-      // Change the key value to keep key as localname and value as namespaceURI
-      final Map<String, String> swappedMap = nsContext != null
-          ? nsContext.getAllNamespaces().entrySet().stream()
-              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey))
+      // Use getNamespacesForXml() which returns prefix -> URI format directly
+      // This preserves ALL prefixes, even when multiple prefixes map to the same URI
+      // (e.g., ns0, ns3, ns4 all mapping to http://example.com/cbvmda/)
+      final Map<String, String> prefixToUri = nsContext != null
+          ? nsContext.getNamespacesForXml()
           : Map.of();
       ev.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
-      event = epcisEventMapper.get().apply(event, List.of(swappedMap));
+      event = epcisEventMapper.get().apply(event, List.of(prefixToUri));
     }
     return event;
   }
@@ -166,6 +167,31 @@ public abstract class XMLEventParser {
                               &&  StringUtils.isNotBlank(namespaceURI)
                               && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(namespaceURI)) {
                         nsContext.populateDocumentNamespaces(namespaceURI, namespacePrefix);
+                      }
+                    });
+  }
+
+  /**
+   * Captures event-level namespaces from XMLStreamReader.
+   * Called before unmarshalling each event element.
+   * These namespaces go into the event-level @context and are reset after each event.
+   */
+  protected void prepareEventNamespaces(XMLStreamReader xmlStreamReader) {
+    if (nsContext == null) {
+      return;
+    }
+
+    IntStream.range(0, xmlStreamReader.getNamespaceCount())
+            .forEach(
+                    namespaceIndex -> {
+                      final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
+                      final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
+                      // Only capture non-standard namespaces as event-level
+                      if (StringUtils.isNotBlank(namespacePrefix)
+                              && StringUtils.isNotBlank(namespaceURI)
+                              && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(namespacePrefix)
+                              && !EPCIS.XSI.equals(namespacePrefix)) {
+                        nsContext.populateEventNamespaces(namespaceURI, namespacePrefix);
                       }
                     });
   }

@@ -464,6 +464,13 @@ public class DocumentConverterResource {
           @RestHeader(value = "GS1-CBV-XML-Format")
           String cbvFormat,
       @RestHeader(value = "GS1-Extensions") String gs1Extensions,
+      @Parameter(
+              name = "GS1-EPCIS-1.2-Compliant",
+              description = ParameterDescription.GS1_EPCIS_1_2_COMPLIANT,
+              schema = @Schema(type = SchemaType.BOOLEAN),
+              in = ParameterIn.HEADER)
+          @RestHeader(value = "GS1-EPCIS-1.2-Compliant")
+          String gs1Compliant,
       @Context HttpHeaders httpHeaders) {
 
     final MediaType mediaType = httpHeaders.getMediaType();
@@ -478,6 +485,7 @@ public class DocumentConverterResource {
 
     // Build conversion spec
     final Conversion conversion = Conversion.builder()
+        .generateGS1CompliantDocument(gs1Compliant != null ? Boolean.valueOf(gs1Compliant) : null)
         .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_1_2_0)

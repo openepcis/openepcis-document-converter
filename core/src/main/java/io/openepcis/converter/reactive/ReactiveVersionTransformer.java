@@ -46,6 +46,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -731,7 +732,12 @@ public class ReactiveVersionTransformer {
               jsonToXmlWithMapper.convert(source),
               xml20Bytes -> xmlVersionTransformer.transform(
                   ReactiveConversionSource.fromMulti(xml20Bytes.onItem().transform(ByteBuffer::wrap)),
-                  Conversion.of(null, EPCISVersion.VERSION_2_0_0, null, EPCISVersion.VERSION_1_2_0))));
+                  Conversion.builder()
+                      .generateGS1CompliantDocument(conversion.generateGS1CompliantDocument().orElse(null))
+                      .fromMediaType(null)
+                      .fromVersion(EPCISVersion.VERSION_2_0_0)
+                      .toVersion(EPCISVersion.VERSION_1_2_0)
+                      .build())));
     }
 
     // XML 2.0 -> JSON-LD 2.0 - blocking StAX parsing
@@ -882,6 +888,9 @@ public class ReactiveVersionTransformer {
     // Get the effective mapper (user-provided or default based on target version)
     BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(toVersion);
 
+    // Map to capture document-level attributes (creationDate, schemaVersion, etc.) during parsing
+    final Map<String, String> documentAttributes = new ConcurrentHashMap<>();
+
     // Step 1: If input is XML 1.2/1.1, transform to XML 2.0 first (required for parsing)
     ReactiveConversionSource xml20Source = source;
     if (fromVersion != null && !EPCISVersion.VERSION_2_0_0.equals(fromVersion)) {
@@ -892,10 +901,10 @@ public class ReactiveVersionTransformer {
     }
 
     // Step 2: Parse XML 2.0 to events (internal method - NO mapper applied during parsing)
-    Multi<EPCISEvent> events = parseXmlToEvents(xml20Source);
+    Multi<EPCISEvent> events = parseXmlToEvents(xml20Source, documentAttributes);
 
     // Step 3: Marshal events back to XML 2.0 with format transformation
-    Multi<byte[]> xml20WithFormats = marshalEventsToXml(events, effectiveMapper);
+    Multi<byte[]> xml20WithFormats = marshalEventsToXml(events, effectiveMapper, documentAttributes);
 
     // Step 4: If target is XML 1.2, transform XML 2.0 → XML 1.2
     if (EPCISVersion.VERSION_1_2_0.equals(toVersion)) {
@@ -903,7 +912,12 @@ public class ReactiveVersionTransformer {
           xml20WithFormats,
           xml20Bytes -> xmlVersionTransformer.transform(
               ReactiveConversionSource.fromMulti(xml20Bytes.onItem().transform(ByteBuffer::wrap)),
-              Conversion.of(null, EPCISVersion.VERSION_2_0_0, null, EPCISVersion.VERSION_1_2_0)));
+              Conversion.builder()
+                  .generateGS1CompliantDocument(conversion.generateGS1CompliantDocument().orElse(null))
+                  .fromMediaType(null)
+                  .fromVersion(EPCISVersion.VERSION_2_0_0)
+                  .toVersion(EPCISVersion.VERSION_1_2_0)
+                  .build()));
     }
 
     return xml20WithFormats;
@@ -919,7 +933,8 @@ public class ReactiveVersionTransformer {
    * @param source the XML 2.0 source
    * @return Multi emitting EPCISEvent objects
    */
-  private Multi<EPCISEvent> parseXmlToEvents(ReactiveConversionSource source) {
+  private Multi<EPCISEvent> parseXmlToEvents(ReactiveConversionSource source,
+                                              Map<String, String> documentAttributes) {
     // Create conversion-scoped namespace context
     final ConversionNamespaceContext nsContext = new ConversionNamespaceContext();
 
@@ -938,14 +953,15 @@ public class ReactiveVersionTransformer {
           }
         })
         .onItem().transformToMulti(baos ->
-            Multi.createFrom().emitter(emitter -> parseEventsInternal(baos.toByteArray(), emitter, nsContext)));
+            Multi.createFrom().emitter(emitter -> parseEventsInternal(baos.toByteArray(), emitter, nsContext, documentAttributes)));
   }
 
   /**
    * Internal method to parse events from XML bytes.
    */
   private void parseEventsInternal(byte[] xmlBytes, MultiEmitter<? super EPCISEvent> emitter,
-                                    ConversionNamespaceContext nsContext) {
+                                    ConversionNamespaceContext nsContext,
+                                    Map<String, String> documentAttributes) {
     XMLStreamReader reader = null;
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
@@ -963,6 +979,10 @@ public class ReactiveVersionTransformer {
 
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
             prepareDocumentNamespaces(reader, nsContext);
+            // Capture document-level attributes (creationDate, schemaVersion, etc.)
+            for (int i = 0; i < reader.getAttributeCount(); i++) {
+              documentAttributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+            }
           }
 
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
@@ -1058,7 +1078,8 @@ public class ReactiveVersionTransformer {
    * @return Multi emitting XML byte chunks
    */
   private Multi<byte[]> marshalEventsToXml(Multi<EPCISEvent> events,
-                                            BiFunction<Object, List<Object>, Object> mapper) {
+                                            BiFunction<Object, List<Object>, Object> mapper,
+                                            Map<String, String> documentAttributes) {
 
     final ConversionNamespaceContext documentNsContext = new ConversionNamespaceContext();
     final AtomicBoolean headerEmitted = new AtomicBoolean(false);
@@ -1090,7 +1111,7 @@ public class ReactiveVersionTransformer {
 
             // Emit header before first event
             if (!headerEmitted.getAndSet(true)) {
-              byte[] headerBytes = createXmlHeaderInternal(documentNsContext);
+              byte[] headerBytes = createXmlHeaderInternal(documentNsContext, documentAttributes);
               byte[] eventBytes = marshalEventInternal(event, eventScopedContext, sequence, mapper);
 
               ByteArrayOutputStream combined = new ByteArrayOutputStream();
@@ -1123,20 +1144,17 @@ public class ReactiveVersionTransformer {
   /**
    * Marshals a single EPCISEvent to XML bytes with format transformation.
    */
-  private byte[] marshalEventInternal(EPCISEvent event, ConversionNamespaceContext nsContext,
-                                       AtomicInteger sequence,
-                                       BiFunction<Object, List<Object>, Object> mapper)
-      throws JAXBException, XMLStreamException {
+  private byte[] marshalEventInternal(EPCISEvent event,
+                                      ConversionNamespaceContext nsContext,
+                                      AtomicInteger sequence,
+                                      BiFunction<Object, List<Object>, Object> mapper) throws JAXBException, XMLStreamException {
 
     event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
     event.getOpenEPCISExtension().setConversionNamespaceContext(nsContext);
 
     // Apply format mapper (EPCISEventES transformation)
-    Map<String, String> swappedMap = nsContext.getAllNamespaces().entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-    Object mappedEvent = mapper != null
-        ? mapper.apply(event, List.of(swappedMap))
-        : event;
+    Map<String, String> swappedMap = nsContext.getEventNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    Object mappedEvent = mapper != null ? mapper.apply(event, List.of(swappedMap)) : event;
 
     if (!(mappedEvent instanceof EPCISEvent)) {
       return null;
@@ -1146,7 +1164,7 @@ public class ReactiveVersionTransformer {
     Marshaller marshaller = jaxbContext.createMarshaller();
     marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
-    marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getAllNamespaces());
+    marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getEventNamespaces());
     marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
     // Marshal to string - let JAXB write all necessary namespace declarations on each event
@@ -1194,7 +1212,8 @@ public class ReactiveVersionTransformer {
   /**
    * Creates the XML header for EPCIS 2.0 document.
    */
-  private byte[] createXmlHeaderInternal(ConversionNamespaceContext nsContext)
+  private byte[] createXmlHeaderInternal(ConversionNamespaceContext nsContext,
+                                          Map<String, String> documentAttributes)
       throws XMLStreamException {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
@@ -1221,9 +1240,11 @@ public class ReactiveVersionTransformer {
         }
       }
 
-      // Add schemaVersion and creationDate attributes
+      // Add schemaVersion and creationDate attributes (preserve original if available)
       xmlEventWriter.add(events.createAttribute("schemaVersion", "2.0"));
-      xmlEventWriter.add(events.createAttribute("creationDate", Instant.now().toString()));
+      String creationDate = documentAttributes != null ? documentAttributes.get("creationDate") : null;
+      xmlEventWriter.add(events.createAttribute("creationDate",
+          creationDate != null ? creationDate : Instant.now().toString()));
 
       // Start EPCISBody
       xmlEventWriter.add(events.createStartElement("", "", "EPCISBody"));

@@ -26,6 +26,7 @@ import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import io.openepcis.reactive.publisher.ObjectNodePublisher;
@@ -355,6 +356,7 @@ public class ReactiveJsonToXmlConverter {
     marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
     marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, eventScopedContext.getAllNamespaces());
+    marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(eventScopedContext));
 
     // Marshal to string
     StringWriter singleXmlEvent = new StringWriter();

@@ -1160,6 +1160,15 @@ public class ReactiveVersionTransformer {
       return null;
     }
 
+    // Ensure the mapped event carries the namespace context for beforeMarshal/ExtensionsModifier
+    // (the mapper creates a new EPCISEvent via getCoreModel() which loses the original context)
+    if (mappedEvent instanceof EPCISEvent mappedEpcisEvent) {
+      if (mappedEpcisEvent.getOpenEPCISExtension() == null) {
+        mappedEpcisEvent.setOpenEPCISExtension(new io.openepcis.model.epcis.extension.OpenEPCISExtension());
+      }
+      mappedEpcisEvent.getOpenEPCISExtension().setConversionNamespaceContext(nsContext);
+    }
+
     // Create marshaller with namespace mapper
     Marshaller marshaller = jaxbContext.createMarshaller();
     marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);

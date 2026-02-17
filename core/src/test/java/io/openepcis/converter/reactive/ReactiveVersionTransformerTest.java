@@ -690,9 +690,9 @@ class ReactiveVersionTransformerTest {
 
     assertTrue(xmlResult.contains("EPCISDocument"), "Should contain EPCISDocument");
     // Should convert to Digital Link format by default for XML 2.0 target
-    assertTrue(xmlResult.contains("https://id.gs1.org/01/") || xmlResult.contains("https://ns.gs1.org/"),
+    assertTrue(xmlResult.contains("https://id.gs1.org/01/") || xmlResult.contains("https://ref.gs1.org/"),
         "Should convert to Digital Link format by default for XML 2.0 target");
-    assertTrue(xmlResult.contains("https://ns.gs1.org/voc/Bizstep-") || xmlResult.contains("shipping"),
+    assertTrue(xmlResult.contains("https://ref.gs1.org/cbv/BizStep-") || xmlResult.contains("shipping"),
         "Should convert CBV to Web URI format by default for XML 2.0 target");
   }
 

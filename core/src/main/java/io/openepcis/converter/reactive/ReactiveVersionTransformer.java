@@ -741,19 +741,19 @@ public class ReactiveVersionTransformer {
     }
 
     // XML 2.0 -> JSON-LD 2.0 - blocking StAX parsing
-    // Default format: Digital Link (Always_GS1_Digital_Link, Always_Web_URI) for JSON 2.0
+    // Default format: Digital Link EPCs, bare string CBV vocabularies for JSON-LD 2.0
     if (EPCISFormat.XML.equals(fromFormat) && EPCISFormat.JSON_LD.equals(toFormat)
         && EPCISVersion.VERSION_2_0_0.equals(fromVersion)) {
-      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0);
+      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0, EPCISFormat.JSON_LD);
       ReactiveXmlToJsonConverter xmlToJsonWithMapper = new ReactiveXmlToJsonConverter(jaxbContext, Optional.of(effectiveMapper));
       return withBlockingExecutor(xmlToJsonWithMapper.convert(source));
     }
 
     // XML 1.2 -> JSON-LD 2.0 (XML 1.2 -> XML 2.0 -> JSON) - blocking XSLT + StAX
-    // Default format: Digital Link (Always_GS1_Digital_Link, Always_Web_URI) for JSON 2.0
+    // Default format: Digital Link EPCs, bare string CBV vocabularies for JSON-LD 2.0
     if (EPCISFormat.XML.equals(fromFormat) && EPCISFormat.JSON_LD.equals(toFormat)
         && (EPCISVersion.VERSION_1_2_0.equals(fromVersion) || EPCISVersion.VERSION_1_1_0.equals(fromVersion))) {
-      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0);
+      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0, EPCISFormat.JSON_LD);
       ReactiveXmlToJsonConverter xmlToJsonWithMapper = new ReactiveXmlToJsonConverter(jaxbContext, Optional.of(effectiveMapper));
       return withBlockingExecutor(xmlVersionTransformer.transform(source,
               Conversion.of(null, fromVersion, null, EPCISVersion.VERSION_2_0_0))
@@ -845,16 +845,23 @@ public class ReactiveVersionTransformer {
    * @return the effective event mapper
    */
   private BiFunction<Object, List<Object>, Object> getEffectiveMapper(EPCISVersion toVersion) {
+    return getEffectiveMapper(toVersion, EPCISFormat.XML);
+  }
+
+  private BiFunction<Object, List<Object>, Object> getEffectiveMapper(EPCISVersion toVersion, EPCISFormat toFormat) {
     // If user explicitly provided a mapper, use it
     if (eventMapper.isPresent()) {
       return eventMapper.get();
     }
 
-    // Create default mapper based on target version
+    // Create default mapper based on target version and format
     FormatPreference defaultPreference;
     if (EPCISVersion.VERSION_1_2_0.equals(toVersion)) {
       // XML 1.2 prefers URN format
       defaultPreference = FormatPreference.getInstance(EPCFormat.Always_EPC_URN, CBVFormat.Always_URN);
+    } else if (EPCISFormat.JSON_LD.equals(toFormat)) {
+      // JSON-LD 2.0: Digital Link EPCs, bare string CBV vocabularies
+      defaultPreference = FormatPreference.getInstance(EPCFormat.Always_GS1_Digital_Link, CBVFormat.Never_Translates);
     } else {
       // XML 2.0 prefers Digital Link format
       defaultPreference = FormatPreference.getInstance(EPCFormat.Always_GS1_Digital_Link, CBVFormat.Always_Web_URI);

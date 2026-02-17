@@ -31,4 +31,11 @@ public interface ParameterDescription {
           + "- Always_Web_URI: CBV values are returned as Web URI.\n"
           + "- Always_URN: CBV values are returned as URNs.\n"
           + "- Never_Translates: The original format is kept.";
+  String GS1_EPCIS_1_2_COMPLIANT =
+      "Controls whether the generated EPCIS 1.2 XML strictly complies with the GS1 EPCIS 1.2 standard.\n"
+          + "When true or not provided, EPCIS 2.0-only elements (AssociationEvent, sensorElementList, "
+          + "persistentDisposition) are excluded from the output.\n"
+          + "When false, these elements are included as extensions in the EPCIS 1.2 XML.\n"
+          + "- true (default): Strict GS1 EPCIS 1.2 compliance - exclude 2.0-only elements.\n"
+          + "- false: Include EPCIS 2.0-only elements as extensions in 1.2 output.";
 }

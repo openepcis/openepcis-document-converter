@@ -966,13 +966,14 @@ public class ReactiveVersionTransformer {
           }
 
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
-            // Capture event-level namespaces before unmarshalling
-            prepareEventNamespaces(reader, nsContext);
-            Object event = unmarshallEventInternal(reader, unmarshaller, nsContext);
+            // Create per-event scoped context with document namespaces + this event's namespaces
+            ConversionNamespaceContext eventScopedCtx = ConversionNamespaceContext.createEventScoped(nsContext);
+            prepareEventNamespaces(reader, eventScopedCtx);
+            Object event = unmarshallEventInternal(reader, unmarshaller, eventScopedCtx);
 
             if (event instanceof EPCISEvent epcisEvent) {
               epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
-              epcisEvent.getOpenEPCISExtension().setConversionNamespaceContext(nsContext);
+              epcisEvent.getOpenEPCISExtension().setConversionNamespaceContext(eventScopedCtx);
               emitter.emit(epcisEvent);
             }
             continue;
@@ -1066,20 +1067,31 @@ public class ReactiveVersionTransformer {
     return events
         .onItem().transformToMultiAndConcatenate(event -> {
           try {
-            // Copy namespaces from event's context to document context
+            ConversionNamespaceContext eventCtx = null;
             if (event.getOpenEPCISExtension() != null &&
                 event.getOpenEPCISExtension().getConversionNamespaceContext() != null) {
-              ConversionNamespaceContext eventCtx =
-                  event.getOpenEPCISExtension().getConversionNamespaceContext();
-              for (Map.Entry<String, String> ns : eventCtx.getNamespacesForXml().entrySet()) {
-                documentNsContext.populateDocumentNamespaces(ns.getValue(), ns.getKey());
+              eventCtx = event.getOpenEPCISExtension().getConversionNamespaceContext();
+            }
+
+            // Copy only DOCUMENT-level namespaces to documentNsContext (for the header)
+            if (eventCtx != null) {
+              for (Map.Entry<String, String> ns : eventCtx.getDocumentNamespaces().entrySet()) {
+                documentNsContext.populateDocumentNamespaces(ns.getKey(), ns.getValue());
+              }
+            }
+
+            // Create event-scoped context: document namespaces + this event's event-level namespaces
+            ConversionNamespaceContext eventScopedContext = ConversionNamespaceContext.createEventScoped(documentNsContext);
+            if (eventCtx != null) {
+              for (Map.Entry<String, String> ns : eventCtx.getEventNamespaces().entrySet()) {
+                eventScopedContext.populateEventNamespaces(ns.getKey(), ns.getValue());
               }
             }
 
             // Emit header before first event
             if (!headerEmitted.getAndSet(true)) {
               byte[] headerBytes = createXmlHeaderInternal(documentNsContext);
-              byte[] eventBytes = marshalEventInternal(event, documentNsContext, sequence, mapper);
+              byte[] eventBytes = marshalEventInternal(event, eventScopedContext, sequence, mapper);
 
               ByteArrayOutputStream combined = new ByteArrayOutputStream();
               combined.write(headerBytes);
@@ -1090,8 +1102,6 @@ public class ReactiveVersionTransformer {
             }
 
             // Marshal subsequent events
-            ConversionNamespaceContext eventScopedContext =
-                ConversionNamespaceContext.createEventScoped(documentNsContext);
             byte[] eventBytes = marshalEventInternal(event, eventScopedContext, sequence, mapper);
 
             if (eventBytes != null && eventBytes.length > 0) {
@@ -1137,12 +1147,11 @@ public class ReactiveVersionTransformer {
     marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
     marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getAllNamespaces());
+    marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
-    // Marshal to string
+    // Marshal to string - let JAXB write all necessary namespace declarations on each event
     StringWriter singleXmlEvent = new StringWriter();
-    XMLStreamWriter xmlStreamWriter = new NonEPCISNamespaceXMLStreamWriter(
-        new IndentingXMLStreamWriter(
-            XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+    XMLStreamWriter xmlStreamWriter = new NonEPCISNamespaceXMLStreamWriter(new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
     marshaller.marshal(mappedEvent, xmlStreamWriter);
     xmlStreamWriter.flush();
 

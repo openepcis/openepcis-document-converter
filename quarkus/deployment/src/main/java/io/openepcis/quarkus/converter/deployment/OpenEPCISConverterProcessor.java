@@ -24,7 +24,10 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageConfigBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourcePatternsBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.smallrye.health.deployment.spi.HealthBuildItem;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 public class OpenEPCISConverterProcessor {
@@ -75,42 +78,14 @@ public class OpenEPCISConverterProcessor {
             // OpenEPCIS classes
             "io.openepcis.converter.VersionTransformer",
             "io.openepcis.converter.xml.DefaultXmlVersionTransformer",
+            "io.openepcis.converter.collector.context.impl.DefaultContextHandler",
             "io.openepcis.quarkus.converter.runtime.OpenEPCISConverterHealthCheck",
             "io.openepcis.quarkus.converter.runtime.VersionTransformerProducer",
 
             // Apache Xalan related classes
             "org.apache.xalan.xsltc.trax.TransformerFactoryImpl",
             "org.apache.xalan.xsltc.trax.SmartTransformerFactoryImpl",
-            "org.apache.xalan.xsltc.dom.XSLTCDTMManager"
-
-            // Apache Xalan related internal class
-            /*
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.ApplyTemplates",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.CallTemplate",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Choose",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Copy",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.CopyOf",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.ForEach",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.If",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Otherwise",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Output",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Param",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Stylesheet",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Template",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.ValueOf",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.When",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.Whitespace",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.XslAttribute",
-            "com.sun.org.apache.xalan.internal.xsltc.compiler.XslElement",
-            "com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl",
-            "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl",
-
-            "com.sun.org.apache.xml.internal.serializer.SerializationHandler",
-            "com.sun.org.apache.xml.internal.dtm.DTMAxisIterator",
-            "com.sun.org.apache.xml.internal.serializer.SerializationHandler"
-
-             */
-            )
+            "org.apache.xalan.xsltc.dom.XSLTCDTMManager")
         .unsafeAllocated()
         .serialization()
         .methods()
@@ -140,5 +115,113 @@ public class OpenEPCISConverterProcessor {
             "xalan-conversion/**/*",
             "eventSchemas/*")
         .build();
+  }
+
+  @BuildStep
+  List<ServiceProviderBuildItem> registerServiceProviders() {
+    final List<ServiceProviderBuildItem> providers = new ArrayList<>();
+
+    // ContextHandler (base converter module - always present)
+    final List<String> contextHandlers = new ArrayList<>();
+    contextHandlers.add("io.openepcis.converter.collector.context.impl.DefaultContextHandler");
+    if (isClassAvailable("io.openepcis.gs1eg.context.impl.GS1EgyptContextHandler")) {
+      contextHandlers.add("io.openepcis.gs1eg.context.impl.GS1EgyptContextHandler");
+    }
+    providers.add(
+        new ServiceProviderBuildItem(
+            "io.openepcis.converter.collector.context.handler.ContextHandler",
+            contextHandlers));
+
+    // SAX module providers (conditional on SAX jar being present)
+    if (!isClassAvailable("io.openepcis.converter.sax.SAXVersionTransformerFactory")) {
+      return providers;
+    }
+
+    // Core SAX transformers
+    providers.add(
+        new ServiceProviderBuildItem(
+            "io.openepcis.converter.xml.XmlVersionTransformerFactory",
+            "io.openepcis.converter.sax.SAXVersionTransformerFactory"));
+    providers.add(
+        new ServiceProviderBuildItem(
+            "io.openepcis.converter.reactive.ReactiveXmlVersionTransformerFactory",
+            "io.openepcis.converter.sax.reactive.ReactiveSAXXmlVersionTransformerFactory"));
+
+    // Element processors
+    final List<String> elementProcessors = new ArrayList<>();
+    elementProcessors.add(
+        "io.openepcis.converter.sax.handler.extensions.impl.DefaultElementProcessor");
+    if (isClassAvailable("io.openepcis.gs1eg.extensions.impl.GS1EgyptElementProcessor")) {
+      elementProcessors.add("io.openepcis.gs1eg.extensions.impl.GS1EgyptElementProcessor");
+    }
+    providers.add(
+        new ServiceProviderBuildItem(
+            "io.openepcis.converter.sax.handler.extensions.handler.ElementProcessor",
+            elementProcessors));
+
+    // Namespace processors
+    final List<String> namespaceProcessors = new ArrayList<>();
+    namespaceProcessors.add(
+        "io.openepcis.converter.sax.handler.namespace.impl.DefaultNamespaceProcessor");
+    if (isClassAvailable("io.openepcis.gs1eg.namespace.impl.GS1EgyptNamespaceProcessor")) {
+      namespaceProcessors.add("io.openepcis.gs1eg.namespace.impl.GS1EgyptNamespaceProcessor");
+    }
+    providers.add(
+        new ServiceProviderBuildItem(
+            "io.openepcis.converter.sax.handler.namespace.handler.NamespaceProcessor",
+            namespaceProcessors));
+
+    return providers;
+  }
+
+  @BuildStep
+  ReflectiveClassBuildItem registerSaxReflectiveClasses() {
+    if (!isClassAvailable("io.openepcis.converter.sax.SAXVersionTransformerFactory")) {
+      return ReflectiveClassBuildItem.builder(new String[0]).build();
+    }
+
+    final List<String> classes = new ArrayList<>(List.of(
+        // SAX transformer factories and transformers
+        "io.openepcis.converter.sax.SAXVersionTransformerFactory",
+        "io.openepcis.converter.sax.SAXVersionTransformer",
+        "io.openepcis.converter.sax.reactive.ReactiveSAXXmlVersionTransformerFactory",
+        "io.openepcis.converter.sax.reactive.ReactiveSAXXmlVersionTransformer",
+        "io.openepcis.converter.sax.reactive.ReactiveSAXVersionTransformer",
+        // Reactive SAX handlers
+        "io.openepcis.converter.sax.reactive.ReactiveEPCIS12Handler",
+        "io.openepcis.converter.sax.reactive.ReactiveEPCIS20Handler",
+        // Traditional SAX handler factory and handlers
+        "io.openepcis.converter.sax.handler.EPCISSaxHandlerFactory",
+        "io.openepcis.converter.sax.handler.EPCIS12",
+        "io.openepcis.converter.sax.handler.EPCIS20",
+        // Default processors (ServiceLoader discovered)
+        "io.openepcis.converter.sax.handler.extensions.impl.DefaultElementProcessor",
+        "io.openepcis.converter.sax.handler.namespace.impl.DefaultNamespaceProcessor"));
+
+    // Conditionally add GS1 Egypt extension classes
+    if (isClassAvailable("io.openepcis.gs1eg.context.impl.GS1EgyptContextHandler")) {
+      classes.add("io.openepcis.gs1eg.context.impl.GS1EgyptContextHandler");
+    }
+    if (isClassAvailable("io.openepcis.gs1eg.extensions.impl.GS1EgyptElementProcessor")) {
+      classes.add("io.openepcis.gs1eg.extensions.impl.GS1EgyptElementProcessor");
+    }
+    if (isClassAvailable("io.openepcis.gs1eg.namespace.impl.GS1EgyptNamespaceProcessor")) {
+      classes.add("io.openepcis.gs1eg.namespace.impl.GS1EgyptNamespaceProcessor");
+    }
+
+    return ReflectiveClassBuildItem.builder(classes.toArray(String[]::new))
+        .constructors()
+        .methods()
+        .fields()
+        .build();
+  }
+
+  private static boolean isClassAvailable(String className) {
+    try {
+      Thread.currentThread().getContextClassLoader().loadClass(className);
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
   }
 }

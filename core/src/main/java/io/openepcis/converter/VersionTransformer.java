@@ -22,17 +22,21 @@ import io.openepcis.converter.json.JsonToXmlConverter;
 import io.openepcis.converter.reactive.ReactiveConversionSource;
 import io.openepcis.converter.reactive.ReactiveVersionTransformer;
 import io.openepcis.converter.util.ChannelUtil;
+import io.openepcis.converter.util.PublisherInputStream;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import io.openepcis.converter.xml.XmlVersionTransformer;
+import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
+import io.smallrye.mutiny.Multi;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
@@ -45,12 +49,8 @@ public class VersionTransformer {
   private static final String COULD_NOT_WRITE_OR_CLOSE_THE_STREAM =
       "Could not write or close the stream";
 
-  /** Buffer size for PipedInputStream (8KB to match reactive default buffer size) */
-  private static final int PIPE_BUFFER_SIZE = 8192;
-
-  /** Maximum duration to wait for conversion completion */
-  private static final Duration CONVERSION_TIMEOUT = Duration.ofMinutes(10);
   private final ExecutorService executorService;
+  private final JAXBContext jaxbContext;
   private final XmlVersionTransformer xmlVersionTransformer;
   private final XmlToJsonConverter xmlToJsonConverter;
   private final JsonToXmlConverter jsonToXmlConverter;
@@ -71,6 +71,7 @@ public class VersionTransformer {
 
   public VersionTransformer(final ExecutorService executorService, final JAXBContext jaxbContext) {
     this.executorService = executorService;
+    this.jaxbContext = jaxbContext;
     this.xmlVersionTransformer = XmlVersionTransformer.newInstance(this.executorService);
     this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
     this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
@@ -79,6 +80,7 @@ public class VersionTransformer {
   private VersionTransformer(
       VersionTransformer parent, BiFunction<Object, List<Object>, Object> eventMapper) {
     this.executorService = parent.executorService;
+    this.jaxbContext = parent.jaxbContext;
     this.xmlVersionTransformer = parent.xmlVersionTransformer;
     this.jsonToXmlConverter = parent.jsonToXmlConverter.mapWith(eventMapper);
     this.xmlToJsonConverter = parent.xmlToJsonConverter.mapWith(eventMapper);
@@ -87,9 +89,10 @@ public class VersionTransformer {
 
   public VersionTransformer(final ExecutorService executorService) throws JAXBException {
     this.executorService = executorService;
+    this.jaxbContext = createDefaultJAXBContext();
     this.xmlVersionTransformer = XmlVersionTransformer.newInstance(this.executorService);
-    this.xmlToJsonConverter = new XmlToJsonConverter();
-    this.jsonToXmlConverter = new JsonToXmlConverter();
+    this.xmlToJsonConverter = new XmlToJsonConverter(jaxbContext);
+    this.jsonToXmlConverter = new JsonToXmlConverter(jaxbContext);
   }
 
   private VersionTransformer(
@@ -97,6 +100,7 @@ public class VersionTransformer {
       final BiFunction<Object, List<Object>, Object> eventMapper,
       final String gs1Extensions) {
     this.executorService = parent.executorService;
+    this.jaxbContext = parent.jaxbContext;
     this.xmlVersionTransformer = parent.xmlVersionTransformer;
     this.jsonToXmlConverter = parent.jsonToXmlConverter.mapWith(eventMapper);
     this.xmlToJsonConverter = parent.xmlToJsonConverter.mapWith(eventMapper);
@@ -218,40 +222,56 @@ public class VersionTransformer {
   }
 
   /**
-   * Converts using the reactive API.
-   * Collects output into a ByteArrayOutputStream for reliability,
-   * then wraps it as a ByteArrayInputStream.
+   * Converts an EPCIS document reactively, returning a {@code Multi<ByteBuffer>} that streams
+   * the converted output with backpressure support. Version is auto-detected from the input.
+   *
+   * <p>This method is useful when the caller wants the reactive type directly (e.g., for
+   * further reactive pipeline composition) rather than a blocking {@link InputStream}.
+   *
+   * @param in EPCIS document as InputStream
+   * @param conversion Conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   * @throws UnsupportedOperationException if the conversion is not supported
+   * @throws IOException if version detection fails
+   */
+  public final Multi<ByteBuffer> convertReactive(final InputStream in, final Conversion conversion)
+      throws UnsupportedOperationException, IOException {
+    final BufferedInputStream inputDocument = new BufferedInputStream(in, 1024 * 1024);
+    EPCISVersion fromVersion;
+    try {
+      fromVersion = EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
+          ? EPCISVersion.VERSION_2_0_0 : versionDetector(inputDocument, conversion);
+    } catch (Exception e) {
+      throw new FormatConverterException(e.getMessage(), e);
+    }
+    final Conversion conversionToPerform = Conversion.of(
+        conversion.fromMediaType(), fromVersion, conversion.toMediaType(), conversion.toVersion(),
+        conversion.generateGS1CompliantDocument().orElse(null), conversion.onFailure().orElse(null));
+    return reactive().convertToByteBuffers(inputDocument, conversionToPerform);
+  }
+
+  /**
+   * Converts an EPCIS document reactively using a functional conversion specification.
+   *
+   * @param inputStream EPCIS document as InputStream
+   * @param fn function to build conversion specification
+   * @return Multi emitting converted document as ByteBuffers
+   * @throws UnsupportedOperationException if the conversion is not supported
+   * @throws IOException if version detection fails
+   */
+  public final Multi<ByteBuffer> convertReactive(final InputStream inputStream,
+      final Function<Conversion.StartStage, Conversion.BuildStage> fn)
+      throws UnsupportedOperationException, IOException {
+    return convertReactive(inputStream, fn.apply(Conversion.builder()).build());
+  }
+
+  /**
+   * Converts using the reactive API, streaming output through a {@link PublisherInputStream}
+   * to avoid buffering the entire converted document in memory.
    */
   private InputStream convertViaReactiveApi(final InputStream inputDocument, final Conversion conversion) {
-    // Build reactive transformer
-    final ReactiveVersionTransformer reactiveTransformer = ReactiveVersionTransformer.builder()
-        .eventMapper(epcisEventMapper.orElse(null))
-        .build();
-
-    // Create reactive source directly from InputStream
-    final ReactiveConversionSource source = ReactiveConversionSource.fromInputStream(inputDocument);
-
-    // Collect all output into a ByteArrayOutputStream
-    final java.io.ByteArrayOutputStream outputBuffer = new java.io.ByteArrayOutputStream();
-
-    try {
-      reactiveTransformer.convert(source, conversion)
-          .onItem().invoke(bytes -> {
-            try {
-              outputBuffer.write(bytes);
-            } catch (IOException e) {
-              throw new FormatConverterException("Failed to write to buffer", e);
-            }
-          })
-          .onFailure().invoke(conversion::fail)
-          .collect().last()
-          .await().atMost(CONVERSION_TIMEOUT);
-    } catch (Exception e) {
-      conversion.fail(e);
-      throw new FormatConverterException("Conversion failed: " + e.getMessage(), e);
-    }
-
-    return new java.io.ByteArrayInputStream(outputBuffer.toByteArray());
+    return PublisherInputStream.from(
+        reactive().convertToByteBuffers(inputDocument, conversion));
   }
 
   private void closeQuietly(Closeable closeable) {
@@ -260,6 +280,15 @@ public class VersionTransformer {
     } catch (IOException e) {
       LOG.log(Level.WARNING, COULD_NOT_WRITE_OR_CLOSE_THE_STREAM, e);
     }
+  }
+
+  private static JAXBContext createDefaultJAXBContext() throws JAXBException {
+    return JAXBContext.newInstance(
+        "io.openepcis.model.epcis",
+        Thread.currentThread().getContextClassLoader(),
+        new HashMap<>() {{
+          put(JAXBContextProperties.NAMESPACE_PREFIX_MAPPER, new EPCISNamespacePrefixMapper());
+        }});
   }
 
   public final VersionTransformer mapWith(final BiFunction<Object, List<Object>, Object> mapper) {
@@ -302,6 +331,7 @@ public class VersionTransformer {
         result = reactiveVersionTransformer;
         if (result == null) {
           result = ReactiveVersionTransformer.builder()
+              .jaxbContext(this.jaxbContext)
               .eventMapper(epcisEventMapper.orElse(null))
               .blockingExecutor(executorService)
               .build();

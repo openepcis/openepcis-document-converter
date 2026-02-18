@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
@@ -39,7 +40,6 @@ import java.util.*;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -490,10 +490,7 @@ public class ReactiveXmlToJsonConverter {
     JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
 
     generator.writeStartObject();
-
-    // Write @context array
-    generator.writeArrayFieldStart("@context");
-    generator.writeString("https://ref.gs1.org/standards/epcis/epcis-context.jsonld");
+    generator.writeArrayFieldStart(EPCIS.CONTEXT); // Write @context array
 
     // Add custom namespaces from context (getAllNamespaces returns URI->prefix)
     // But for JSON-LD @context, we need prefix->URI format
@@ -504,25 +501,27 @@ public class ReactiveXmlToJsonConverter {
         .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     if (!customNamespaces.isEmpty()) {
-      generator.writeStartObject();
       for (Map.Entry<String, String> ns : customNamespaces.entrySet()) {
+        generator.writeStartObject();
         generator.writeStringField(ns.getKey(), ns.getValue());
+        generator.writeEndObject();
       }
-      generator.writeEndObject();
     }
+
+    // Default GS1 context URL last
+    generator.writeString(EPCISVersion.getDefaultJSONContext());
     generator.writeEndArray();
 
     // Write type (conditional on document type)
-    generator.writeStringField("type",
-        isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
+    generator.writeStringField("type", isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
 
     // Write schemaVersion
-    String schemaVersion = contextAttributes.getOrDefault("schemaVersion", "2.0");
-    generator.writeStringField("schemaVersion", schemaVersion);
+    String schemaVersion = contextAttributes.getOrDefault(EPCIS.SCHEMA_VERSION, "2.0");
+    generator.writeStringField(EPCIS.SCHEMA_VERSION, schemaVersion);
 
     // Write creationDate or createdAt (EPCISQueryDocument may use createdAt)
-    if (contextAttributes.containsKey("creationDate")) {
-      generator.writeStringField("creationDate", contextAttributes.get("creationDate"));
+    if (contextAttributes.containsKey(EPCIS.CREATION_DATE)) {
+      generator.writeStringField(EPCIS.CREATION_DATE, contextAttributes.get(EPCIS.CREATION_DATE));
     } else if (contextAttributes.containsKey("createdAt")) {
       generator.writeStringField("createdAt", contextAttributes.get("createdAt"));
     }
@@ -588,8 +587,6 @@ public class ReactiveXmlToJsonConverter {
   }
 
   private boolean isStandardNamespace(String prefix) {
-    return EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix) ||
-        EPCIS.XSI.equals(prefix) ||
-        "xmlns".equals(prefix);
+    return EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix) || EPCIS.XSI.equals(prefix) || "xmlns".equals(prefix);
   }
 }

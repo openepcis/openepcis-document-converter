@@ -780,4 +780,109 @@ class ReactiveConversionIntegrationTest {
     // Mapper may or may not be called depending on the conversion path
     assertTrue(result.size() >= 0, "Should complete without error");
   }
+
+  // ==================== Non-Standard Prefix Filtering Tests ====================
+
+  @Test
+  void shouldFilterStandardNamespaceUrisWithNonStandardPrefixes() throws Exception {
+    // XML 1.2 document using non-standard prefixes (n0, n1) for standard EPCIS URIs,
+    // plus a truly custom namespace (prx). The converter must filter out standard URIs
+    // regardless of their prefix name.
+    String xml12WithNonStandardPrefixes = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <n0:EPCISDocument xmlns:n0="urn:epcglobal:epcis:xsd:1"
+            xmlns:n1="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader"
+            xmlns:prx="https://example.com/custom"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            schemaVersion="1.2" creationDate="2023-06-15T10:30:00Z">
+          <EPCISBody>
+            <EventList>
+              <ObjectEvent>
+                <eventTime>2023-06-15T10:30:00Z</eventTime>
+                <eventTimeZoneOffset>+02:00</eventTimeZoneOffset>
+                <epcList>
+                  <epc>urn:epc:id:sgtin:030001.0012345.99999</epc>
+                </epcList>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:active</disposition>
+              </ObjectEvent>
+            </EventList>
+          </EPCISBody>
+        </n0:EPCISDocument>
+        """;
+
+    byte[] xmlBytes = xml12WithNonStandardPrefixes.getBytes(StandardCharsets.UTF_8);
+
+    // Test 1: XML 1.2 -> JSON-LD 2.0 — standard URIs must not leak into @context
+    Conversion toJsonLd = Conversion.builder()
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_1_2_0)
+        .toMediaType(EPCISFormat.JSON_LD)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    ByteArrayOutputStream jsonResult = new ByteArrayOutputStream();
+    transformer.convert(xmlBytes, toJsonLd)
+        .subscribe().with(
+            bytes -> jsonResult.writeBytes(bytes),
+            error -> fail("XML 1.2 -> JSON-LD conversion failed: " + error.getMessage()),
+            () -> {});
+
+    String json = jsonResult.toString(StandardCharsets.UTF_8);
+
+    // @context must NOT contain n0 or n1 entries for standard URIs
+    assertFalse(json.contains("\"n0\""),
+        "JSON-LD @context must NOT contain n0 (standard URI with non-standard prefix)");
+    assertFalse(json.contains("\"n1\""),
+        "JSON-LD @context must NOT contain n1 (standard URI with non-standard prefix)");
+
+    // @context SHOULD contain the truly custom namespace
+    assertTrue(json.contains("\"prx\""),
+        "JSON-LD @context must contain the custom namespace prx");
+    assertTrue(json.contains("https://example.com/custom"),
+        "JSON-LD @context must contain the custom namespace URI");
+
+    // Test 2: XML 1.2 -> XML 2.0 — no duplicate namespace declarations
+    Conversion toXml20 = Conversion.builder()
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_1_2_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    ByteArrayOutputStream xmlResult = new ByteArrayOutputStream();
+    transformer.convert(xmlBytes, toXml20)
+        .subscribe().with(
+            bytes -> xmlResult.writeBytes(bytes),
+            error -> fail("XML 1.2 -> XML 2.0 conversion failed: " + error.getMessage()),
+            () -> {});
+
+    String xml20 = xmlResult.toString(StandardCharsets.UTF_8);
+
+    // Must NOT have the non-standard prefix declarations for standard URIs
+    assertFalse(xml20.contains("xmlns:n0="),
+        "XML 2.0 output must NOT contain xmlns:n0 for standard URI");
+    assertFalse(xml20.contains("xmlns:n1="),
+        "XML 2.0 output must NOT contain xmlns:n1 for standard URI");
+
+    // Must contain the custom namespace
+    assertTrue(xml20.contains("xmlns:prx="),
+        "XML 2.0 output must contain the custom namespace prx");
+
+    // Standard epcis namespace must appear only once
+    int epcisNsCount = countOccurrences(xml20, "urn:epcglobal:epcis:xsd:2");
+    assertTrue(epcisNsCount <= 1,
+        "EPCIS 2.0 namespace URI should appear at most once, found " + epcisNsCount + " times");
+  }
+
+  private int countOccurrences(String str, String sub) {
+    int count = 0;
+    int idx = 0;
+    while ((idx = str.indexOf(sub, idx)) != -1) {
+      count++;
+      idx += sub.length();
+    }
+    return count;
+  }
 }

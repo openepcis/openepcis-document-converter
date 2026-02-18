@@ -1057,7 +1057,11 @@ public class ReactiveVersionTransformer {
     for (int i = 0; i < nsCount; i++) {
       String prefix = reader.getNamespacePrefix(i);
       String uri = reader.getNamespaceURI(i);
-      if (prefix != null && !prefix.isEmpty() && uri != null) {
+      if (prefix != null && !prefix.isEmpty() && uri != null
+              && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(uri)
+              && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix)
+              && !EPCIS.XSI.equals(prefix)
+      ) {
         nsContext.populateDocumentNamespaces(uri, prefix);
       }
     }
@@ -1071,7 +1075,10 @@ public class ReactiveVersionTransformer {
     for (int i = 0; i < nsCount; i++) {
       String prefix = reader.getNamespacePrefix(i);
       String uri = reader.getNamespaceURI(i);
-      if (prefix != null && !prefix.isEmpty() && uri != null) {
+      if (prefix != null && !prefix.isEmpty() && uri != null
+              && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(uri)
+              && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix)
+              && !EPCIS.XSI.equals(prefix)) {
         nsContext.populateEventNamespaces(uri, prefix);
       }
     }
@@ -1274,7 +1281,9 @@ public class ReactiveVersionTransformer {
       for (Map.Entry<String, String> ns : nsContext.getNamespacesForXml().entrySet()) {
         String prefix = ns.getKey();
         String uri = ns.getValue();
-        if (!prefix.isEmpty() && !prefix.equals("epcis") && !prefix.equals(EPCIS.EPCIS_QUERY) && !prefix.equals("xsi")) {
+        if (!prefix.isEmpty()
+                && !prefix.equals("epcis") && !prefix.equals(EPCIS.EPCIS_QUERY) && !prefix.equals("xsi")
+                && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(uri)) {
           xmlEventWriter.add(events.createNamespace(prefix, uri));
         }
       }

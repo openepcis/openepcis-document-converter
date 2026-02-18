@@ -446,7 +446,8 @@ public class ReactiveXmlToJsonConverter {
     for (int i = 0; i < nsCount; i++) {
       String prefix = reader.getNamespacePrefix(i);
       String uri = reader.getNamespaceURI(i);
-      if (prefix != null && !prefix.isEmpty() && uri != null) {
+      if (prefix != null && !prefix.isEmpty() && uri != null
+              && !isStandardNamespace(prefix, uri)) {
         nsContext.populateDocumentNamespaces(uri, prefix);
       }
     }
@@ -464,7 +465,7 @@ public class ReactiveXmlToJsonConverter {
       String prefix = reader.getNamespacePrefix(i);
       String uri = reader.getNamespaceURI(i);
       // Only capture non-standard namespaces as event-level
-      if (prefix != null && !prefix.isEmpty() && uri != null && !isStandardNamespace(prefix)) {
+      if (prefix != null && !prefix.isEmpty() && uri != null && !isStandardNamespace(prefix, uri)) {
         nsContext.populateEventNamespaces(uri, prefix);
       }
     }
@@ -497,7 +498,7 @@ public class ReactiveXmlToJsonConverter {
     Map<String, String> namespaces = nsContext.getNamespacesForXml(); // This returns prefix->URI
     // Filter to only custom namespaces first, then write object only if non-empty
     Map<String, String> customNamespaces = namespaces.entrySet().stream()
-        .filter(e -> !isStandardNamespace(e.getKey()))
+        .filter(e -> !isStandardNamespace(e.getKey(), e.getValue()))
         .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     if (!customNamespaces.isEmpty()) {
@@ -586,7 +587,10 @@ public class ReactiveXmlToJsonConverter {
     }
   }
 
-  private boolean isStandardNamespace(String prefix) {
-    return EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix) || EPCIS.XSI.equals(prefix) || "xmlns".equals(prefix);
+  private boolean isStandardNamespace(final String prefix, final String uri) {
+    return EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix)
+            || EPCIS.PROTECTED_NAMESPACE_URIS.contains(uri)
+            || EPCIS.XSI.equals(prefix)
+            || "xmlns".equals(prefix);
   }
 }

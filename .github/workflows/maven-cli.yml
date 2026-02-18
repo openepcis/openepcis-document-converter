@@ -28,10 +28,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.CG_SONAR_LOGIN }}
         run: |
-          mvn \
-            -s .mvn/settings.xml \
-            --no-transfer-progress \
-            --batch-mode \
-            -Pcoverage \
-            -Psonar \
-            clean verify sonar:sonar
+          mvn -s .mvn/settings.xml --no-transfer-progress --batch-mode -Pcoverage -B clean verify
+          # Sonar analysis is disabled due to credentials:
+          #  -Psonar \
+          #  clean verify sonar:sonar

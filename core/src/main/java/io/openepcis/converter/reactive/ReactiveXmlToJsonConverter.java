@@ -249,6 +249,7 @@ public class ReactiveXmlToJsonConverter {
       AtomicBoolean headerEmitted = new AtomicBoolean(false);
 
       // Local state for query document tracking
+      boolean documentTypeDetected = false;
       boolean isEPCISDocument = true;
       String subscriptionID = null;
       String queryName = null;
@@ -262,7 +263,12 @@ public class ReactiveXmlToJsonConverter {
 
           // Detect document root (both EPCISDocument and EPCISQueryDocument contain "Document")
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
-            isEPCISDocument = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+            // Only detect document type at the root element (first match);
+            // SBDH child elements like StandardBusinessDocumentHeader also contain "Document"
+            if (!documentTypeDetected) {
+              documentTypeDetected = true;
+              isEPCISDocument = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+            }
             prepareNamespaces(reader, nsContext);
             prepareContextAttributes(contextAttributes, reader);
 

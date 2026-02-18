@@ -985,15 +985,19 @@ public class ReactiveVersionTransformer {
           String name = reader.getLocalName();
 
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
-            prepareDocumentNamespaces(reader, nsContext);
-            // Capture document-level attributes (creationDate, schemaVersion, etc.)
-            for (int i = 0; i < reader.getAttributeCount(); i++) {
-              documentAttributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
-            }
+            // Only capture document-level info at the root element (first match);
+            // SBDH child elements like StandardBusinessDocumentHeader also contain "Document"
+            if (!documentAttributes.containsKey("_documentType")) {
+              prepareDocumentNamespaces(reader, nsContext);
+              // Capture document-level attributes (creationDate, schemaVersion, etc.)
+              for (int i = 0; i < reader.getAttributeCount(); i++) {
+                documentAttributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+              }
 
-            // Track document type
-            boolean isDoc = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
-            documentAttributes.put("_documentType", isDoc ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
+              // Track document type
+              boolean isDoc = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+              documentAttributes.put("_documentType", isDoc ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
+            }
           }
 
           // Extract subscriptionID and queryName for query documents

@@ -54,21 +54,39 @@ public class GS1FormatSupport {
     return FormatPreference.getInstance(epcFormat, cbvFormat);
   }
 
-  public static final BiFunction<Object, List<Object>, Object> createMapper(
-      final FormatPreference formatPreference) {
-    if (formatPreference.getEpcFormat() != EPCFormat.Never_Translates
-        || formatPreference.getCbvFormat() != CBVFormat.Never_Translates) {
-      return (o, context) -> {
-        if (o != null && EPCISEvent.class.isAssignableFrom(o.getClass())) {
-          EPCISEventES esEvent =
-              EventConvertor.getESRepresentation((EPCISEvent) o, new HashMap<>(), context);
-          return esEvent.getCoreModel(formatPreference, context);
-        }
-        return o;
-      };
+  /**
+   * Creates an event mapper based on the format preference.
+   *
+   * <p>Returns null if no explicit format preference is specified (both are No_Preference
+   * or Never_Translates), allowing the converter to use its version-based default format:
+   * <ul>
+   *   <li>XML/JSON 2.0 target: Digital Link / Web URI</li>
+   *   <li>XML 1.2 target: URN</li>
+   * </ul>
+   *
+   * @param formatPreference the format preference from request headers
+   * @return a mapper function, or null if no explicit preference was specified
+   */
+  public static final BiFunction<Object, List<Object>, Object> createMapper(final FormatPreference formatPreference) {
+    // Check if user explicitly specified a format preference
+    boolean hasExplicitEpcFormat = formatPreference.getEpcFormat() != EPCFormat.No_Preference
+        && formatPreference.getEpcFormat() != EPCFormat.Never_Translates;
+    boolean hasExplicitCbvFormat = formatPreference.getCbvFormat() != CBVFormat.No_Preference
+        && formatPreference.getCbvFormat() != CBVFormat.Never_Translates;
+
+    // If no explicit preference, return null to let the converter use version-based default
+    if (!hasExplicitEpcFormat && !hasExplicitCbvFormat) {
+      return null;
     }
-    // default function - return same
-    return (o, context) -> o;
+
+    // User explicitly specified a format, create the transformation mapper
+    return (o, context) -> {
+      if (o != null && EPCISEvent.class.isAssignableFrom(o.getClass())) {
+        EPCISEventES esEvent = EventConvertor.getESRepresentation((EPCISEvent) o, new HashMap<>(), context);
+        return esEvent.getCoreModel(formatPreference, context);
+      }
+      return o;
+    };
   }
 
   public static boolean isValidMediaType(MediaType mediaType) {

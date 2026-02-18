@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Abstraction for reactive input sources in EPCIS document conversion pipelines.
@@ -419,29 +421,62 @@ public final class ReactiveConversionSource {
     return subscriber -> {
       subscriber.onSubscribe(new Flow.Subscription() {
         private volatile boolean cancelled = false;
+        private volatile boolean done = false;
         private final byte[] buffer = new byte[bufferSize];
+        private final AtomicLong requested = new AtomicLong();
+        private final AtomicInteger wip = new AtomicInteger();
 
         @Override
         public void request(long n) {
-          if (cancelled) return;
+          if (n <= 0 || cancelled) return;
+          // Accumulate demand atomically — safe under re-entrant request()
+          long current;
+          do {
+            current = requested.get();
+            if (current == Long.MAX_VALUE) return;
+          } while (!requested.compareAndSet(current,
+              (Long.MAX_VALUE - current < n) ? Long.MAX_VALUE : current + n));
+          drain();
+        }
 
+        private void drain() {
+          // wip gate: only one thread (or one stack frame) drains at a time.
+          // Re-entrant request() from onNext() increments wip but returns here.
+          if (wip.getAndIncrement() != 0) return;
+
+          int missed = 1;
           try {
-            for (long i = 0; i < n && !cancelled; i++) {
-              int bytesRead = inputStream.read(buffer);
-              if (bytesRead == -1) {
-                if (!cancelled) {
+            for (;;) {
+              long emitted = 0;
+              long demand = requested.get();
+
+              while (emitted < demand && !cancelled && !done) {
+                int bytesRead = inputStream.read(buffer);
+                if (bytesRead == -1) {
+                  done = true;
                   closeQuietly();
                   subscriber.onComplete();
+                  return;
                 }
-                return;
+                byte[] chunk = new byte[bytesRead];
+                System.arraycopy(buffer, 0, chunk, 0, bytesRead);
+                subscriber.onNext(ByteBuffer.wrap(chunk));
+                emitted++;
               }
-              // Create a copy for the ByteBuffer
-              byte[] chunk = new byte[bytesRead];
-              System.arraycopy(buffer, 0, chunk, 0, bytesRead);
-              subscriber.onNext(ByteBuffer.wrap(chunk));
+
+              if (cancelled || done) return;
+
+              if (emitted > 0) {
+                requested.addAndGet(-emitted);
+              }
+
+              // Check if more work arrived while we were draining
+              missed = wip.addAndGet(-missed);
+              if (missed == 0) return;
             }
           } catch (IOException e) {
-            if (!cancelled) {
+            if (!cancelled && !done) {
+              done = true;
               closeQuietly();
               subscriber.onError(e);
             }
@@ -459,7 +494,6 @@ public final class ReactiveConversionSource {
         @Override
         public void cancel() {
           cancelled = true;
-          // Close the underlying stream on cancellation to prevent resource leaks
           closeQuietly();
         }
       });

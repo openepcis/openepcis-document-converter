@@ -30,6 +30,7 @@ import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.XmlSupportExtension;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
@@ -250,6 +251,9 @@ public abstract class JsonEventParser {
             marshaller.setProperty(
                 MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
                 allNamespaces);
+            if (nsContext != null) {
+              marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
+            }
 
             marshaller.marshal(xmlSupport, skipEPCISNamespaceWriter);
 

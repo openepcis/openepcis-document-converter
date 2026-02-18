@@ -18,31 +18,49 @@ package io.openepcis.converter.reactive;
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.Conversion;
+import io.openepcis.converter.common.GS1FormatSupport;
 import io.openepcis.reactive.util.ByteBufferChunker;
 import io.openepcis.reactive.util.NettyBufferSupport;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.format.CBVFormat;
+import io.openepcis.model.epcis.format.EPCFormat;
+import io.openepcis.model.epcis.format.FormatPreference;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
+import io.openepcis.constants.EPCIS;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
+import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
+import io.smallrye.mutiny.subscription.MultiEmitter;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
+import java.io.*;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
+import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.xml.stream.*;
+import javax.xml.stream.events.XMLEvent;
+import javax.xml.stream.util.EventReaderDelegate;
+import io.openepcis.converter.util.IndentingXMLStreamWriter;
+import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
+import org.eclipse.persistence.jaxb.MarshallerProperties;
 
 /**
  * Reactive document converter with full backpressure support.
@@ -120,6 +138,15 @@ public class ReactiveVersionTransformer {
 
   private static final int DEFAULT_BUFFER_SIZE = 8192;
 
+  private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+  private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
+
+  static {
+    // Configure XMLInputFactory for security
+    XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+    XML_INPUT_FACTORY.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+  }
+
   /** Flag to ensure we only log the blocking executor warning once per instance */
   private final AtomicBoolean blockingExecutorWarningLogged = new AtomicBoolean(false);
 
@@ -171,7 +198,7 @@ public class ReactiveVersionTransformer {
    */
   private static ReactiveXmlVersionTransformer createXmlVersionTransformer() {
     final Optional<ReactiveXmlVersionTransformerFactory> optionalFactory =
-            ServiceLoader.load(ReactiveXmlVersionTransformerFactory.class).findFirst();
+        ServiceLoader.load(ReactiveXmlVersionTransformerFactory.class).findFirst();
     if (optionalFactory.isPresent()) {
       final ReactiveXmlVersionTransformer transformer = optionalFactory.get().newReactiveXmlVersionTransformer();
       LOG.log(Level.INFO, "Using XML version transformer: {0} (via ServiceLoader)", transformer.getClass().getName());
@@ -676,41 +703,61 @@ public class ReactiveVersionTransformer {
     EPCISVersion fromVersion = conversion.fromVersion();
     EPCISVersion toVersion = conversion.toVersion();
 
-    // XML -> XML (version transform only) - blocking XSLT
+    // XML -> XML and
+    // Always apply format transformation with default preferences based on target version:
+    // - XML 2.0 target: Digital Link format (Always_GS1_Digital_Link, Always_Web_URI)
+    // - XML 1.2 target: URN format (Always_EPC_URN, Always_URN)
+    // User-provided mapper via headers will override the default.
     if (EPCISFormat.XML.equals(fromFormat) && EPCISFormat.XML.equals(toFormat)) {
-      return withBlockingExecutor(xmlVersionTransformer.transform(source, conversion));
+      return withBlockingExecutor(convertXmlToXmlWithFormatPreferences(source, conversion));
     }
 
     // JSON-LD -> XML 2.0 - non-blocking JSON parsing, blocking JAXB marshalling
-    if (EPCISFormat.JSON_LD.equals(fromFormat) && EPCISFormat.XML.equals(toFormat)
-        && EPCISVersion.VERSION_2_0_0.equals(toVersion)) {
-      return withBlockingExecutor(jsonToXmlConverter.convert(source));
+    // Default format: Digital Link (Always_GS1_Digital_Link, Always_Web_URI)
+    if (EPCISFormat.JSON_LD.equals(fromFormat) && EPCISFormat.XML.equals(toFormat) && EPCISVersion.VERSION_2_0_0.equals(toVersion)) {
+      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0);
+      ReactiveJsonToXmlConverter jsonToXmlWithMapper = new ReactiveJsonToXmlConverter(jaxbContext, Optional.of(effectiveMapper));
+      return withBlockingExecutor(jsonToXmlWithMapper.convert(source));
     }
 
     // JSON-LD -> XML 1.2 (JSON -> XML 2.0 -> XML 1.2) - blocking JAXB + XSLT
+    // Default format: URN (Always_EPC_URN, Always_URN) for XML 1.2
     // Chain the converters: pipe XML 2.0 output to XML 1.2 transformer input
     if (EPCISFormat.JSON_LD.equals(fromFormat) && EPCISFormat.XML.equals(toFormat)
         && EPCISVersion.VERSION_1_2_0.equals(toVersion)) {
+      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_1_2_0);
+      ReactiveJsonToXmlConverter jsonToXmlWithMapper = new ReactiveJsonToXmlConverter(jaxbContext, Optional.of(effectiveMapper));
       return withBlockingExecutor(
           chainMultiToMulti(
-              jsonToXmlConverter.convert(source),
+              jsonToXmlWithMapper.convert(source),
               xml20Bytes -> xmlVersionTransformer.transform(
                   ReactiveConversionSource.fromMulti(xml20Bytes.onItem().transform(ByteBuffer::wrap)),
-                  Conversion.of(null, EPCISVersion.VERSION_2_0_0, null, EPCISVersion.VERSION_1_2_0))));
+                  Conversion.builder()
+                      .generateGS1CompliantDocument(conversion.generateGS1CompliantDocument().orElse(null))
+                      .fromMediaType(null)
+                      .fromVersion(EPCISVersion.VERSION_2_0_0)
+                      .toVersion(EPCISVersion.VERSION_1_2_0)
+                      .build())));
     }
 
     // XML 2.0 -> JSON-LD 2.0 - blocking StAX parsing
+    // Default format: Digital Link EPCs, bare string CBV vocabularies for JSON-LD 2.0
     if (EPCISFormat.XML.equals(fromFormat) && EPCISFormat.JSON_LD.equals(toFormat)
         && EPCISVersion.VERSION_2_0_0.equals(fromVersion)) {
-      return withBlockingExecutor(xmlToJsonConverter.convert(source));
+      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0, EPCISFormat.JSON_LD);
+      ReactiveXmlToJsonConverter xmlToJsonWithMapper = new ReactiveXmlToJsonConverter(jaxbContext, Optional.of(effectiveMapper));
+      return withBlockingExecutor(xmlToJsonWithMapper.convert(source));
     }
 
     // XML 1.2 -> JSON-LD 2.0 (XML 1.2 -> XML 2.0 -> JSON) - blocking XSLT + StAX
+    // Default format: Digital Link EPCs, bare string CBV vocabularies for JSON-LD 2.0
     if (EPCISFormat.XML.equals(fromFormat) && EPCISFormat.JSON_LD.equals(toFormat)
         && (EPCISVersion.VERSION_1_2_0.equals(fromVersion) || EPCISVersion.VERSION_1_1_0.equals(fromVersion))) {
+      BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(EPCISVersion.VERSION_2_0_0, EPCISFormat.JSON_LD);
+      ReactiveXmlToJsonConverter xmlToJsonWithMapper = new ReactiveXmlToJsonConverter(jaxbContext, Optional.of(effectiveMapper));
       return withBlockingExecutor(xmlVersionTransformer.transform(source,
               Conversion.of(null, fromVersion, null, EPCISVersion.VERSION_2_0_0))
-          .plug(bytes -> xmlToJsonConverter.convert(
+          .plug(bytes -> xmlToJsonWithMapper.convert(
               ReactiveConversionSource.fromMulti(
                   bytes.onItem().transform(b -> ByteBuffer.wrap(b))))));
     }
@@ -780,6 +827,515 @@ public class ReactiveVersionTransformer {
         new UnsupportedOperationException(
             "Cannot extract events from: " + fromFormat + "/" + fromVersion
                 + ". Supported input formats: JSON-LD 2.0, XML 2.0, XML 1.2, XML 1.1"));
+  }
+
+  // ==================== XML to XML with Format Preferences ====================
+
+  /**
+   * Gets the effective event mapper for XML-to-XML conversion.
+   *
+   * <p>If a user-provided mapper is present, it is used. Otherwise, a default mapper is
+   * created based on the target version:
+   * <ul>
+   *   <li>XML 2.0 target: Digital Link format (Always_GS1_Digital_Link, Always_Web_URI)</li>
+   *   <li>XML 1.2 target: URN format (Always_EPC_URN, Always_URN)</li>
+   * </ul>
+   *
+   * @param toVersion the target EPCIS version
+   * @return the effective event mapper
+   */
+  private BiFunction<Object, List<Object>, Object> getEffectiveMapper(EPCISVersion toVersion) {
+    return getEffectiveMapper(toVersion, EPCISFormat.XML);
+  }
+
+  private BiFunction<Object, List<Object>, Object> getEffectiveMapper(EPCISVersion toVersion, EPCISFormat toFormat) {
+    // If user explicitly provided a mapper, use it
+    if (eventMapper.isPresent()) {
+      return eventMapper.get();
+    }
+
+    // Create default mapper based on target version and format
+    FormatPreference defaultPreference;
+    if (EPCISVersion.VERSION_1_2_0.equals(toVersion)) {
+      // XML 1.2 prefers URN format
+      defaultPreference = FormatPreference.getInstance(EPCFormat.Always_EPC_URN, CBVFormat.Always_URN);
+    } else if (EPCISFormat.JSON_LD.equals(toFormat)) {
+      // JSON-LD 2.0: Digital Link EPCs, bare string CBV vocabularies
+      defaultPreference = FormatPreference.getInstance(EPCFormat.Always_GS1_Digital_Link, CBVFormat.Never_Translates);
+    } else {
+      // XML 2.0 prefers Digital Link format
+      defaultPreference = FormatPreference.getInstance(EPCFormat.Always_GS1_Digital_Link, CBVFormat.Always_Web_URI);
+    }
+
+    return GS1FormatSupport.createMapper(defaultPreference);
+  }
+
+  /**
+   * Converts XML to XML with format preference application.
+   *
+   * <p>This method handles XML-to-XML conversion with format transformation (URN ↔ Digital Link)
+   * entirely within this class, without using external converters.
+   *
+   * <p>Default format preferences based on target version:
+   * <ul>
+   *   <li>XML 2.0 target: Digital Link format (Always_GS1_Digital_Link, Always_Web_URI)</li>
+   *   <li>XML 1.2 target: URN format (Always_EPC_URN, Always_URN)</li>
+   * </ul>
+   *
+   * @param source the input XML source
+   * @param conversion the conversion specification
+   * @return Multi emitting transformed XML bytes
+   */
+  private Multi<byte[]> convertXmlToXmlWithFormatPreferences(
+      ReactiveConversionSource source, Conversion conversion) {
+
+    EPCISVersion fromVersion = conversion.fromVersion();
+    EPCISVersion toVersion = conversion.toVersion();
+
+    // Get the effective mapper (user-provided or default based on target version)
+    BiFunction<Object, List<Object>, Object> effectiveMapper = getEffectiveMapper(toVersion);
+
+    // Map to capture document-level attributes (creationDate, schemaVersion, etc.) during parsing
+    final Map<String, String> documentAttributes = new ConcurrentHashMap<>();
+
+    // Step 1: If input is XML 1.2/1.1, transform to XML 2.0 first (required for parsing)
+    ReactiveConversionSource xml20Source = source;
+    if (fromVersion != null && !EPCISVersion.VERSION_2_0_0.equals(fromVersion)) {
+      xml20Source = ReactiveConversionSource.fromMulti(
+          xmlVersionTransformer.transform(source,
+              Conversion.of(null, fromVersion, null, EPCISVersion.VERSION_2_0_0))
+          .onItem().transform(ByteBuffer::wrap));
+    }
+
+    // Step 2: Parse XML 2.0 to events (internal method - NO mapper applied during parsing)
+    Multi<EPCISEvent> events = parseXmlToEvents(xml20Source, documentAttributes);
+
+    // Step 3: Marshal events back to XML 2.0 with format transformation
+    Multi<byte[]> xml20WithFormats = marshalEventsToXml(events, effectiveMapper, documentAttributes);
+
+    // Step 4: If target is XML 1.2, transform XML 2.0 → XML 1.2
+    if (EPCISVersion.VERSION_1_2_0.equals(toVersion)) {
+      return chainMultiToMulti(
+          xml20WithFormats,
+          xml20Bytes -> xmlVersionTransformer.transform(
+              ReactiveConversionSource.fromMulti(xml20Bytes.onItem().transform(ByteBuffer::wrap)),
+              Conversion.builder()
+                  .generateGS1CompliantDocument(conversion.generateGS1CompliantDocument().orElse(null))
+                  .fromMediaType(null)
+                  .fromVersion(EPCISVersion.VERSION_2_0_0)
+                  .toVersion(EPCISVersion.VERSION_1_2_0)
+                  .build()));
+    }
+
+    return xml20WithFormats;
+  }
+
+  // ==================== Internal XML Parsing/Marshalling for XML-to-XML ====================
+
+  /**
+   * Parses XML 2.0 to EPCISEvent objects using StAX + JAXB.
+   * This method is used internally for XML-to-XML conversion.
+   * NO event mapper is applied during parsing - just pure parsing.
+   *
+   * @param source the XML 2.0 source
+   * @return Multi emitting EPCISEvent objects
+   */
+  private Multi<EPCISEvent> parseXmlToEvents(ReactiveConversionSource source,
+                                              Map<String, String> documentAttributes) {
+    // Create conversion-scoped namespace context
+    final ConversionNamespaceContext nsContext = new ConversionNamespaceContext();
+
+    // Collect all bytes first (StAX needs complete document), then parse events
+    return source.toMulti()
+        .onItem().transform(buffer -> {
+          byte[] bytes = new byte[buffer.remaining()];
+          buffer.get(bytes);
+          return bytes;
+        })
+        .collect().in(ByteArrayOutputStream::new, (baos, bytes) -> {
+          try {
+            baos.write(bytes);
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        })
+        .onItem().transformToMulti(baos ->
+            Multi.createFrom().emitter(emitter -> parseEventsInternal(baos.toByteArray(), emitter, nsContext, documentAttributes)));
+  }
+
+  /**
+   * Internal method to parse events from XML bytes.
+   */
+  private void parseEventsInternal(byte[] xmlBytes, MultiEmitter<? super EPCISEvent> emitter,
+                                    ConversionNamespaceContext nsContext,
+                                    Map<String, String> documentAttributes) {
+    XMLStreamReader reader = null;
+    try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
+      reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
+      Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
+      unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
+
+      AtomicInteger sequenceInEventList = new AtomicInteger(0);
+
+      reader.next();
+
+      while (reader.hasNext()) {
+        if (reader.isStartElement()) {
+          String name = reader.getLocalName();
+
+          if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
+            // Only capture document-level info at the root element (first match);
+            // SBDH child elements like StandardBusinessDocumentHeader also contain "Document"
+            if (!documentAttributes.containsKey("_documentType")) {
+              prepareDocumentNamespaces(reader, nsContext);
+              // Capture document-level attributes (creationDate, schemaVersion, etc.)
+              for (int i = 0; i < reader.getAttributeCount(); i++) {
+                documentAttributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+              }
+
+              // Track document type
+              boolean isDoc = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+              documentAttributes.put("_documentType", isDoc ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
+            }
+          }
+
+          // Extract subscriptionID and queryName for query documents
+          if (EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"))) {
+            if (name.equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+              documentAttributes.put(EPCIS.SUBSCRIPTION_ID, reader.getElementText());
+              continue;
+            } else if (name.equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+              documentAttributes.put(EPCIS.QUERY_NAME, reader.getElementText());
+              continue;
+            }
+          }
+
+          if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
+            // Create per-event scoped context with document namespaces + this event's namespaces
+            ConversionNamespaceContext eventScopedCtx = ConversionNamespaceContext.createEventScoped(nsContext);
+            prepareEventNamespaces(reader, eventScopedCtx);
+            Object event = unmarshallEventInternal(reader, unmarshaller, eventScopedCtx);
+
+            if (event instanceof EPCISEvent epcisEvent) {
+              epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
+              epcisEvent.getOpenEPCISExtension().setConversionNamespaceContext(eventScopedCtx);
+              emitter.emit(epcisEvent);
+            }
+            continue;
+          }
+        } else if (reader.isEndElement()) {
+          String name = reader.getLocalName();
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) || name.equalsIgnoreCase(EPCIS.EPCIS_QUERY_DOCUMENT)) {
+            break;
+          }
+        }
+
+        reader.next();
+      }
+
+      emitter.complete();
+
+    } catch (Exception e) {
+      emitter.fail(new FormatConverterException("XML event parsing failed", e));
+    } finally {
+      if (reader != null) {
+        try {
+          reader.close();
+        } catch (XMLStreamException ignored) {
+          // Best effort cleanup
+        }
+      }
+    }
+  }
+
+  /**
+   * Captures document-level namespaces from XMLStreamReader.
+   */
+  private void prepareDocumentNamespaces(XMLStreamReader reader, ConversionNamespaceContext nsContext) {
+    int nsCount = reader.getNamespaceCount();
+    for (int i = 0; i < nsCount; i++) {
+      String prefix = reader.getNamespacePrefix(i);
+      String uri = reader.getNamespaceURI(i);
+      if (prefix != null && !prefix.isEmpty() && uri != null) {
+        nsContext.populateDocumentNamespaces(uri, prefix);
+      }
+    }
+  }
+
+  /**
+   * Captures event-level namespaces from XMLStreamReader.
+   */
+  private void prepareEventNamespaces(XMLStreamReader reader, ConversionNamespaceContext nsContext) {
+    int nsCount = reader.getNamespaceCount();
+    for (int i = 0; i < nsCount; i++) {
+      String prefix = reader.getNamespacePrefix(i);
+      String uri = reader.getNamespaceURI(i);
+      if (prefix != null && !prefix.isEmpty() && uri != null) {
+        nsContext.populateEventNamespaces(uri, prefix);
+      }
+    }
+  }
+
+  /**
+   * Unmarshals a single event from the XMLStreamReader.
+   */
+  private Object unmarshallEventInternal(XMLStreamReader reader, Unmarshaller unmarshaller,
+                                          ConversionNamespaceContext nsContext) {
+    try {
+      // Set ThreadLocal context for EPCISEvent.afterUnmarshal() to discover extension namespaces
+      ConversionNamespaceContext.setUnmarshalContext(nsContext);
+      try {
+        return unmarshaller.unmarshal(reader);
+      } finally {
+        ConversionNamespaceContext.clearUnmarshalContext();
+      }
+    } catch (JAXBException e) {
+      throw new FormatConverterException("Failed to unmarshal event", e);
+    }
+  }
+
+  /**
+   * Marshals EPCISEvent objects to XML 2.0 with format transformation.
+   * The format mapper is applied to each event before marshalling.
+   *
+   * @param events the stream of events to marshal
+   * @param mapper the format mapper to apply (URN ↔ Digital Link transformation)
+   * @return Multi emitting XML byte chunks
+   */
+  private Multi<byte[]> marshalEventsToXml(Multi<EPCISEvent> events,
+                                            BiFunction<Object, List<Object>, Object> mapper,
+                                            Map<String, String> documentAttributes) {
+
+    final ConversionNamespaceContext documentNsContext = new ConversionNamespaceContext();
+    final AtomicBoolean headerEmitted = new AtomicBoolean(false);
+    final AtomicInteger sequence = new AtomicInteger(0);
+
+    return events
+        .onItem().transformToMultiAndConcatenate(event -> {
+          try {
+            ConversionNamespaceContext eventCtx = null;
+            if (event.getOpenEPCISExtension() != null &&
+                event.getOpenEPCISExtension().getConversionNamespaceContext() != null) {
+              eventCtx = event.getOpenEPCISExtension().getConversionNamespaceContext();
+            }
+
+            // Copy only DOCUMENT-level namespaces to documentNsContext (for the header)
+            if (eventCtx != null) {
+              for (Map.Entry<String, String> ns : eventCtx.getDocumentNamespaces().entrySet()) {
+                documentNsContext.populateDocumentNamespaces(ns.getKey(), ns.getValue());
+              }
+            }
+
+            // Create event-scoped context: document namespaces + this event's event-level namespaces
+            ConversionNamespaceContext eventScopedContext = ConversionNamespaceContext.createEventScoped(documentNsContext);
+            if (eventCtx != null) {
+              for (Map.Entry<String, String> ns : eventCtx.getEventNamespaces().entrySet()) {
+                eventScopedContext.populateEventNamespaces(ns.getKey(), ns.getValue());
+              }
+            }
+
+            // Emit header before first event
+            if (!headerEmitted.getAndSet(true)) {
+              byte[] headerBytes = createXmlHeaderInternal(documentNsContext, documentAttributes);
+              byte[] eventBytes = marshalEventInternal(event, eventScopedContext, sequence, mapper);
+
+              ByteArrayOutputStream combined = new ByteArrayOutputStream();
+              combined.write(headerBytes);
+              if (eventBytes != null && eventBytes.length > 0) {
+                combined.write(eventBytes);
+              }
+              return Multi.createFrom().item(combined.toByteArray());
+            }
+
+            // Marshal subsequent events
+            byte[] eventBytes = marshalEventInternal(event, eventScopedContext, sequence, mapper);
+
+            if (eventBytes != null && eventBytes.length > 0) {
+              return Multi.createFrom().item(eventBytes);
+            }
+            return Multi.createFrom().empty();
+
+          } catch (Exception e) {
+            return Multi.createFrom().failure(
+                new FormatConverterException("Failed to marshal event: " + e.getMessage(), e));
+          }
+        })
+        .onCompletion().continueWith(() -> {
+          // Emit footer
+          return List.of(createXmlFooterInternal(documentAttributes));
+        });
+  }
+
+  /**
+   * Marshals a single EPCISEvent to XML bytes with format transformation.
+   */
+  private byte[] marshalEventInternal(EPCISEvent event,
+                                      ConversionNamespaceContext nsContext,
+                                      AtomicInteger sequence,
+                                      BiFunction<Object, List<Object>, Object> mapper) throws JAXBException, XMLStreamException {
+
+    event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
+    event.getOpenEPCISExtension().setConversionNamespaceContext(nsContext);
+
+    // Apply format mapper (EPCISEventES transformation)
+    Map<String, String> swappedMap = nsContext.getEventNamespaces().entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    Object mappedEvent = mapper != null ? mapper.apply(event, List.of(swappedMap)) : event;
+
+    if (!(mappedEvent instanceof EPCISEvent)) {
+      return null;
+    }
+
+    // Ensure the mapped event carries the namespace context for beforeMarshal/ExtensionsModifier
+    // (the mapper creates a new EPCISEvent via getCoreModel() which loses the original context)
+    if (mappedEvent instanceof EPCISEvent mappedEpcisEvent) {
+      if (mappedEpcisEvent.getOpenEPCISExtension() == null) {
+        mappedEpcisEvent.setOpenEPCISExtension(new io.openepcis.model.epcis.extension.OpenEPCISExtension());
+      }
+      mappedEpcisEvent.getOpenEPCISExtension().setConversionNamespaceContext(nsContext);
+    }
+
+    // Create marshaller with namespace mapper
+    Marshaller marshaller = jaxbContext.createMarshaller();
+    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+    marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
+    marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getEventNamespaces());
+    marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
+
+    // Marshal to string - let JAXB write all necessary namespace declarations on each event
+    StringWriter singleXmlEvent = new StringWriter();
+    XMLStreamWriter xmlStreamWriter = new NonEPCISNamespaceXMLStreamWriter(new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+    marshaller.marshal(mappedEvent, xmlStreamWriter);
+    xmlStreamWriter.flush();
+
+    // Collect event XML
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(2048);
+    XMLEventWriter xmlEventWriter = XML_OUTPUT_FACTORY.createXMLEventWriter(baos, StandardCharsets.UTF_8.name());
+
+    try {
+      collectEventInternal(xmlEventWriter, singleXmlEvent.toString());
+      xmlEventWriter.flush();
+      return baos.toByteArray();
+    } finally {
+      xmlEventWriter.close();
+    }
+  }
+
+  /**
+   * Collects an event by parsing its XML and adding to the XMLEventWriter.
+   */
+  private void collectEventInternal(XMLEventWriter xmlEventWriter, String eventXml) throws XMLStreamException {
+    XMLEventReader xer =
+        new EventReaderDelegate(XML_INPUT_FACTORY.createXMLEventReader(new StringReader(eventXml))) {
+          @Override
+          public boolean hasNext() {
+            if (!super.hasNext()) return false;
+            try {
+              return !super.peek().isEndDocument();
+            } catch (XMLStreamException ignored) {
+              return true;
+            }
+          }
+        };
+
+    if (xer.peek().isStartDocument()) {
+      xer.nextEvent(); // Skip StartDocument
+      xmlEventWriter.add(xer);
+    }
+  }
+
+  /**
+   * Creates the XML header for EPCIS 2.0 document.
+   */
+  private byte[] createXmlHeaderInternal(ConversionNamespaceContext nsContext, Map<String, String> documentAttributes) throws XMLStreamException {
+
+    boolean isQueryDocument = EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"));
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+    XMLEventWriter xmlEventWriter = XML_OUTPUT_FACTORY.createXMLEventWriter(baos, StandardCharsets.UTF_8.name());
+    XMLEventFactory events = XMLEventFactory.newInstance();
+
+    try {
+      // Write XML declaration
+      xmlEventWriter.add(events.createStartDocument(StandardCharsets.UTF_8.name(), "1.0"));
+      xmlEventWriter.add(events.createCharacters("\n"));
+
+      // Start document root element with correct type and namespace
+      if (isQueryDocument) {
+        xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, "EPCISQueryDocument"));
+        xmlEventWriter.add(events.createNamespace(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS));
+      } else {
+        xmlEventWriter.add(events.createStartElement("epcis", EPCIS.EPCIS_2_0_XMLNS, "EPCISDocument"));
+        xmlEventWriter.add(events.createNamespace("epcis", EPCIS.EPCIS_2_0_XMLNS));
+      }
+      xmlEventWriter.add(events.createNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
+
+      // Add custom namespaces from context
+      for (Map.Entry<String, String> ns : nsContext.getNamespacesForXml().entrySet()) {
+        String prefix = ns.getKey();
+        String uri = ns.getValue();
+        if (!prefix.isEmpty() && !prefix.equals("epcis") && !prefix.equals(EPCIS.EPCIS_QUERY) && !prefix.equals("xsi")) {
+          xmlEventWriter.add(events.createNamespace(prefix, uri));
+        }
+      }
+
+      // Add schemaVersion attribute
+      xmlEventWriter.add(events.createAttribute("schemaVersion", "2.0"));
+
+      // Add timestamp attribute — preserve createdAt for query documents, creationDate otherwise
+      String createdAt = documentAttributes != null ? documentAttributes.get("createdAt") : null;
+      String creationDate = documentAttributes != null ? documentAttributes.get("creationDate") : null;
+      if (createdAt != null) {
+        xmlEventWriter.add(events.createAttribute("creationDate", createdAt));
+      } else {
+        xmlEventWriter.add(events.createAttribute("creationDate", creationDate != null ? creationDate : Instant.now().toString()));
+      }
+
+      // Start EPCISBody
+      xmlEventWriter.add(events.createStartElement("", "", "EPCISBody"));
+
+      // For query document: add QueryResults wrapper with subscriptionID/queryName
+      if (isQueryDocument) {
+        xmlEventWriter.add(events.createStartElement("", "", EPCIS.QUERY_RESULTS));
+        String subId = documentAttributes.get(EPCIS.SUBSCRIPTION_ID);
+
+        if (subId != null && !subId.isBlank()) {
+          xmlEventWriter.add(events.createStartElement("", "", EPCIS.SUBSCRIPTION_ID));
+          xmlEventWriter.add(events.createCharacters(subId));
+          xmlEventWriter.add(events.createEndElement("", "", EPCIS.SUBSCRIPTION_ID));
+        }
+
+        String qName = documentAttributes.get(EPCIS.QUERY_NAME);
+        if (qName != null && !qName.isBlank()) {
+          xmlEventWriter.add(events.createStartElement("", "", EPCIS.QUERY_NAME));
+          xmlEventWriter.add(events.createCharacters(qName));
+          xmlEventWriter.add(events.createEndElement("", "", EPCIS.QUERY_NAME));
+        }
+        xmlEventWriter.add(events.createStartElement("", "", "resultsBody"));
+      }
+
+      // Start EventList
+      xmlEventWriter.add(events.createStartElement("", "", "EventList"));
+      xmlEventWriter.add(events.createCharacters(""));
+
+      xmlEventWriter.flush();
+      return baos.toByteArray();
+
+    } finally {
+      xmlEventWriter.close();
+    }
+  }
+
+  /**
+   * Creates the XML footer for EPCIS 2.0 document.
+   */
+  private byte[] createXmlFooterInternal(Map<String, String> documentAttributes) {
+    boolean isQueryDocument = EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"));
+    if (isQueryDocument) {
+      return ("\n</EventList>\n</resultsBody>\n</QueryResults>\n</EPCISBody>\n</"
+          + EPCIS.EPCIS_QUERY + ":EPCISQueryDocument>").getBytes(StandardCharsets.UTF_8);
+    }
+    return "\n</EventList>\n</EPCISBody>\n</epcis:EPCISDocument>".getBytes(StandardCharsets.UTF_8);
   }
 
   // ==================== Helper Methods ====================

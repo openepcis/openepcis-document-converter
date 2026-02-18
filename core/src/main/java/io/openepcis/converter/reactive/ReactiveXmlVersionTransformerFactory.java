@@ -27,10 +27,10 @@ package io.openepcis.converter.reactive;
  */
 public interface ReactiveXmlVersionTransformerFactory {
 
-    /**
-     * Creates a new ReactiveXmlVersionTransformer instance.
-     *
-     * @return a new transformer instance
-     */
-    ReactiveXmlVersionTransformer newReactiveXmlVersionTransformer();
+  /**
+   * Creates a new ReactiveXmlVersionTransformer instance.
+   *
+   * @return a new transformer instance
+   */
+  ReactiveXmlVersionTransformer newReactiveXmlVersionTransformer();
 }

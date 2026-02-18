@@ -22,6 +22,7 @@ import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
@@ -139,6 +140,7 @@ public class XMLEventValueTransformer extends XMLEventParser implements EventsCo
             // Set the namespaces for the marshaller
             marshaller.setProperty(
                 MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getAllNamespaces());
+            marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
             final XMLStreamWriter skipEPCISNamespaceWriter =
                 new NonEPCISNamespaceXMLStreamWriter(

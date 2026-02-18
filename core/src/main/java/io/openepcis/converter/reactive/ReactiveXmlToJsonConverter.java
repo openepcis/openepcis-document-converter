@@ -18,12 +18,13 @@ package io.openepcis.converter.reactive;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
-import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import io.smallrye.mutiny.Multi;
@@ -240,10 +241,18 @@ public class ReactiveXmlToJsonConverter {
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
       Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
+      unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
       Map<String, String> contextAttributes = new HashMap<>();
       AtomicInteger sequenceInEventList = new AtomicInteger(0);
       AtomicBoolean headerEmitted = new AtomicBoolean(false);
+
+      // Local state for query document tracking
+      boolean documentTypeDetected = false;
+      boolean isEPCISDocument = true;
+      String subscriptionID = null;
+      String queryName = null;
 
       // Process XML
       reader.next();
@@ -252,15 +261,38 @@ public class ReactiveXmlToJsonConverter {
         if (reader.isStartElement()) {
           String name = reader.getLocalName();
 
-          // Check for document root
+          // Detect document root (both EPCISDocument and EPCISQueryDocument contain "Document")
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
+            // Only detect document type at the root element (first match);
+            // SBDH child elements like StandardBusinessDocumentHeader also contain "Document"
+            if (!documentTypeDetected) {
+              documentTypeDetected = true;
+              isEPCISDocument = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+            }
             prepareNamespaces(reader, nsContext);
             prepareContextAttributes(contextAttributes, reader);
 
-            // Emit JSON header
-            if (!headerEmitted.getAndSet(true)) {
-              byte[] header = buildJsonHeader(contextAttributes, nsContext);
-              emitter.emit(header);
+            // For EPCISDocument: emit header immediately (same as before)
+            if (isEPCISDocument && !headerEmitted.getAndSet(true)) {
+              emitter.emit(buildJsonHeader(contextAttributes, nsContext, true, null, null));
+            }
+          }
+
+          // For EPCISQueryDocument: extract subscriptionID and queryName before resultsBody
+          if (!isEPCISDocument) {
+            if (name.equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+              subscriptionID = reader.getElementText();
+              continue; // getElementText() advances reader
+            } else if (name.equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+              queryName = reader.getElementText();
+              continue;
+            } else if (name.equalsIgnoreCase(EPCIS.RESULTS_BODY)
+                       || name.equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
+              // Emit header at resultsBody — after subscriptionID/queryName are captured
+              if (!headerEmitted.getAndSet(true)) {
+                emitter.emit(buildJsonHeader(contextAttributes, nsContext,
+                    false, subscriptionID, queryName));
+              }
             }
           }
 
@@ -268,7 +300,7 @@ public class ReactiveXmlToJsonConverter {
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
             // Capture event-level namespaces before unmarshalling (O(1) - no blocking)
             prepareEventNamespaces(reader, nsContext);
-            Object event = unmarshallEvent(reader, unmarshaller);
+            Object event = unmarshallEvent(reader, unmarshaller, nsContext);
 
             if (event != null) {
               // Track if this is the first event (sequence starts at 0, increments in applyEventMapper)
@@ -285,9 +317,10 @@ public class ReactiveXmlToJsonConverter {
           }
         } else if (reader.isEndElement()) {
           String name = reader.getLocalName();
-          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)
+              || name.equalsIgnoreCase(EPCIS.EPCIS_QUERY_DOCUMENT)) {
             // Emit footer
-            emitter.emit(buildJsonFooter());
+            emitter.emit(buildJsonFooter(isEPCISDocument));
             break;
           }
         }
@@ -317,6 +350,8 @@ public class ReactiveXmlToJsonConverter {
     try (InputStream is = new ByteArrayInputStream(xmlBytes)) {
       reader = XML_INPUT_FACTORY.createXMLStreamReader(is);
       Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
+      unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
       AtomicInteger sequenceInEventList = new AtomicInteger(0);
 
@@ -333,7 +368,7 @@ public class ReactiveXmlToJsonConverter {
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
             // Capture event-level namespaces before unmarshalling (O(1) - no blocking)
             prepareEventNamespaces(reader, nsContext);
-            Object event = unmarshallEvent(reader, unmarshaller);
+            Object event = unmarshallEvent(reader, unmarshaller, nsContext);
 
             if (event != null) {
               event = applyEventMapper(sequenceInEventList, event, nsContext);
@@ -346,7 +381,8 @@ public class ReactiveXmlToJsonConverter {
           }
         } else if (reader.isEndElement()) {
           String name = reader.getLocalName();
-          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)
+              || name.equalsIgnoreCase(EPCIS.EPCIS_QUERY_DOCUMENT)) {
             break;
           }
         }
@@ -370,9 +406,17 @@ public class ReactiveXmlToJsonConverter {
     }
   }
 
-  private Object unmarshallEvent(XMLStreamReader reader, Unmarshaller unmarshaller) {
+  private Object unmarshallEvent(XMLStreamReader reader, Unmarshaller unmarshaller,
+                                  ConversionNamespaceContext nsContext) {
     try {
-      return unmarshaller.unmarshal(reader);
+      // Set ThreadLocal context for EPCISEvent.afterUnmarshal() to discover extension namespaces
+      // This is safe because unmarshal is synchronous/blocking
+      ConversionNamespaceContext.setUnmarshalContext(nsContext);
+      try {
+        return unmarshaller.unmarshal(reader);
+      } finally {
+        ConversionNamespaceContext.clearUnmarshalContext();
+      }
     } catch (JAXBException e) {
       throw new FormatConverterException("Failed to unmarshal event", e);
     }
@@ -383,11 +427,12 @@ public class ReactiveXmlToJsonConverter {
       epcisEvent.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
     }
 
-    // Create swapped map for mapper (prefix -> URI format)
-    Map<String, String> swappedMap = nsContext.getAllNamespaces().entrySet().stream()
-        .collect(java.util.stream.Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    // Use getNamespacesForXml() which returns prefix -> URI format directly
+    // This preserves ALL prefixes, even when multiple prefixes map to the same URI
+    // (e.g., ns0, ns3, ns4 all mapping to http://example.com/cbvmda/)
+    Map<String, String> prefixToUri = nsContext.getNamespacesForXml();
     return eventMapper
-        .map(mapper -> mapper.apply(event, List.of(swappedMap)))
+        .map(mapper -> mapper.apply(event, List.of(prefixToUri)))
         .orElse(event);
   }
 
@@ -437,7 +482,10 @@ public class ReactiveXmlToJsonConverter {
   }
 
   private byte[] buildJsonHeader(Map<String, String> contextAttributes,
-                                  ConversionNamespaceContext nsContext) throws IOException {
+                                  ConversionNamespaceContext nsContext,
+                                  boolean isEPCISDocument,
+                                  String subscriptionID,
+                                  String queryName) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
     JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
 
@@ -450,33 +498,51 @@ public class ReactiveXmlToJsonConverter {
     // Add custom namespaces from context (getAllNamespaces returns URI->prefix)
     // But for JSON-LD @context, we need prefix->URI format
     Map<String, String> namespaces = nsContext.getNamespacesForXml(); // This returns prefix->URI
-    if (!namespaces.isEmpty()) {
+    // Filter to only custom namespaces first, then write object only if non-empty
+    Map<String, String> customNamespaces = namespaces.entrySet().stream()
+        .filter(e -> !isStandardNamespace(e.getKey()))
+        .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (!customNamespaces.isEmpty()) {
       generator.writeStartObject();
-      for (Map.Entry<String, String> ns : namespaces.entrySet()) {
-        String prefix = ns.getKey();
-        String uri = ns.getValue();
-        if (!isStandardNamespace(prefix)) {
-          generator.writeStringField(prefix, uri);
-        }
+      for (Map.Entry<String, String> ns : customNamespaces.entrySet()) {
+        generator.writeStringField(ns.getKey(), ns.getValue());
       }
       generator.writeEndObject();
     }
     generator.writeEndArray();
 
-    // Write type
-    generator.writeStringField("type", "EPCISDocument");
+    // Write type (conditional on document type)
+    generator.writeStringField("type",
+        isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
 
     // Write schemaVersion
     String schemaVersion = contextAttributes.getOrDefault("schemaVersion", "2.0");
     generator.writeStringField("schemaVersion", schemaVersion);
 
-    // Write creationDate if present
+    // Write creationDate or createdAt (EPCISQueryDocument may use createdAt)
     if (contextAttributes.containsKey("creationDate")) {
       generator.writeStringField("creationDate", contextAttributes.get("creationDate"));
+    } else if (contextAttributes.containsKey("createdAt")) {
+      generator.writeStringField("createdAt", contextAttributes.get("createdAt"));
     }
 
-    // Start epcisBody and eventList
+    // Start epcisBody
     generator.writeObjectFieldStart("epcisBody");
+
+    // For EPCISQueryDocument: add queryResults → resultsBody wrapper
+    if (!isEPCISDocument) {
+      generator.writeObjectFieldStart(EPCIS.QUERY_RESULTS_IN_CAMEL_CASE);
+      if (subscriptionID != null && !subscriptionID.isBlank()) {
+        generator.writeStringField(EPCIS.SUBSCRIPTION_ID, subscriptionID);
+      }
+      if (queryName != null && !queryName.isBlank()) {
+        generator.writeStringField(EPCIS.QUERY_NAME, queryName);
+      }
+      generator.writeObjectFieldStart(EPCIS.RESULTS_BODY_IN_CAMEL_CASE);
+    }
+
+    // Start eventList
     generator.writeArrayFieldStart("eventList");
 
     generator.flush();
@@ -493,49 +559,32 @@ public class ReactiveXmlToJsonConverter {
     }
     baos.write('\n');
 
-    // Check for event-level namespaces discovered during unmarshalling
-    Map<String, String> eventNamespaces = nsContext != null
-        ? nsContext.getEventNamespaces()
-        : Map.of();
+    // Create ObjectWriter with namespace context attribute
+    // This allows CustomContextSerializer to access the namespaces via SerializerProvider.getAttribute()
+    ObjectWriter writer = objectMapper.writer();
+    if (nsContext != null) {
+      writer = writer.withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
+    }
 
-    if (!eventNamespaces.isEmpty()) {
-      // Inject event-level @context - serialize event to string first
-      String eventJson = objectMapper.writeValueAsString(event);
+    // Serialize event - CustomContextSerializer will generate proper @context
+    writer.writeValue(baos, event);
 
-      // Build @context array for event-level namespaces
-      JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
-      generator.writeStartObject();
-
-      // Write @context array with event namespaces
-      generator.writeArrayFieldStart("@context");
-      for (Map.Entry<String, String> ns : eventNamespaces.entrySet()) {
-        generator.writeStartObject();
-        generator.writeStringField(ns.getValue(), ns.getKey()); // prefix: uri
-        generator.writeEndObject();
-      }
-      // Add default EPCIS context
-      generator.writeString(EPCISVersion.getDefaultJSONContext());
-      generator.writeEndArray();
-
-      // Write the rest of the event fields (strip outer braces from serialized event)
-      generator.writeRaw("," + eventJson.substring(1, eventJson.length() - 1));
-      generator.writeEndObject();
-      generator.flush();
-
-      // Reset event namespaces after processing
+    // Reset event namespaces after serialization
+    if (nsContext != null) {
       nsContext.resetEventNamespaces();
-    } else {
-      // No event-level namespaces, serialize normally
-      objectMapper.writeValue(baos, event);
     }
 
     return baos.toByteArray();
   }
 
-  private byte[] buildJsonFooter() {
-    // Return closing brackets as raw JSON string
-    // Close: eventList array, epcisBody object, root object
-    return "\n]\n}\n}".getBytes(StandardCharsets.UTF_8);
+  private byte[] buildJsonFooter(boolean isEPCISDocument) {
+    if (isEPCISDocument) {
+      // Close: eventList, epcisBody, root
+      return "\n]\n}\n}".getBytes(StandardCharsets.UTF_8);
+    } else {
+      // Close: eventList, resultsBody, queryResults, epcisBody, root
+      return "\n]\n}\n}\n}\n}".getBytes(StandardCharsets.UTF_8);
+    }
   }
 
   private boolean isStandardNamespace(String prefix) {

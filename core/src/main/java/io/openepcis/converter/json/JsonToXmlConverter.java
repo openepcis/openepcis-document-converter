@@ -25,6 +25,7 @@ import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.enterprise.context.RequestScoped;
@@ -163,6 +164,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
         marshaller.setProperty(
             MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
             nsContext.getAllNamespaces());
+        marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();

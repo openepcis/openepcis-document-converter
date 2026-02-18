@@ -17,6 +17,7 @@ package io.openepcis.converter.xml;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
@@ -24,6 +25,7 @@ import io.openepcis.converter.EventsConverter;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import jakarta.xml.bind.JAXBContext;
@@ -146,6 +148,8 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
       // Create an instance of JAXBContext and Unmarshaller for unmarshalling the classes to
       // respective event
       final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
+      unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
 
       // Throw exception if invalid values are found during unmarshalling the XML
       validateXmlEvent(unmarshaller);
@@ -166,6 +170,9 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
           // Check if the initial element is one of the elements from "EVENT_TYPES" (one of EPCIS event)
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
 
+            // Capture event-level namespaces before unmarshalling
+            prepareEventNamespaces(xmlStreamReader);
+
             // Get the event type
             Object event = getEvent(xmlStreamReader, unmarshaller);
 
@@ -175,7 +182,12 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
               event = applyEventMapper(sequenceInEventList, event);
 
               // Create the JSON using Jackson ObjectMapper based on type of incoming event type and store
-              final String eventAsJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(event);
+              // Pass namespace context to allow CustomContextSerializer to access namespaces
+              ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
+              if (nsContext != null) {
+                writer = writer.withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
+              }
+              final String eventAsJson = writer.writeValueAsString(event);
 
               // If the provided XML is EPCIS document then add the converted event to Collectors List and proceed to next event
               if (isDocument) {

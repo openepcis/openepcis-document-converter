@@ -61,7 +61,7 @@ public class Conversion {
     conversion.toMediaType = toMediaType;
     conversion.toVersion = toVersion;
     conversion.generateGS1CompliantDocument = generateGS1CompliantDocument;
-    return of(fromMediaType, fromVersion, toMediaType, toVersion, true, null);
+    return of(fromMediaType, fromVersion, toMediaType, toVersion, generateGS1CompliantDocument, null);
   }
 
   public static Conversion of(

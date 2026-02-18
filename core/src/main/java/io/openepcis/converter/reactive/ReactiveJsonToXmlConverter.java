@@ -17,6 +17,7 @@ package io.openepcis.converter.reactive;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
@@ -25,15 +26,18 @@ import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
+import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import io.openepcis.reactive.publisher.ObjectNodePublisher;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -41,10 +45,11 @@ import java.util.*;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
+import javax.xml.namespace.QName;
+import javax.xml.stream.*;
+import javax.xml.stream.util.EventReaderDelegate;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 
@@ -68,8 +73,11 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
  * JAXB Marshalling (ObjectNode -&gt; EPCISEvent -&gt; XML bytes)
  *         |
  *         v
- * Multi&lt;byte[]&gt; (XML output in 8KB chunks)
+ * Multi&lt;byte[]&gt; (XML output - truly streaming)
  * </pre>
+ *
+ * <p><strong>Memory:</strong> O(1) per event - only one event in memory at a time.
+ * GB-sized files with millions of events can be processed without OutOfMemoryError.
  *
  * <p><strong>Backpressure:</strong> Fully supported. JSON parsing only proceeds when
  * downstream has demand for more events.
@@ -80,7 +88,11 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
 public class ReactiveJsonToXmlConverter {
 
   private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
-  private static final int DEFAULT_BUFFER_SIZE = 8192;
+  private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+
+  static {
+    XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
+  }
 
   private final JAXBContext jaxbContext;
   private final ObjectMapper objectMapper;
@@ -138,7 +150,11 @@ public class ReactiveJsonToXmlConverter {
   }
 
   /**
-   * Converts JSON-LD input to XML byte stream.
+   * Converts JSON-LD input to XML byte stream using truly streaming approach.
+   *
+   * <p>Memory usage is O(1) per event - only one event is held in memory at a time.
+   * This allows processing of arbitrarily large files (GB-sized with millions of events)
+   * without running out of memory.
    *
    * @param source the conversion source
    * @return Multi emitting XML byte chunks
@@ -147,110 +163,283 @@ public class ReactiveJsonToXmlConverter {
     try {
       ObjectNodePublisher<ObjectNode> publisher = createPublisher(source);
 
-      // Two-pass approach: First collect all nodes and namespaces, then emit XML
-      // This is necessary because event-level @context may define namespaces used in events,
-      // but we need all namespaces declared in the XML header
+      // Document-level namespace context - populated from header, shared by all events
+      final ConversionNamespaceContext documentNsContext = new ConversionNamespaceContext();
 
-      // Create conversion-scoped namespace context - captured by lambdas below
-      // This replaces the ThreadLocal singleton to avoid thread-switching issues
-      final ConversionNamespaceContext nsContext = new ConversionNamespaceContext();
+      // State tracking for streaming
+      final AtomicBoolean headerEmitted = new AtomicBoolean(false);
+      final AtomicInteger sequence = new AtomicInteger(0);
+      final AtomicReference<Boolean> isEPCISDocument = new AtomicReference<>(true);
 
       return Multi.createFrom().publisher(publisher)
-          .collect().asList()
-          .onItem().transformToMulti(nodes -> {
-            if (nodes.isEmpty()) {
-              return Multi.createFrom().empty();
-            }
+          .onItem().transformToMultiAndConcatenate(node -> {
+            // First node with header characteristics - emit XML header
+            if (!headerEmitted.get() && isHeaderNode(node)) {
+              headerEmitted.set(true);
 
-            // First pass: Extract namespaces from ALL nodes (header + events) into scoped context
-            ObjectNode headerNode = null;
-            List<ObjectNode> eventNodes = new ArrayList<>();
+              // Extract document-level namespaces
+              extractNamespacesToContext(node, documentNsContext);
 
-            for (ObjectNode node : nodes) {
-              if (headerNode == null && isHeaderNode(node)) {
-                headerNode = node;
-                extractNamespacesToContext(node, nsContext);
-              } else {
-                // Extract event-level namespaces
-                if (node.has("@context")) {
-                  extractNamespacesToContext(node, nsContext);
-                }
-                eventNodes.add(node);
+              // Determine document type
+              String type = node.has("type") ? node.get("type").asText() : "";
+              isEPCISDocument.set(!type.contains("QueryDocument"));
+
+              // Extract query document metadata
+              String subscriptionID = node.has("subscriptionID") ? node.get("subscriptionID").asText() : null;
+              String queryName = node.has("queryName") ? node.get("queryName").asText() : null;
+
+              try {
+                byte[] headerBytes = createXmlHeader(node, documentNsContext, isEPCISDocument.get(), subscriptionID, queryName);
+                return Multi.createFrom().item(headerBytes);
+              } catch (Exception e) {
+                return Multi.createFrom().failure(
+                    new FormatConverterException("Failed to create XML header: " + e.getMessage(), e));
               }
             }
 
-            // Second pass: Emit XML with all namespaces now known
-            return emitXmlWithAllNamespaces(headerNode, eventNodes, nsContext);
+            // Event node - marshal and emit
+            if (!isHeaderNode(node) || headerEmitted.get()) {
+              try {
+                // Create event-scoped namespace context with document namespaces + this event's namespaces
+                ConversionNamespaceContext eventScopedContext = ConversionNamespaceContext.createEventScoped(documentNsContext);
+                if (node.has("@context")) {
+                  extractNamespacesToContext(node, eventScopedContext);
+                }
+
+                byte[] eventBytes = marshalEvent(node, eventScopedContext, sequence);
+                if (eventBytes != null && eventBytes.length > 0) {
+                  return Multi.createFrom().item(eventBytes);
+                }
+                return Multi.createFrom().empty();
+              } catch (Exception e) {
+                return Multi.createFrom().failure(
+                    new FormatConverterException("Failed to marshal event: " + e.getMessage(), e));
+              }
+            }
+
+            return Multi.createFrom().empty();
+          })
+          .onCompletion().continueWith(() -> {
+            // Emit footer as a single-element list
+            return List.of(createXmlFooter(isEPCISDocument.get()));
           });
 
     } catch (IOException e) {
       return Multi.createFrom().failure(
-          new FormatConverterException("Failed to initialize JSON parser", e));
+          new FormatConverterException("Failed to initialize JSON parser: " + e.getMessage(), e));
     }
   }
 
   /**
-   * Emits XML output with all namespaces declared in the header.
+   * Creates XML header bytes using XMLEventWriter.
    */
-  private Multi<byte[]> emitXmlWithAllNamespaces(ObjectNode headerNode, List<ObjectNode> eventNodes,
-                                                  ConversionNamespaceContext nsContext) {
-    return Multi.createFrom().emitter(emitter -> {
-      try {
-        // Emit header with all collected namespaces
-        if (headerNode != null) {
-          byte[] header = buildXmlHeaderWithNamespaces(headerNode, nsContext);
-          emitter.emit(header);
-        }
+  private byte[] createXmlHeader(ObjectNode headerNode, ConversionNamespaceContext nsContext,
+                                  boolean isEPCISDocument, String subscriptionID, String queryName)
+      throws XMLStreamException {
 
-        // Emit events
-        AtomicInteger sequence = new AtomicInteger(0);
-        for (ObjectNode eventNode : eventNodes) {
-          EPCISEvent event = nodeToEvent(eventNode);
-          if (event != null) {
-            event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
+    XMLEventWriter xmlEventWriter = XML_OUTPUT_FACTORY.createXMLEventWriter(baos, StandardCharsets.UTF_8.name());
+    XMLEventFactory events = XMLEventFactory.newInstance();
 
-            // Create swapped map for mapper (prefix -> URI format)
-            Map<String, String> swappedMap = nsContext.getAllNamespaces().entrySet().stream()
-                .collect(java.util.stream.Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-            Object mappedEvent = eventMapper
-                .map(mapper -> mapper.apply(event, List.of(swappedMap)))
-                .orElse(event);
+    try {
+      // Start document
+      xmlEventWriter.add(events.createStartDocument(StandardCharsets.UTF_8.name(), "1.0"));
 
-            if (mappedEvent instanceof EPCISEvent) {
-              byte[] xmlBytes = marshalEvent((EPCISEvent) mappedEvent, nsContext);
-              if (xmlBytes.length > 0) {
-                emitter.emit(xmlBytes);
-              }
-            }
-          }
-        }
+      // Start EPCISDocument or EPCISQueryDocument
+      xmlEventWriter.add(
+          events.createStartElement(
+              new QName(
+                  isEPCISDocument
+                      ? EPCIS.EPCIS_DOCUMENT_WITH_NAMESPACE
+                      : EPCIS.EPCIS_QUERY_DOCUMENT_WITH_NAMESPACE),
+              null,
+              null));
 
-        // Emit footer
-        emitter.emit(getXmlFooter());
-        emitter.complete();
+      // Add EPCIS namespace
+      xmlEventWriter.add(
+          isEPCISDocument
+              ? events.createNamespace(EPCIS.EPCIS, EPCIS.EPCIS_2_0_XMLNS)
+              : events.createNamespace(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS));
 
-      } catch (Exception e) {
-        emitter.fail(new FormatConverterException("Failed to convert JSON to XML", e));
+      // Add XSI namespace
+      xmlEventWriter.add(events.createNamespace(EPCIS.XSI, EPCIS.XML_SCHEMA_INSTANCE));
+
+      // Add CBV MDA namespace only if it's used in the @context
+      if (hasCbvmdaInContext(headerNode)) {
+        xmlEventWriter.add(events.createNamespace("cbvmda", "urn:epcglobal:cbv:mda"));
       }
-    });
+
+      // Add custom namespaces from document context only
+      for (Map.Entry<String, String> ns : nsContext.getNamespacesForXml().entrySet()) {
+        String prefix = ns.getKey();
+        String uri = ns.getValue();
+        if (isValidCustomNamespacePrefix(prefix)) {
+          xmlEventWriter.add(events.createNamespace(prefix, uri));
+        }
+      }
+
+      // Add schemaVersion attribute
+      String schemaVersion = "2.0";
+      if (headerNode != null && headerNode.has("schemaVersion")) {
+        schemaVersion = headerNode.get("schemaVersion").asText();
+      }
+      xmlEventWriter.add(events.createAttribute("schemaVersion", schemaVersion));
+
+      // Add creationDate attribute
+      if (headerNode != null && headerNode.has("creationDate")) {
+        xmlEventWriter.add(events.createAttribute("creationDate", headerNode.get("creationDate").asText()));
+      }
+
+      // Start EPCISBody
+      xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EPCIS_BODY), null, null));
+
+      // Add additional wrapper tags for EPCISQueryDocument
+      if (!isEPCISDocument) {
+        xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
+
+        if (subscriptionID != null && !subscriptionID.isBlank()) {
+          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.SUBSCRIPTION_ID), null, null));
+          xmlEventWriter.add(events.createCharacters(subscriptionID));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.SUBSCRIPTION_ID), null));
+        }
+
+        if (queryName != null && !queryName.isBlank()) {
+          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
+          xmlEventWriter.add(events.createCharacters(queryName));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
+        }
+
+        xmlEventWriter.add(events.createStartElement(new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null, null));
+      }
+
+      // Start EventList
+      xmlEventWriter.add(events.createStartElement(new QName(EPCIS.EVENT_LIST), null, null));
+
+      // Add empty characters to force the closing '>' of EventList start element to be written
+      xmlEventWriter.add(events.createCharacters(""));
+
+      xmlEventWriter.flush();
+      return baos.toByteArray();
+
+    } finally {
+      xmlEventWriter.close();
+    }
   }
 
   /**
-   * Builds XML header with all collected namespaces.
+   * Marshals a single event node to XML bytes.
    */
-  private byte[] buildXmlHeaderWithNamespaces(ObjectNode headerNode, ConversionNamespaceContext nsContext)
-      throws XMLStreamException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
-    XMLStreamWriter writer = createXmlWriter(baos, false);
-    writeXmlHeader(writer, headerNode, nsContext);
-    writer.flush();
-    return baos.toByteArray();
+  private byte[] marshalEvent(ObjectNode eventNode, ConversionNamespaceContext eventScopedContext,
+                               AtomicInteger sequence) throws JAXBException, XMLStreamException {
+
+    EPCISEvent event = nodeToEvent(eventNode, eventScopedContext);
+    if (event == null) {
+      return null;
+    }
+
+    event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
+    event.getOpenEPCISExtension().setConversionNamespaceContext(eventScopedContext);
+
+    // Apply event mapper if present
+    Map<String, String> swappedMap = eventScopedContext.getAllNamespaces().entrySet().stream()
+        .collect(java.util.stream.Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    Object mappedEvent = eventMapper
+        .map(mapper -> mapper.apply(event, List.of(swappedMap)))
+        .orElse(event);
+
+    if (!(mappedEvent instanceof EPCISEvent)) {
+      return null;
+    }
+
+    // Create marshaller with event-scoped namespace mapper
+    Marshaller marshaller = jaxbContext.createMarshaller();
+    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+    marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
+    marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, eventScopedContext.getAllNamespaces());
+    marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(eventScopedContext));
+
+    // Marshal to string
+    StringWriter singleXmlEvent = new StringWriter();
+    XMLStreamWriter skipEPCISNamespaceWriter =
+        new NonEPCISNamespaceXMLStreamWriter(
+            new IndentingXMLStreamWriter(
+                XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+    marshaller.marshal(mappedEvent, skipEPCISNamespaceWriter);
+    skipEPCISNamespaceWriter.flush();
+
+    // Collect event XML using XMLEventWriter for proper formatting
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(2048);
+    XMLEventWriter xmlEventWriter = XML_OUTPUT_FACTORY.createXMLEventWriter(baos, StandardCharsets.UTF_8.name());
+
+    try {
+      collectEvent(xmlEventWriter, singleXmlEvent.toString());
+      xmlEventWriter.flush();
+      return baos.toByteArray();
+    } finally {
+      xmlEventWriter.close();
+    }
+  }
+
+  /**
+   * Creates XML footer bytes.
+   */
+  private byte[] createXmlFooter(boolean isEPCISDocument) {
+    StringBuilder footer = new StringBuilder();
+    footer.append("\n</EventList>\n");
+
+    if (!isEPCISDocument) {
+      footer.append("</resultsBody>\n");
+      footer.append("</QueryResults>\n");
+    }
+
+    footer.append("</EPCISBody>\n");
+    footer.append(isEPCISDocument ? "</epcis:EPCISDocument>" : "</epcisq:EPCISQueryDocument>");
+
+    return footer.toString().getBytes(StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Collects an event by parsing its XML and adding to the XMLEventWriter.
+   */
+  private void collectEvent(XMLEventWriter xmlEventWriter, String eventXml) throws XMLStreamException {
+    XMLEventReader xer =
+        new EventReaderDelegate(
+            XML_INPUT_FACTORY.createXMLEventReader(new StringReader(eventXml))) {
+          @Override
+          public boolean hasNext() {
+            if (!super.hasNext()) return false;
+            try {
+              return !super.peek().isEndDocument();
+            } catch (XMLStreamException ignored) {
+              return true;
+            }
+          }
+        };
+
+    if (xer.peek().isStartDocument()) {
+      xer.nextEvent(); // Skip StartDocument
+      xmlEventWriter.add(xer);
+    }
+  }
+
+  /**
+   * Checks if the prefix is a valid custom namespace prefix.
+   */
+  private boolean isValidCustomNamespacePrefix(String prefix) {
+    return prefix != null && !prefix.isEmpty()
+        && !prefix.startsWith("xmlns")
+        && !prefix.contains(":")
+        && !prefix.contains("/")
+        && !prefix.startsWith("http")
+        && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix)
+        && !EPCIS.XSI.equals(prefix)
+        && !EPCIS.EPCIS.equals(prefix)
+        && !EPCIS.EPCIS_QUERY.equals(prefix)
+        && !"cbvmda".equals(prefix);
   }
 
   /**
    * Extracts namespaces from @context into the conversion namespace context.
-   * Stores as URI -> prefix format (used by ConversionNamespaceContext).
-   * Also resolves external context URLs via SPI-loaded ContextHandlers (e.g., GS1 Egypt).
    */
   private void extractNamespacesToContext(ObjectNode node, ConversionNamespaceContext nsContext) {
     JsonNode contextNode = node.get("@context");
@@ -263,21 +452,18 @@ public class ReactiveJsonToXmlConverter {
     if (contextNode.isArray()) {
       for (JsonNode item : contextNode) {
         if (item.isTextual()) {
-          // String URL in @context (e.g., GS1 Egypt context URL)
-          // Resolve via ContextProcessor to trigger SPI handlers
           String contextUrl = item.asText();
           try {
             contextProcessor.resolveForXmlConversion(
                 Map.of(contextUrl, contextUrl), nsContext);
           } catch (Exception e) {
-            // Handler not found for this URL - that's okay, continue
+            // Handler not found for this URL - continue
           }
         } else if (item.isObject()) {
           Iterator<Map.Entry<String, JsonNode>> fields = item.fields();
           while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             if (entry.getValue().isTextual()) {
-              // Store as URI -> prefix (ConversionNamespaceContext format)
               nsContext.populateDocumentNamespaces(entry.getValue().asText(), entry.getKey());
             }
           }
@@ -297,9 +483,6 @@ public class ReactiveJsonToXmlConverter {
   /**
    * Converts JSON-LD input to EPCISEvent stream.
    *
-   * <p>This provides event-level backpressure - each event is only parsed and
-   * converted when downstream requests it.
-   *
    * @param source the reactive JSON input source
    * @return Multi emitting EPCISEvent objects
    */
@@ -317,23 +500,27 @@ public class ReactiveJsonToXmlConverter {
     try {
       ObjectNodePublisher<ObjectNode> publisher = createPublisher(source);
 
+      final ConversionNamespaceContext nsContext = new ConversionNamespaceContext();
       AtomicBoolean headerSkipped = new AtomicBoolean(false);
 
       return Multi.createFrom().publisher(publisher)
           .filter(node -> {
-            // Skip header node (first node with document metadata)
             if (!headerSkipped.get() && isHeaderNode(node)) {
               headerSkipped.set(true);
+              extractNamespacesToContext(node, nsContext);
               return false;
+            }
+            if (node.has("@context")) {
+              extractNamespacesToContext(node, nsContext);
             }
             return true;
           })
-          .onItem().transform(this::nodeToEvent)
+          .onItem().transform(node -> nodeToEvent(node, nsContext))
           .filter(Objects::nonNull);
 
     } catch (IOException e) {
       return Multi.createFrom().failure(
-          new FormatConverterException("Failed to initialize JSON parser", e));
+          new FormatConverterException("Failed to initialize JSON parser: " + e.getMessage(), e));
     }
   }
 
@@ -358,22 +545,17 @@ public class ReactiveJsonToXmlConverter {
   }
 
   private boolean isHeaderNode(ObjectNode node) {
-    // Header node has type=EPCISDocument/EPCISQueryDocument or @context at document level
-    // Note: Events may also have @context, but we use state tracking in convert() to ensure
-    // only the first header node is processed as a header
     if (node.has("type")) {
       String type = node.get("type").asText();
       if (type.contains("EPCISDocument") || type.contains("EPCISQueryDocument")) {
         return true;
       }
     }
-    // First node with @context is typically the document header
     return node.has("@context") && node.has("schemaVersion");
   }
 
-  private EPCISEvent nodeToEvent(ObjectNode node) {
+  private EPCISEvent nodeToEvent(ObjectNode node, ConversionNamespaceContext nsContext) {
     try {
-      // Check if it's an event node (has type field with event type)
       if (!node.has("type")) {
         return null;
       }
@@ -383,9 +565,11 @@ public class ReactiveJsonToXmlConverter {
         return null;
       }
 
-      return objectMapper.treeToValue(node, EPCISEvent.class);
+      ObjectReader reader = objectMapper.readerFor(EPCISEvent.class)
+          .withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
+      return reader.readValue(node);
     } catch (Exception e) {
-      throw new FormatConverterException("Failed to convert node to EPCISEvent", e);
+      throw new FormatConverterException("Failed to convert node to EPCISEvent: " + e.getMessage(), e);
     }
   }
 
@@ -397,91 +581,21 @@ public class ReactiveJsonToXmlConverter {
         "AssociationEvent".equals(type);
   }
 
-  private XMLStreamWriter createXmlWriter(ByteArrayOutputStream baos, boolean skipEpcisNamespace)
-      throws XMLStreamException {
-    XMLStreamWriter writer = new IndentingXMLStreamWriter(
-        XML_OUTPUT_FACTORY.createXMLStreamWriter(baos, StandardCharsets.UTF_8.name()));
-    // Only wrap with NonEPCISNamespaceXMLStreamWriter for event fragments, not for header
-    return skipEpcisNamespace ? new NonEPCISNamespaceXMLStreamWriter(writer) : writer;
-  }
-
-  private void writeXmlHeader(XMLStreamWriter writer, ObjectNode headerNode,
-                              ConversionNamespaceContext nsContext) throws XMLStreamException {
-    writer.writeStartDocument(StandardCharsets.UTF_8.name(), "1.0");
-
-    // Write EPCISDocument root element with namespaces
-    writer.writeStartElement("epcis", "EPCISDocument",
-        "urn:epcglobal:epcis:xsd:2");
-
-    // Write standard namespaces
-    writer.writeNamespace("epcis", "urn:epcglobal:epcis:xsd:2");
-    writer.writeNamespace("cbvmda", "urn:epcglobal:cbv:mda");
-    writer.writeNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance");
-
-    // Write custom namespaces from context (getNamespacesForXml returns prefix -> URI)
-    for (Map.Entry<String, String> ns : nsContext.getNamespacesForXml().entrySet()) {
-      String prefix = ns.getKey();
-      String uri = ns.getValue();
-      // Skip invalid prefixes: must be valid XML NCName (no colons, slashes, etc.)
-      // and not start with "xmlns" or be a URL
-      // Also skip standard EPCIS namespaces (already written above) and xsi
-      if (prefix != null && !prefix.isEmpty()
-          && !prefix.startsWith("xmlns")
-          && !prefix.contains(":")
-          && !prefix.contains("/")
-          && !prefix.startsWith("http")
-          && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(prefix)
-          && !EPCIS.XSI.equals(prefix)) {
-        writer.writeNamespace(prefix, uri);
-      }
-    }
-
-    // Write schemaVersion attribute
-    if (headerNode.has("schemaVersion")) {
-      writer.writeAttribute("schemaVersion", headerNode.get("schemaVersion").asText());
-    } else {
-      writer.writeAttribute("schemaVersion", "2.0");
-    }
-
-    // Write creationDate attribute
-    if (headerNode.has("creationDate")) {
-      writer.writeAttribute("creationDate", headerNode.get("creationDate").asText());
-    }
-
-    // Write EPCISBody and eventList opening tags
-    writer.writeStartElement("EPCISBody");
-    writer.writeStartElement("EventList");
-    // Force the closing '>' to be written by writing empty characters
-    writer.writeCharacters("");
-  }
-
-  private byte[] marshalEvent(EPCISEvent event, ConversionNamespaceContext nsContext)
-      throws JAXBException, XMLStreamException {
-    Marshaller marshaller = jaxbContext.createMarshaller();
-    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-    marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
-    // getAllNamespaces() returns URI->prefix map which is what JAXB expects
-    marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getAllNamespaces());
-
-    StringWriter stringWriter = new StringWriter();
-    XMLStreamWriter xmlWriter = new NonEPCISNamespaceXMLStreamWriter(
-        new IndentingXMLStreamWriter(
-            XML_OUTPUT_FACTORY.createXMLStreamWriter(stringWriter)));
-
-    marshaller.marshal(event, xmlWriter);
-    xmlWriter.flush();
-
-    return stringWriter.toString().getBytes(StandardCharsets.UTF_8);
-  }
-
   /**
-   * Writes the XML footer (closing tags).
+   * Checks if cbvmda namespace is present in the JSON @context.
    *
-   * @return byte array containing the closing XML tags
+   * @param headerNode the document header node
+   * @return true if cbvmda is referenced in @context
    */
-  public byte[] getXmlFooter() {
-    // Write closing tags as raw XML string since we can't share XMLStreamWriter state
-    String footer = "\n</EventList>\n</EPCISBody>\n</epcis:EPCISDocument>";
-    return footer.getBytes(StandardCharsets.UTF_8);
+  private boolean hasCbvmdaInContext(ObjectNode headerNode) {
+    if (headerNode == null) {
+      return false;
+    }
+    JsonNode contextNode = headerNode.get("@context");
+    if (contextNode == null) {
+      return false;
+    }
+    String contextStr = contextNode.toString();
+    return contextStr.contains("cbvmda") || contextStr.contains("urn:epcglobal:cbv:mda");
   }
 }

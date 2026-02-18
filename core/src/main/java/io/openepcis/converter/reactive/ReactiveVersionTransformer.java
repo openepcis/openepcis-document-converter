@@ -990,6 +990,21 @@ public class ReactiveVersionTransformer {
             for (int i = 0; i < reader.getAttributeCount(); i++) {
               documentAttributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
             }
+
+            // Track document type
+            boolean isDoc = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
+            documentAttributes.put("_documentType", isDoc ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
+          }
+
+          // Extract subscriptionID and queryName for query documents
+          if (EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"))) {
+            if (name.equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+              documentAttributes.put(EPCIS.SUBSCRIPTION_ID, reader.getElementText());
+              continue;
+            } else if (name.equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+              documentAttributes.put(EPCIS.QUERY_NAME, reader.getElementText());
+              continue;
+            }
           }
 
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
@@ -1007,7 +1022,7 @@ public class ReactiveVersionTransformer {
           }
         } else if (reader.isEndElement()) {
           String name = reader.getLocalName();
-          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT) || name.equalsIgnoreCase(EPCIS.EPCIS_QUERY_DOCUMENT)) {
             break;
           }
         }
@@ -1144,7 +1159,7 @@ public class ReactiveVersionTransformer {
         })
         .onCompletion().continueWith(() -> {
           // Emit footer
-          return List.of(createXmlFooterInternal());
+          return List.of(createXmlFooterInternal(documentAttributes));
         });
   }
 
@@ -1228,9 +1243,9 @@ public class ReactiveVersionTransformer {
   /**
    * Creates the XML header for EPCIS 2.0 document.
    */
-  private byte[] createXmlHeaderInternal(ConversionNamespaceContext nsContext,
-                                          Map<String, String> documentAttributes)
-      throws XMLStreamException {
+  private byte[] createXmlHeaderInternal(ConversionNamespaceContext nsContext, Map<String, String> documentAttributes) throws XMLStreamException {
+
+    boolean isQueryDocument = EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
     XMLEventWriter xmlEventWriter = XML_OUTPUT_FACTORY.createXMLEventWriter(baos, StandardCharsets.UTF_8.name());
@@ -1241,29 +1256,59 @@ public class ReactiveVersionTransformer {
       xmlEventWriter.add(events.createStartDocument(StandardCharsets.UTF_8.name(), "1.0"));
       xmlEventWriter.add(events.createCharacters("\n"));
 
-      // Start EPCISDocument with namespaces
-      xmlEventWriter.add(events.createStartElement(
-          "epcis", EPCIS.EPCIS_2_0_XMLNS, "EPCISDocument"));
-      xmlEventWriter.add(events.createNamespace("epcis", EPCIS.EPCIS_2_0_XMLNS));
+      // Start document root element with correct type and namespace
+      if (isQueryDocument) {
+        xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, "EPCISQueryDocument"));
+        xmlEventWriter.add(events.createNamespace(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS));
+      } else {
+        xmlEventWriter.add(events.createStartElement("epcis", EPCIS.EPCIS_2_0_XMLNS, "EPCISDocument"));
+        xmlEventWriter.add(events.createNamespace("epcis", EPCIS.EPCIS_2_0_XMLNS));
+      }
       xmlEventWriter.add(events.createNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
 
       // Add custom namespaces from context
       for (Map.Entry<String, String> ns : nsContext.getNamespacesForXml().entrySet()) {
         String prefix = ns.getKey();
         String uri = ns.getValue();
-        if (!prefix.isEmpty() && !prefix.equals("epcis") && !prefix.equals("xsi")) {
+        if (!prefix.isEmpty() && !prefix.equals("epcis") && !prefix.equals(EPCIS.EPCIS_QUERY) && !prefix.equals("xsi")) {
           xmlEventWriter.add(events.createNamespace(prefix, uri));
         }
       }
 
-      // Add schemaVersion and creationDate attributes (preserve original if available)
+      // Add schemaVersion attribute
       xmlEventWriter.add(events.createAttribute("schemaVersion", "2.0"));
+
+      // Add timestamp attribute — preserve createdAt for query documents, creationDate otherwise
+      String createdAt = documentAttributes != null ? documentAttributes.get("createdAt") : null;
       String creationDate = documentAttributes != null ? documentAttributes.get("creationDate") : null;
-      xmlEventWriter.add(events.createAttribute("creationDate",
-          creationDate != null ? creationDate : Instant.now().toString()));
+      if (createdAt != null) {
+        xmlEventWriter.add(events.createAttribute("creationDate", createdAt));
+      } else {
+        xmlEventWriter.add(events.createAttribute("creationDate", creationDate != null ? creationDate : Instant.now().toString()));
+      }
 
       // Start EPCISBody
       xmlEventWriter.add(events.createStartElement("", "", "EPCISBody"));
+
+      // For query document: add QueryResults wrapper with subscriptionID/queryName
+      if (isQueryDocument) {
+        xmlEventWriter.add(events.createStartElement("", "", EPCIS.QUERY_RESULTS));
+        String subId = documentAttributes.get(EPCIS.SUBSCRIPTION_ID);
+
+        if (subId != null && !subId.isBlank()) {
+          xmlEventWriter.add(events.createStartElement("", "", EPCIS.SUBSCRIPTION_ID));
+          xmlEventWriter.add(events.createCharacters(subId));
+          xmlEventWriter.add(events.createEndElement("", "", EPCIS.SUBSCRIPTION_ID));
+        }
+
+        String qName = documentAttributes.get(EPCIS.QUERY_NAME);
+        if (qName != null && !qName.isBlank()) {
+          xmlEventWriter.add(events.createStartElement("", "", EPCIS.QUERY_NAME));
+          xmlEventWriter.add(events.createCharacters(qName));
+          xmlEventWriter.add(events.createEndElement("", "", EPCIS.QUERY_NAME));
+        }
+        xmlEventWriter.add(events.createStartElement("", "", "resultsBody"));
+      }
 
       // Start EventList
       xmlEventWriter.add(events.createStartElement("", "", "EventList"));
@@ -1280,7 +1325,12 @@ public class ReactiveVersionTransformer {
   /**
    * Creates the XML footer for EPCIS 2.0 document.
    */
-  private byte[] createXmlFooterInternal() {
+  private byte[] createXmlFooterInternal(Map<String, String> documentAttributes) {
+    boolean isQueryDocument = EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"));
+    if (isQueryDocument) {
+      return ("\n</EventList>\n</resultsBody>\n</QueryResults>\n</EPCISBody>\n</"
+          + EPCIS.EPCIS_QUERY + ":EPCISQueryDocument>").getBytes(StandardCharsets.UTF_8);
+    }
     return "\n</EventList>\n</EPCISBody>\n</epcis:EPCISDocument>".getBytes(StandardCharsets.UTF_8);
   }
 

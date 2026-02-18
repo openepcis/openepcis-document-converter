@@ -301,6 +301,132 @@ class ReactiveConversionIntegrationTest {
     }
   }
 
+  // ==================== EPCISQueryDocument Tests ====================
+
+  @Test
+  void shouldConvertXml20QueryDocumentToJsonLd20() throws Exception {
+    InputStream xmlStream = getClass().getClassLoader()
+        .getResourceAsStream("2.0/EPCIS/XML/Query/Combination_of_different_event.xml");
+
+    if (xmlStream == null) {
+      return;
+    }
+
+    byte[] xmlBytes = xmlStream.readAllBytes();
+    xmlStream.close();
+
+    Conversion conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.JSON_LD)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    ByteArrayOutputStream result = new ByteArrayOutputStream();
+
+    transformer.convert(xmlBytes, conversion)
+        .subscribe().with(
+            bytes -> result.writeBytes(bytes),
+            error -> fail("Conversion failed: " + error.getMessage()),
+            () -> {});
+
+    String jsonResult = result.toString(StandardCharsets.UTF_8);
+
+    // Verify it's a query document, not a regular document
+    // Header JSON is compact (no spaces around colons)
+    assertTrue(jsonResult.contains("\"EPCISQueryDocument\""),
+        "Should have type EPCISQueryDocument, got: " + jsonResult.substring(0, Math.min(500, jsonResult.length())));
+    assertFalse(jsonResult.contains("\"type\":\"EPCISDocument\"")
+        || jsonResult.contains("\"type\" : \"EPCISDocument\""),
+        "Should NOT have type EPCISDocument");
+
+    // Verify query results wrapper structure
+    assertTrue(jsonResult.contains("\"queryResults\""),
+        "Should contain queryResults wrapper");
+    assertTrue(jsonResult.contains("\"resultsBody\""),
+        "Should contain resultsBody wrapper");
+    assertTrue(jsonResult.contains("\"eventList\""),
+        "Should contain eventList");
+
+    // Verify createdAt is preserved (not creationDate)
+    assertTrue(jsonResult.contains("\"createdAt\""),
+        "Should preserve createdAt attribute");
+
+    // Verify valid JSON by checking matching braces
+    assertTrue(jsonResult.trim().startsWith("{") && jsonResult.trim().endsWith("}"),
+        "Should be valid JSON structure");
+  }
+
+  @Test
+  void shouldConvertXml20QueryDocumentToXml20RoundTrip() throws Exception {
+    InputStream xmlStream = getClass().getClassLoader().getResourceAsStream("2.0/EPCIS/XML/Query/Combination_of_different_event.xml");
+
+    if (xmlStream == null) {
+      return;
+    }
+
+    byte[] xmlBytes = xmlStream.readAllBytes();
+    xmlStream.close();
+
+    Conversion conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    ByteArrayOutputStream result = new ByteArrayOutputStream();
+
+    transformer.convert(xmlBytes, conversion)
+        .subscribe().with(
+            bytes -> result.writeBytes(bytes),
+            error -> fail("Conversion failed: " + error.getMessage()),
+            () -> {});
+
+    String xmlResult = result.toString(StandardCharsets.UTF_8);
+
+    // Verify query document structure is preserved
+    assertTrue(xmlResult.contains("EPCISQueryDocument"), "Should contain EPCISQueryDocument root element");
+    assertTrue(xmlResult.contains("QueryResults"), "Should contain QueryResults wrapper");
+    assertTrue(xmlResult.contains("resultsBody"), "Should contain resultsBody wrapper");
+    assertTrue(xmlResult.contains("EventList"), "Should contain EventList");
+
+    // Verify createdAt is preserved
+    assertTrue(xmlResult.contains("creationDate"), "Should preserve createdAt attribute");
+  }
+
+  @Test
+  void shouldExtractEventsFromXml20QueryDocument() throws Exception {
+    InputStream xmlStream = getClass().getClassLoader().getResourceAsStream("2.0/EPCIS/XML/Query/Combination_of_different_event.xml");
+
+    if (xmlStream == null) {
+      return;
+    }
+
+    byte[] xmlBytes = xmlStream.readAllBytes();
+    xmlStream.close();
+
+    Conversion conversion = Conversion.builder()
+        .fromMediaType(EPCISFormat.XML)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.JSON_LD)
+        .toVersion(EPCISVersion.VERSION_2_0_0)
+        .build();
+
+    AtomicInteger eventCount = new AtomicInteger(0);
+
+    transformer.convertToEvents(xmlBytes, conversion)
+        .subscribe().with(
+            event -> {
+              assertNotNull(event);
+              eventCount.incrementAndGet();
+            },
+            error -> fail("Event extraction failed: " + error.getMessage()),
+            () -> {});
+
+    assertTrue(eventCount.get() > 0, "Should extract events from query document");
+  }
+
   // ==================== Backpressure Tests ====================
 
   @Test

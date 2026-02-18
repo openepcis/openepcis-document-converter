@@ -248,6 +248,11 @@ public class ReactiveXmlToJsonConverter {
       AtomicInteger sequenceInEventList = new AtomicInteger(0);
       AtomicBoolean headerEmitted = new AtomicBoolean(false);
 
+      // Local state for query document tracking
+      boolean isEPCISDocument = true;
+      String subscriptionID = null;
+      String queryName = null;
+
       // Process XML
       reader.next();
 
@@ -255,15 +260,33 @@ public class ReactiveXmlToJsonConverter {
         if (reader.isStartElement()) {
           String name = reader.getLocalName();
 
-          // Check for document root
+          // Detect document root (both EPCISDocument and EPCISQueryDocument contain "Document")
           if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
+            isEPCISDocument = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
             prepareNamespaces(reader, nsContext);
             prepareContextAttributes(contextAttributes, reader);
 
-            // Emit JSON header
-            if (!headerEmitted.getAndSet(true)) {
-              byte[] header = buildJsonHeader(contextAttributes, nsContext);
-              emitter.emit(header);
+            // For EPCISDocument: emit header immediately (same as before)
+            if (isEPCISDocument && !headerEmitted.getAndSet(true)) {
+              emitter.emit(buildJsonHeader(contextAttributes, nsContext, true, null, null));
+            }
+          }
+
+          // For EPCISQueryDocument: extract subscriptionID and queryName before resultsBody
+          if (!isEPCISDocument) {
+            if (name.equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
+              subscriptionID = reader.getElementText();
+              continue; // getElementText() advances reader
+            } else if (name.equalsIgnoreCase(EPCIS.QUERY_NAME)) {
+              queryName = reader.getElementText();
+              continue;
+            } else if (name.equalsIgnoreCase(EPCIS.RESULTS_BODY)
+                       || name.equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
+              // Emit header at resultsBody — after subscriptionID/queryName are captured
+              if (!headerEmitted.getAndSet(true)) {
+                emitter.emit(buildJsonHeader(contextAttributes, nsContext,
+                    false, subscriptionID, queryName));
+              }
             }
           }
 
@@ -288,9 +311,10 @@ public class ReactiveXmlToJsonConverter {
           }
         } else if (reader.isEndElement()) {
           String name = reader.getLocalName();
-          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)
+              || name.equalsIgnoreCase(EPCIS.EPCIS_QUERY_DOCUMENT)) {
             // Emit footer
-            emitter.emit(buildJsonFooter());
+            emitter.emit(buildJsonFooter(isEPCISDocument));
             break;
           }
         }
@@ -351,7 +375,8 @@ public class ReactiveXmlToJsonConverter {
           }
         } else if (reader.isEndElement()) {
           String name = reader.getLocalName();
-          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)
+              || name.equalsIgnoreCase(EPCIS.EPCIS_QUERY_DOCUMENT)) {
             break;
           }
         }
@@ -451,7 +476,10 @@ public class ReactiveXmlToJsonConverter {
   }
 
   private byte[] buildJsonHeader(Map<String, String> contextAttributes,
-                                  ConversionNamespaceContext nsContext) throws IOException {
+                                  ConversionNamespaceContext nsContext,
+                                  boolean isEPCISDocument,
+                                  String subscriptionID,
+                                  String queryName) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
     JsonGenerator generator = objectMapper.getFactory().createGenerator(baos);
 
@@ -478,20 +506,37 @@ public class ReactiveXmlToJsonConverter {
     }
     generator.writeEndArray();
 
-    // Write type
-    generator.writeStringField("type", "EPCISDocument");
+    // Write type (conditional on document type)
+    generator.writeStringField("type",
+        isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
 
     // Write schemaVersion
     String schemaVersion = contextAttributes.getOrDefault("schemaVersion", "2.0");
     generator.writeStringField("schemaVersion", schemaVersion);
 
-    // Write creationDate if present
+    // Write creationDate or createdAt (EPCISQueryDocument may use createdAt)
     if (contextAttributes.containsKey("creationDate")) {
       generator.writeStringField("creationDate", contextAttributes.get("creationDate"));
+    } else if (contextAttributes.containsKey("createdAt")) {
+      generator.writeStringField("createdAt", contextAttributes.get("createdAt"));
     }
 
-    // Start epcisBody and eventList
+    // Start epcisBody
     generator.writeObjectFieldStart("epcisBody");
+
+    // For EPCISQueryDocument: add queryResults → resultsBody wrapper
+    if (!isEPCISDocument) {
+      generator.writeObjectFieldStart(EPCIS.QUERY_RESULTS_IN_CAMEL_CASE);
+      if (subscriptionID != null && !subscriptionID.isBlank()) {
+        generator.writeStringField(EPCIS.SUBSCRIPTION_ID, subscriptionID);
+      }
+      if (queryName != null && !queryName.isBlank()) {
+        generator.writeStringField(EPCIS.QUERY_NAME, queryName);
+      }
+      generator.writeObjectFieldStart(EPCIS.RESULTS_BODY_IN_CAMEL_CASE);
+    }
+
+    // Start eventList
     generator.writeArrayFieldStart("eventList");
 
     generator.flush();
@@ -526,10 +571,14 @@ public class ReactiveXmlToJsonConverter {
     return baos.toByteArray();
   }
 
-  private byte[] buildJsonFooter() {
-    // Return closing brackets as raw JSON string
-    // Close: eventList array, epcisBody object, root object
-    return "\n]\n}\n}".getBytes(StandardCharsets.UTF_8);
+  private byte[] buildJsonFooter(boolean isEPCISDocument) {
+    if (isEPCISDocument) {
+      // Close: eventList, epcisBody, root
+      return "\n]\n}\n}".getBytes(StandardCharsets.UTF_8);
+    } else {
+      // Close: eventList, resultsBody, queryResults, epcisBody, root
+      return "\n]\n}\n}\n}\n}".getBytes(StandardCharsets.UTF_8);
+    }
   }
 
   private boolean isStandardNamespace(String prefix) {

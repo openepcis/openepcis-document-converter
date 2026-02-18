@@ -23,12 +23,18 @@
             <username>${env.OPENEPCIS_OSSRH_USERNAME}</username>
             <password>${env.OPENEPCIS_OSSRH_PASSWORD}</password>
         </server>
+        <server>
+            <id>gitlab-maven</id>
+            <username>${env.GITLAB_MAVEN_USERNAME}</username>
+            <password>${env.GITLAB_MAVEN_TOKEN}</password>
+        </server>
     </servers>
     <profiles>
+        <!-- Sonar profile disabled until credentials are fixed -->
         <profile>
             <id>sonar</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
                 <sonar.host.url>https://sonar.company-group.com</sonar.host.url>

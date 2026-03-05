@@ -55,7 +55,6 @@ public class JsonToXmlTest {
     try (final EventHandler handler =
         new EventHandler(new EventValidator(), new XmlEPCISEventCollector(byteArrayOutputStream))) {
       new JsonToXmlConverter().convert(inputStream, handler);
-      System.out.println(byteArrayOutputStream);
       assertTrue(byteArrayOutputStream.toString().length() > 0);
     }
   }

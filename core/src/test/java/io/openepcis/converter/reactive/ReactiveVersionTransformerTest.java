@@ -453,9 +453,9 @@ class ReactiveVersionTransformerTest {
       result20.writeBytes(chunk);
     }
     String xml20 = result20.toString(StandardCharsets.UTF_8);
-    System.out.println("=== JSON -> XML 2.0 ===");
-    System.out.println(xml20);
-    System.out.println("=== END ===");
+    //System.out.println("=== JSON -> XML 2.0 ===");
+    //System.out.println(xml20);
+    //System.out.println("=== END ===");
 
     assertTrue(xml20.contains("EPCISDocument"), "Should contain EPCISDocument");
     assertTrue(xml20.contains("ObjectEvent"), "Should contain ObjectEvent");
@@ -565,9 +565,9 @@ class ReactiveVersionTransformerTest {
     }
     String xmlResult = result.toString(StandardCharsets.UTF_8);
 
-    System.out.println("=== XML to XML with Digital Link Format ===");
-    System.out.println(xmlResult);
-    System.out.println("=== END ===");
+    //System.out.println("=== XML to XML with Digital Link Format ===");
+    //System.out.println(xmlResult);
+    //System.out.println("=== END ===");
 
     assertTrue(xmlResult.contains("EPCISDocument"), "Should contain EPCISDocument");
     assertTrue(xmlResult.contains("ObjectEvent"), "Should contain ObjectEvent");
@@ -632,9 +632,9 @@ class ReactiveVersionTransformerTest {
     }
     String xmlResult = result.toString(StandardCharsets.UTF_8);
 
-    System.out.println("=== XML to XML with URN Format ===");
-    System.out.println(xmlResult);
-    System.out.println("=== END ===");
+    //System.out.println("=== XML to XML with URN Format ===");
+    //System.out.println(xmlResult);
+    //System.out.println("=== END ===");
 
     assertTrue(xmlResult.contains("EPCISDocument"), "Should contain EPCISDocument");
     assertTrue(xmlResult.contains("ObjectEvent"), "Should contain ObjectEvent");
@@ -684,9 +684,9 @@ class ReactiveVersionTransformerTest {
     }
     String xmlResult = result.toString(StandardCharsets.UTF_8);
 
-    System.out.println("=== XML to XML without Format Preferences (Default Digital Link) ===");
-    System.out.println(xmlResult);
-    System.out.println("=== END ===");
+    //System.out.println("=== XML to XML without Format Preferences (Default Digital Link) ===");
+    //System.out.println(xmlResult);
+    //System.out.println("=== END ===");
 
     assertTrue(xmlResult.contains("EPCISDocument"), "Should contain EPCISDocument");
     // Should convert to Digital Link format by default for XML 2.0 target
@@ -729,9 +729,9 @@ class ReactiveVersionTransformerTest {
     }
     String xmlResult = result.toString(StandardCharsets.UTF_8);
 
-    System.out.println("=== XML 1.2 to XML 2.0 with Format Preferences ===");
-    System.out.println(xmlResult);
-    System.out.println("=== END ===");
+    //System.out.println("=== XML 1.2 to XML 2.0 with Format Preferences ===");
+    //System.out.println(xmlResult);
+    //System.out.println("=== END ===");
 
     assertTrue(xmlResult.contains("EPCISDocument"), "Should contain EPCISDocument");
     assertTrue(xmlResult.contains("ObjectEvent"), "Should contain ObjectEvent");
@@ -769,9 +769,9 @@ class ReactiveVersionTransformerTest {
     }
     String xmlResult = result.toString(StandardCharsets.UTF_8);
 
-    System.out.println("=== XML 2.0 to XML 1.2 with Format Preferences ===");
-    System.out.println(xmlResult);
-    System.out.println("=== END ===");
+    //System.out.println("=== XML 2.0 to XML 1.2 with Format Preferences ===");
+    //System.out.println(xmlResult);
+    //System.out.println("=== END ===");
 
     assertTrue(xmlResult.contains("EPCISDocument"), "Should contain EPCISDocument");
     assertTrue(xmlResult.contains("ObjectEvent"), "Should contain ObjectEvent");

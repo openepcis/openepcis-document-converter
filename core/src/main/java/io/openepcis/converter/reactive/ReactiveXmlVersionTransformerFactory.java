@@ -33,4 +33,17 @@ public interface ReactiveXmlVersionTransformerFactory {
    * @return a new transformer instance
    */
   ReactiveXmlVersionTransformer newReactiveXmlVersionTransformer();
+
+  /**
+   * Creates a new ReactiveXmlVersionTransformer instance with a blocking executor.
+   *
+   * <p>The blocking executor is used to offload blocking operations (SAX/XSLT parsing)
+   * to a worker thread pool in async contexts (Quarkus, Vert.x).
+   *
+   * @param blockingExecutor the executor for blocking operations
+   * @return a new transformer instance configured with the executor
+   */
+  default ReactiveXmlVersionTransformer newReactiveXmlVersionTransformer(java.util.concurrent.Executor blockingExecutor) {
+    return newReactiveXmlVersionTransformer();
+  }
 }

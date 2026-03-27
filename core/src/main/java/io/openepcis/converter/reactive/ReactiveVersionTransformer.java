@@ -186,7 +186,7 @@ public class ReactiveVersionTransformer {
 
     this.xmlToJsonConverter = new ReactiveXmlToJsonConverter(jaxbContext, eventMapper);
     this.jsonToXmlConverter = new ReactiveJsonToXmlConverter(jaxbContext, eventMapper);
-    this.xmlVersionTransformer = createXmlVersionTransformer();
+    this.xmlVersionTransformer = createXmlVersionTransformer(builder.blockingExecutor);
   }
 
   /**
@@ -196,11 +196,13 @@ public class ReactiveVersionTransformer {
    *
    * @return a ReactiveXmlVersionTransformer instance
    */
-  private static ReactiveXmlVersionTransformer createXmlVersionTransformer() {
+  private static ReactiveXmlVersionTransformer createXmlVersionTransformer(Executor blockingExecutor) {
     final Optional<ReactiveXmlVersionTransformerFactory> optionalFactory =
         ServiceLoader.load(ReactiveXmlVersionTransformerFactory.class).findFirst();
     if (optionalFactory.isPresent()) {
-      final ReactiveXmlVersionTransformer transformer = optionalFactory.get().newReactiveXmlVersionTransformer();
+      final ReactiveXmlVersionTransformer transformer = blockingExecutor != null
+          ? optionalFactory.get().newReactiveXmlVersionTransformer(blockingExecutor)
+          : optionalFactory.get().newReactiveXmlVersionTransformer();
       LOG.log(Level.INFO, "Using XML version transformer: {0} (via ServiceLoader)", transformer.getClass().getName());
       return transformer;
     }

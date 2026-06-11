@@ -30,6 +30,8 @@
   <description>Quarkus Application to convert the EPCIS 2.0 documents and identifiers from one standard format to another</description>
   <url>https://github.com/openepcis/openepcis-document-converter</url>
   <properties>
+    <!-- Runnable Quarkus app (shipped as a Docker image) — not published to Maven Central -->
+    <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
     <skipITs>true</skipITs>
   </properties>
   <dependencies>

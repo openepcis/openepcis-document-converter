@@ -28,6 +28,7 @@
   <artifactId>quarkus-converter-service-app</artifactId>
   <name>quarkus-converter-service-app</name>
   <description>Quarkus Application to convert the EPCIS 2.0 documents and identifiers from one standard format to another</description>
+  <url>https://github.com/openepcis/openepcis-document-converter</url>
   <properties>
     <skipITs>true</skipITs>
   </properties>

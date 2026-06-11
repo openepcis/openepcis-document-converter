@@ -29,6 +29,7 @@
     <artifactId>converter-service-restassured</artifactId>
     <name>converter-service-restassured</name>
     <description>restassured tests for converter-services</description>
+    <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <dependencies>
         <!-- Add constants as test dependencies -->

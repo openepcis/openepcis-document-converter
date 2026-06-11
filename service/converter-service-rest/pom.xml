@@ -29,6 +29,7 @@
     <artifactId>converter-service-rest</artifactId>
     <name>converter-service-rest</name>
     <description>REST Resources to convert the EPCIS 2.0 documents and identifiers from one standard format to another</description>
+    <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <build>
         <plugins>

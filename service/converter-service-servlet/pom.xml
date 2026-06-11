@@ -29,6 +29,7 @@
     <artifactId>converter-service-servlet</artifactId>
     <name>converter-service-servlet</name>
     <description>Servlet implementation to convert the EPCIS 2.0 documents and identifiers from one standard format to another</description>
+    <url>https://github.com/openepcis/openepcis-document-converter</url>
 
     <build>
         <plugins>

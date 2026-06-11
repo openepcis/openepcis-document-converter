@@ -43,6 +43,8 @@ jobs:
         env:
           OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
           OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}
+          GITLAB_MAVEN_USERNAME: ${{ secrets.GITLAB_MAVEN_USERNAME }}
+          GITLAB_MAVEN_TOKEN: ${{ secrets.GITLAB_MAVEN_TOKEN }}
         run: |
           mvn \
             -s .mvn/settings.xml \

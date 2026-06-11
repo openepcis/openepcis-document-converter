@@ -28,6 +28,8 @@ jobs:
         name: sonarqube
         env:
           SONAR_TOKEN: ${{ secrets.CG_SONAR_LOGIN }}
+          GITLAB_MAVEN_USERNAME: ${{ secrets.GITLAB_MAVEN_USERNAME }}
+          GITLAB_MAVEN_TOKEN: ${{ secrets.GITLAB_MAVEN_TOKEN }}
         run: |
           mvn -s .mvn/settings.xml --no-transfer-progress --batch-mode -Pcoverage -B clean verify
           # Sonar analysis is disabled due to credentials:

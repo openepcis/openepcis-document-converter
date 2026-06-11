@@ -30,6 +30,38 @@
         </server>
     </servers>
     <profiles>
+        <!-- Tells Maven WHERE the GitLab package registry is, so it can download the 999-SNAPSHOT parent BOM -->
+        <profile>
+            <id>gitlab-maven</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>gitlab-maven</id>
+                    <url>https://code.company-group.com/api/v4/projects/79/packages/maven</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>gitlab-maven</id>
+                    <url>https://code.company-group.com/api/v4/projects/79/packages/maven</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+
         <!-- Sonar profile disabled until credentials are fixed -->
         <profile>
             <id>sonar</id>

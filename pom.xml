@@ -143,10 +143,10 @@
                 <version>${project.parent.version}</version>
             </dependency>
 
-            <!-- repository common for URN to WebURI support -->
+            <!-- EPC/CBV format-preference translation (URN <-> Digital Link / Web URI) -->
             <dependency>
                 <groupId>io.openepcis</groupId>
-                <artifactId>openepcis-repository-common</artifactId>
+                <artifactId>openepcis-model-format</artifactId>
                 <version>${project.parent.version}</version>
             </dependency>
             <dependency>

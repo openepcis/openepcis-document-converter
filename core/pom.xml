@@ -81,7 +81,7 @@
         </dependency>
         <dependency>
             <groupId>io.openepcis</groupId>
-            <artifactId>openepcis-repository-common</artifactId>
+            <artifactId>openepcis-model-format</artifactId>
         </dependency>
         <dependency>
             <groupId>io.smallrye.reactive</groupId>

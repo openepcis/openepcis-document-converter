@@ -21,10 +21,8 @@ import io.openepcis.model.epcis.constants.CommonConstants;
 import io.openepcis.model.epcis.format.CBVFormat;
 import io.openepcis.model.epcis.format.EPCFormat;
 import io.openepcis.model.epcis.format.FormatPreference;
-import io.openepcis.repository.model.EPCISEventES;
-import io.openepcis.repository.util.EventConvertor;
+import io.openepcis.model.epcis.format.convert.EventFormatConverter;
 import jakarta.ws.rs.core.MediaType;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -81,9 +79,8 @@ public class GS1FormatSupport {
 
     // User explicitly specified a format, create the transformation mapper
     return (o, context) -> {
-      if (o != null && EPCISEvent.class.isAssignableFrom(o.getClass())) {
-        EPCISEventES esEvent = EventConvertor.getESRepresentation((EPCISEvent) o, new HashMap<>(), context);
-        return esEvent.getCoreModel(formatPreference, context);
+      if (o instanceof EPCISEvent event) {
+        return EventFormatConverter.translate(event, formatPreference, context);
       }
       return o;
     };

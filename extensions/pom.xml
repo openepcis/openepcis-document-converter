@@ -99,7 +99,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <configuration>
-                    <attach>false</attach>
+                    <attach>true</attach>
                     <defaultManifestFile/>
                 </configuration>
             </plugin>

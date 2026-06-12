@@ -69,8 +69,11 @@
         <module>quarkus</module>
         <module>service/converter-service-restassured</module>
         <module>service/converter-service-rest</module>
-        <module>service/converter-service-servlet</module>
+        <!-- quarkus app declared before the servlet lib so a deployed (non-skipped) module is
+             last in the reactor; nexus-staging defers the remote upload to the last module, and
+             the app sets skipNexusStagingDeployMojo (not published to Central). -->
         <module>service/quarkus-converter-service</module>
+        <module>service/converter-service-servlet</module>
     </modules>
 
     <dependencyManagement>

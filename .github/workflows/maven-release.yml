@@ -39,20 +39,16 @@ jobs:
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
           gpg --batch --list-secret-keys --keyid-format LONG
 
-      - name: deploy document converter modules
-        env:
-          OPENEPCIS_OSSRH_USERNAME: ${{ secrets.PUB_OSSRH_USERNAME }}
-          OPENEPCIS_OSSRH_PASSWORD: ${{ secrets.PUB_OSSRH_PASSWORD }}
-          GITLAB_MAVEN_USERNAME: ${{ secrets.GITLAB_MAVEN_USERNAME }}
-          GITLAB_MAVEN_TOKEN: ${{ secrets.GITLAB_MAVEN_TOKEN }}
+      # Publishing to Maven Central is done manually via release.sh, not from CI.
+      # Here we only build/install the reactor so the GitHub release assets and the
+      # container-image jobs have their artifacts.
+      - name: build document converter modules
         run: |
           mvn \
             -s .mvn/settings.xml \
             --no-transfer-progress \
             --batch-mode \
-            -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
-            -Popenepcis-ossrh \
-            -B clean install deploy
+            -B clean install -DskipTests
 
       - name: 'Get Version Number'
         env:

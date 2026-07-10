@@ -16,6 +16,7 @@
 package io.openepcis.converter.common;
 
 import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.core.exception.UnsupportedGS1IdentifierException;
 import io.openepcis.identifiers.converter.util.ConverterUtil;
 
 import java.util.Map;
@@ -24,13 +25,19 @@ public class IdentifierConverterUtil {
 
   public static final String toWebURI(final String urn) {
     try {
-      // Differentiate between Instance/Class level URN identifiers & call the respective
-      // method for conversion
+      // instance vs class-level URN -> the matching Digital Link converter
       if (urn.contains(":idpat:") || urn.contains(":class:")) {
         return ConverterUtil.toURIForClassLevelIdentifier(urn);
       } else {
         return ConverterUtil.toURI(urn);
       }
+    } catch (UnsupportedGS1IdentifierException e) {
+      // a valid EPC URN from a non-GS1 scheme (e.g. urn:epc:id:bic) has no Digital Link — return it unchanged
+      if (urn != null && urn.startsWith("urn:epc:")) {
+        return urn;
+      }
+      // anything else genuinely could not be parsed — keep the 400
+      throw new FormatConverterException(e);
     } catch (Exception exception) {
       throw new FormatConverterException(exception);
     }

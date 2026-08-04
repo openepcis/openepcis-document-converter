@@ -33,7 +33,6 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
-import lombok.extern.slf4j.Slf4j;
 import org.xml.sax.SAXException;
 
 /**
@@ -42,27 +41,15 @@ import org.xml.sax.SAXException;
  * respective information's are shown in Log but the information will be added to final
  * OutputStream. If EPCIS event adheres to XSD/JSON-Schema then no information will be logged.
  */
-@Slf4j
 public class EventValidator implements EPCISEventValidator {
-
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EventValidator.class);
   private final Schema xsdSchema;
-
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final JsonSchemaFactory validatorFactory =
-      JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7))
-          .yamlMapper(objectMapper)
-          .build();
+  private final JsonSchemaFactory validatorFactory = JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7)).yamlMapper(objectMapper).build();
 
   public EventValidator() {
     try {
-      xsdSchema =
-          SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-              .newSchema(
-                  new StreamSource(
-                      EventValidator.class
-                          .getClassLoader()
-                          .getResourceAsStream("eventSchemas/EPCISEventXSD.xsd")));
-
+      xsdSchema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI).newSchema(new StreamSource(EventValidator.class.getClassLoader().getResourceAsStream("eventSchemas/EPCISEventXSD.xsd")));
     } catch (SAXException e) {
       throw new FormatConverterException(e);
     }
@@ -75,74 +62,50 @@ public class EventValidator implements EPCISEventValidator {
       try {
         // Create an instance of Validator
         final Validator validator = xsdSchema.newValidator();
-
         // Assign the event to String variable
         final String convertedEvent = event.toString();
-
         // Validate the event against the XSD schema
         validator.validate(new StreamSource(new ByteArrayInputStream(convertedEvent.getBytes())));
-
         // If validation is successful then show the message of success
         log.debug("Event adheres to EPCIS Standard XSD Schema");
       } catch (Exception ex) {
         // If validation fails then show warning message
-        log.warn(
-            "Event Does NOT adhere to EPCIS Standard XSD Schema. However, proceeding to next event from EventList");
+        log.warn("Event Does NOT adhere to EPCIS Standard XSD Schema. However, proceeding to next event from EventList");
       }
     } else if (event instanceof String convertedEvent) {
       // If the event is of String type then its JSON so compare with JSON Schema
-
       try {
         // Get the JSONNode from the Event and what type of event
         final JsonNode parent = objectMapper.readTree(convertedEvent).get(EPCIS.TYPE);
-
         // If the epcisEvent is not null then continue with validation
         if (parent != null && parent.textValue() != null) {
-
           // Get the eventType so accordingly compared with the JSONSchema
           final String epcisEvent = parent.textValue();
-
           String schemaFile = "";
-
           // Based on eventType choose different Schema file for the validation
           switch (epcisEvent) {
             case EPCIS.OBJECT_EVENT -> schemaFile = "/eventSchemas/ObjectEventSchema.json";
-            case EPCIS.AGGREGATION_EVENT ->
-                schemaFile = "/eventSchemas/AggregationEventSchema.json";
-            case EPCIS.TRANSACTION_EVENT ->
-                schemaFile = "/eventSchemas/TransactionEventSchema.json";
-            case EPCIS.TRANSFORMATION_EVENT ->
-                schemaFile = "/eventSchemas/TransformationEventSchema.json";
-            case EPCIS.ASSOCIATION_EVENT ->
-                schemaFile = "/eventSchemas/AssociationEventSchema.json";
-            default ->
-                // If NONE of the EPCIS event type matches
-                log.error(
-                    "JSON event does not match any of EPCIS event. However, proceeding to next event from EventList");
+            case EPCIS.AGGREGATION_EVENT -> schemaFile = "/eventSchemas/AggregationEventSchema.json";
+            case EPCIS.TRANSACTION_EVENT -> schemaFile = "/eventSchemas/TransactionEventSchema.json";
+            case EPCIS.TRANSFORMATION_EVENT -> schemaFile = "/eventSchemas/TransformationEventSchema.json";
+            case EPCIS.ASSOCIATION_EVENT -> schemaFile = "/eventSchemas/AssociationEventSchema.json";
+            default -> 
+            // If NONE of the EPCIS event type matches
+            log.error("JSON event does not match any of EPCIS event. However, proceeding to next event from EventList");
           }
-
           // Get the schema file based on different schema and validate them
-          final JsonSchema jsonSchema =
-              validatorFactory.getSchema(getClass().getResourceAsStream(schemaFile));
-          final Set<ValidationMessage> validationErrors =
-              jsonSchema.validate(objectMapper.readValue((String) event, JsonNode.class));
-
+          final JsonSchema jsonSchema = validatorFactory.getSchema(getClass().getResourceAsStream(schemaFile));
+          final Set<ValidationMessage> validationErrors = jsonSchema.validate(objectMapper.readValue((String) event, JsonNode.class));
           if (validationErrors.isEmpty()) {
             log.debug("Event adheres to EPCIS Standard JSON-LD Schema");
           } else {
-            log.warn(
-                "Event Does NOT adhere to EPCIS Standard JSON-LD Schema. However, proceeding to next event from EventList");
+            log.warn("Event Does NOT adhere to EPCIS Standard JSON-LD Schema. However, proceeding to next event from EventList");
           }
         } else {
-          log.error(
-              "Converted EPCIS Event does not contain \"type\" field so cannot be validated against JSON Schema : {} "
-                  + convertedEvent);
+          log.error("Converted EPCIS Event does not contain \"type\" field so cannot be validated against JSON Schema : {} " + convertedEvent);
         }
       } catch (IOException | ProcessingException e) {
-        throw new FormatConverterException(
-            "Exception occurred during the validation of converted JSON event against the JSON-Schema : "
-                + e,
-            e);
+        throw new FormatConverterException("Exception occurred during the validation of converted JSON event against the JSON-Schema : " + e, e);
       }
     }
   }

@@ -17,29 +17,22 @@ package io.openepcis.epc.converter.exception;
 
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.model.rest.ProblemResponseBody;
-import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
-@Slf4j
 public class ExceptionMapper {
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ExceptionMapper.class);
 
   @ServerExceptionMapper
   public final RestResponse<ProblemResponseBody> mapException(final FormatConverterException exception) {
     log.error(exception.getMessage(), exception);
-
     // Build detailed message including root cause for better error diagnostics
     final String rootCauseMsg = getRootCauseMessage(exception);
     String detailMessage = exception.getMessage();
     if (!rootCauseMsg.equals(exception.getMessage())) {
       detailMessage = detailMessage + " [Root cause: " + rootCauseMsg + "]";
     }
-
-    ProblemResponseBody responseBody = new ProblemResponseBody()
-        .type(exception.getClass().getSimpleName())
-        .title("Bad Request")
-        .status(RestResponse.Status.BAD_REQUEST.getStatusCode())
-        .detail(detailMessage);
+    ProblemResponseBody responseBody = new ProblemResponseBody().type(exception.getClass().getSimpleName()).title("Bad Request").status(RestResponse.Status.BAD_REQUEST.getStatusCode()).detail(detailMessage);
     return RestResponse.status(RestResponse.Status.BAD_REQUEST, responseBody);
   }
 

@@ -19,11 +19,9 @@ import io.openepcis.model.rest.ProblemResponseBody;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class ProblemResponseBodyMarshaller {
-
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemResponseBodyMarshaller.class);
   private static Marshaller marshaller;
 
   static {

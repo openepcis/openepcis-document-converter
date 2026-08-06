@@ -37,18 +37,13 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-@Slf4j
 public abstract class XMLEventParser {
-
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(XMLEventParser.class);
   protected final JAXBContext jaxbContext;
-
   protected final ConversionNamespaceContext nsContext;
-
   protected Optional<BiFunction<Object, List<Object>, Object>> epcisEventMapper = Optional.empty();
-
   protected static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
   public XMLEventParser(JAXBContext jaxbContext, ConversionNamespaceContext nsContext) {
@@ -57,10 +52,9 @@ public abstract class XMLEventParser {
   }
 
   protected void validateXmlEvent(Unmarshaller unmarshaller) throws JAXBException {
-    unmarshaller.setEventHandler(
-        validationEvent -> {
-          throw new FormatConverterException(validationEvent.getMessage());
-        });
+    unmarshaller.setEventHandler(validationEvent -> {
+      throw new FormatConverterException(validationEvent.getMessage());
+    });
   }
 
   protected XMLStreamReader createXmlStreamReader(InputStream xmlStream) throws XMLStreamException {
@@ -82,37 +76,34 @@ public abstract class XMLEventParser {
 
   protected void validateXmlStrem(InputStream xmlStream) {
     if (xmlStream == null) {
-      throw new FormatConverterException(
-          "Unable to convert the events from XML - JSON-LD as InputStream contains NULL values");
+      throw new FormatConverterException("Unable to convert the events from XML - JSON-LD as InputStream contains NULL values");
     }
   }
 
-  protected Object getEvent(XMLStreamReader xmlStreamReader, Unmarshaller unmarshaller)
-      throws JAXBException {
+  protected Object getEvent(XMLStreamReader xmlStreamReader, Unmarshaller unmarshaller) throws JAXBException {
     // Get the event type
     final String epcisEvent = xmlStreamReader.getLocalName();
-
     Object event = null;
     // Based on eventType make unmarshaller call to respective event class
     switch (epcisEvent) {
-      case EPCIS.OBJECT_EVENT ->
-          // Unmarshal the ObjectEvent and Convert it to JSON-LD
-          event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
-      case EPCIS.AGGREGATION_EVENT ->
-          // Unmarshal the AggregationEvent and Convert it to JSON-LD
-          event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
-      case EPCIS.TRANSACTION_EVENT ->
-          // Unmarshal the TransactionEvent and Convert it to JSON-LD
-          event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
-      case EPCIS.TRANSFORMATION_EVENT ->
-          // Unmarshal the TransformationEvent and Convert it to JSON-LD
-          event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
-      case EPCIS.ASSOCIATION_EVENT ->
-          // Unmarshal the AssociationEvent and Convert it to JSON-LD
-          event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
-      default ->
-          // If NONE of the EPCIS event type matches then do not convert and make a note
-          log.error("JSON event does not match any of EPCIS event : {} ", epcisEvent);
+      case EPCIS.OBJECT_EVENT -> 
+      // Unmarshal the ObjectEvent and Convert it to JSON-LD
+      event = unmarshaller.unmarshal(xmlStreamReader, ObjectEvent.class).getValue();
+      case EPCIS.AGGREGATION_EVENT -> 
+      // Unmarshal the AggregationEvent and Convert it to JSON-LD
+      event = unmarshaller.unmarshal(xmlStreamReader, AggregationEvent.class).getValue();
+      case EPCIS.TRANSACTION_EVENT -> 
+      // Unmarshal the TransactionEvent and Convert it to JSON-LD
+      event = unmarshaller.unmarshal(xmlStreamReader, TransactionEvent.class).getValue();
+      case EPCIS.TRANSFORMATION_EVENT -> 
+      // Unmarshal the TransformationEvent and Convert it to JSON-LD
+      event = unmarshaller.unmarshal(xmlStreamReader, TransformationEvent.class).getValue();
+      case EPCIS.ASSOCIATION_EVENT -> 
+      // Unmarshal the AssociationEvent and Convert it to JSON-LD
+      event = unmarshaller.unmarshal(xmlStreamReader, AssociationEvent.class).getValue();
+      default -> 
+      // If NONE of the EPCIS event type matches then do not convert and make a note
+      log.error("JSON event does not match any of EPCIS event : {} ", epcisEvent);
     }
     return event;
   }
@@ -123,28 +114,20 @@ public abstract class XMLEventParser {
       // Use getNamespacesForXml() which returns prefix -> URI format directly
       // This preserves ALL prefixes, even when multiple prefixes map to the same URI
       // (e.g., ns0, ns3, ns4 all mapping to http://example.com/cbvmda/)
-      final Map<String, String> prefixToUri = nsContext != null
-          ? nsContext.getNamespacesForXml()
-          : Map.of();
+      final Map<String, String> prefixToUri = nsContext != null ? nsContext.getNamespacesForXml() : Map.of();
       ev.getOpenEPCISExtension().setSequenceInEPCISDoc(sequenceInEventList.incrementAndGet());
       event = epcisEventMapper.get().apply(event, List.of(prefixToUri));
     }
     return event;
   }
 
-  protected void setSubScriptionIdAndQueryName(
-      EventHandler<? extends EPCISEventCollector> eventHandler,
-      Map<String, String> contextAttributes,
-      XMLStreamReader xmlStreamReader)
-      throws XMLStreamException {
+  protected void setSubScriptionIdAndQueryName(EventHandler<? extends EPCISEventCollector> eventHandler, Map<String, String> contextAttributes, XMLStreamReader xmlStreamReader) throws XMLStreamException {
     if (!eventHandler.isEPCISDocument()) {
       if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
         eventHandler.setSubscriptionID(xmlStreamReader.getElementText());
       } else if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.QUERY_NAME)) {
         eventHandler.setQueryName(xmlStreamReader.getElementText());
-      } else if (xmlStreamReader
-          .getLocalName()
-          .equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
+      } else if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.RESULTS_BODY_IN_CAMEL_CASE)) {
         // For QueryDocument invoke EventHandle Start to create the header information at
         // resultsBody
         eventHandler.start(contextAttributes);
@@ -156,19 +139,14 @@ public abstract class XMLEventParser {
     if (nsContext == null) {
       return;
     }
-
-    IntStream.range(0, xmlStreamReader.getNamespaceCount())
-            .forEach(
-                    namespaceIndex -> {
-                      // Omit the Namespace values which are already present within JSON-LD Context by default and empty namespaces
-                      final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
-                      final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
-                      if (StringUtils.isNotBlank(namespacePrefix)
-                              &&  StringUtils.isNotBlank(namespaceURI)
-                              && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(namespaceURI)) {
-                        nsContext.populateDocumentNamespaces(namespaceURI, namespacePrefix);
-                      }
-                    });
+    IntStream.range(0, xmlStreamReader.getNamespaceCount()).forEach(namespaceIndex -> {
+      // Omit the Namespace values which are already present within JSON-LD Context by default and empty namespaces
+      final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
+      final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
+      if (StringUtils.isNotBlank(namespacePrefix) && StringUtils.isNotBlank(namespaceURI) && !EPCIS.PROTECTED_NAMESPACE_URIS.contains(namespaceURI)) {
+        nsContext.populateDocumentNamespaces(namespaceURI, namespacePrefix);
+      }
+    });
   }
 
   /**
@@ -180,36 +158,24 @@ public abstract class XMLEventParser {
     if (nsContext == null) {
       return;
     }
-
-    IntStream.range(0, xmlStreamReader.getNamespaceCount())
-            .forEach(
-                    namespaceIndex -> {
-                      final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
-                      final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
-                      // Only capture non-standard namespaces as event-level
-                      if (StringUtils.isNotBlank(namespacePrefix)
-                              && StringUtils.isNotBlank(namespaceURI)
-                              && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(namespacePrefix)
-                              && !EPCIS.XSI.equals(namespacePrefix)) {
-                        nsContext.populateEventNamespaces(namespaceURI, namespacePrefix);
-                      }
-                    });
+    IntStream.range(0, xmlStreamReader.getNamespaceCount()).forEach(namespaceIndex -> {
+      final String namespacePrefix = xmlStreamReader.getNamespacePrefix(namespaceIndex);
+      final String namespaceURI = xmlStreamReader.getNamespaceURI(namespaceIndex);
+      // Only capture non-standard namespaces as event-level
+      if (StringUtils.isNotBlank(namespacePrefix) && StringUtils.isNotBlank(namespaceURI) && !EPCIS.EPCIS_DEFAULT_NAMESPACES.containsKey(namespacePrefix) && !EPCIS.XSI.equals(namespacePrefix)) {
+        nsContext.populateEventNamespaces(namespaceURI, namespacePrefix);
+      }
+    });
   }
 
-  protected void prepareContextAttributes(
-      Map<String, String> contextAttributes, XMLStreamReader xmlStreamReader) {
-    IntStream.range(0, xmlStreamReader.getAttributeCount())
-        .forEach(
-            attributeIndex -> {
-              // Omit the attribute values which are already present within JSON-LD Schema
-              // by
-              // default
-              if (!EPCIS.PROTECTED_TERMS_OF_CONTEXT.contains(xmlStreamReader.getAttributeName(attributeIndex))) {
-                contextAttributes.put(
-                        String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)),
-                    xmlStreamReader.getAttributeValue(attributeIndex)
-                );
-              }
-            });
+  protected void prepareContextAttributes(Map<String, String> contextAttributes, XMLStreamReader xmlStreamReader) {
+    IntStream.range(0, xmlStreamReader.getAttributeCount()).forEach(attributeIndex -> {
+      // Omit the attribute values which are already present within JSON-LD Schema
+      // by
+      // default
+      if (!EPCIS.PROTECTED_TERMS_OF_CONTEXT.contains(xmlStreamReader.getAttributeName(attributeIndex))) {
+        contextAttributes.put(String.valueOf(xmlStreamReader.getAttributeName(attributeIndex)), xmlStreamReader.getAttributeValue(attributeIndex));
+      }
+    });
   }
 }

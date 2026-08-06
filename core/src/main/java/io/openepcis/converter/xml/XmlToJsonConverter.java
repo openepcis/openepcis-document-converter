@@ -41,7 +41,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 
 /**
@@ -50,16 +49,9 @@ import org.eclipse.persistence.jaxb.JAXBContextProperties;
  * to JSON converter for EPCIS events. Do not share an instance across threads. EventsConverter:
  * Public method that will be called by client during the conversions.
  */
-@Slf4j
 public class XmlToJsonConverter extends XMLEventParser implements EventsConverter {
-
   // Jackson instance to convert the unmarshalled event to JSON
-  private final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new JavaTimeModule())
-          .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-          .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+  private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule()).configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false).setSerializationInclusion(JsonInclude.Include.NON_NULL).setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
   public XmlToJsonConverter(final JAXBContext jaxbContext, final ConversionNamespaceContext nsContext) {
     super(jaxbContext, nsContext);
@@ -69,24 +61,17 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
     this(jaxbContext, new ConversionNamespaceContext());
   }
 
-  private XmlToJsonConverter(
-      final XmlToJsonConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
+  private XmlToJsonConverter(final XmlToJsonConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
     this(parent.jaxbContext, parent.nsContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
   public XmlToJsonConverter() throws JAXBException {
-    this(
-        JAXBContext.newInstance(
-            "io.openepcis.model.epcis",
-            Thread.currentThread().getContextClassLoader(),
-            new HashMap<>() {
-              {
-                put(
-                    JAXBContextProperties.NAMESPACE_PREFIX_MAPPER,
-                    new EPCISNamespacePrefixMapper());
-              }
-            }));
+    this(JAXBContext.newInstance("io.openepcis.model.epcis", Thread.currentThread().getContextClassLoader(), new HashMap<>() {
+      {
+        put(JAXBContextProperties.NAMESPACE_PREFIX_MAPPER, new EPCISNamespacePrefixMapper());
+      }
+    }));
   }
 
   /**
@@ -101,9 +86,7 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(
-      InputStream xmlStream, EventHandler<? extends EPCISEventCollector> eventHandler)
-      throws IOException, XMLStreamException, JAXBException {
+  public void convert(InputStream xmlStream, EventHandler<? extends EPCISEventCollector> eventHandler) throws IOException, XMLStreamException, JAXBException {
     convert(xmlStream, eventHandler, this.jaxbContext);
   }
 
@@ -120,67 +103,46 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(
-      InputStream xmlStream,
-      EventHandler<? extends EPCISEventCollector> eventHandler,
-      JAXBContext jaxbContext)
-      throws IOException, XMLStreamException, JAXBException {
-
+  public void convert(InputStream xmlStream, EventHandler<? extends EPCISEventCollector> eventHandler, JAXBContext jaxbContext) throws IOException, XMLStreamException, JAXBException {
     try {
       // Check if InputStream has some content if not then throw appropriate Exception
       validateXmlStrem(xmlStream);
-
       // Variable to ensure whether provided InputStream is EPCIS document or single event
       boolean isDocument = false;
-
       // Clear the namespaces before reading the document
       nsContext.resetAllNamespaces();
-
       // Map to store the attributes from the XML Header so can be added to final JSON
       final Map<String, String> contextAttributes = new HashMap<>();
-
       // Track event sequence
       final AtomicInteger sequenceInEventList = new AtomicInteger(0);
-
       // Create an instance of XMLStreamReader to read the events one-by-one
       final XMLStreamReader xmlStreamReader = createXmlStreamReader(xmlStream);
-
       // Create an instance of JAXBContext and Unmarshaller for unmarshalling the classes to
       // respective event
       final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
       // Inject namespace context into CustomExtensionAdapter for ILMD inline namespace discovery
       unmarshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
-
       // Throw exception if invalid values are found during unmarshalling the XML
       validateXmlEvent(unmarshaller);
-
       // To format the JSON event after conversion
       objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-
       // Navigate to next and start of the XML Elements
       xmlStreamReader.next();
-
       // Read Until the end of the file and unmarshall event-by-event
       boolean ended = false;
       while (xmlStreamReader.hasNext()) {
-
-        if(xmlStreamReader.isStartElement()){
+        if (xmlStreamReader.isStartElement()) {
           final String name = xmlStreamReader.getLocalName();
-
           // Check if the initial element is one of the elements from "EVENT_TYPES" (one of EPCIS event)
           if (EPCIS.EPCIS_EVENT_TYPES.contains(name)) {
-
             // Capture event-level namespaces before unmarshalling
             prepareEventNamespaces(xmlStreamReader);
-
             // Get the event type
             Object event = getEvent(xmlStreamReader, unmarshaller);
-
             // Check if Object has some value
             if (event != null) {
               // map event
               event = applyEventMapper(sequenceInEventList, event);
-
               // Create the JSON using Jackson ObjectMapper based on type of incoming event type and store
               // Pass namespace context to allow CustomContextSerializer to access namespaces
               ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
@@ -188,7 +150,6 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
                 writer = writer.withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
               }
               final String eventAsJson = writer.writeValueAsString(event);
-
               // If the provided XML is EPCIS document then add the converted event to Collectors List and proceed to next event
               if (isDocument) {
                 // Call the method to check if the event adheres to JSON-Schema or write into the OutputStream using the EventHandler
@@ -201,11 +162,9 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
                 return;
               }
             }
-
             // Directly proceed without going to xmlStreamReader.next to avoid skipping the next event.
             continue;
           } else {
-
             // For EPCISQueryDocument set SubscriptionID and QueryName for XML writing
             if (!eventHandler.isEPCISDocument()) {
               if (xmlStreamReader.getLocalName().equalsIgnoreCase(EPCIS.SUBSCRIPTION_ID)) {
@@ -217,49 +176,39 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
                 eventHandler.start(contextAttributes);
               }
             }
-
             if (name.toLowerCase().contains(EPCIS.DOCUMENT.toLowerCase())) {
               // Get the information related to the XML header elements till "EventList", If the element is EPCISDocument get all namespaces
-
               // Set the variable to true if the provided XML is EPCIS document else set to false for single EPCIS event
               isDocument = true;
               final boolean doc = name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT);
-
               // Set for EPCISDocument or EPCISQueryDocument for adding the header elements
               eventHandler.setIsEPCISDocument(doc);
-
               // Get all Namespaces from the XML header and store it within the xmlNamespaces MAP
               prepareNameSpaces(xmlStreamReader);
-
               // Get all the Attributes from XML header and store it within attributes MAP for creation of final JSON
               prepareContextAttributes(contextAttributes, xmlStreamReader);
-
               // For EPCISDocument invoke EventHandle Start to create the header information at EPCISDocument
               if (doc) {
                 eventHandler.start(contextAttributes);
               }
             }
           }
-        } else if(xmlStreamReader.isEndElement()){
+        } else if (xmlStreamReader.isEndElement()) {
           // Call the EventHandle End method to end all the header objects created in the Start method.
           final String name = xmlStreamReader.getLocalName();
-
-          if(name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)){
+          if (name.equalsIgnoreCase(EPCIS.EPCIS_DOCUMENT)) {
             eventHandler.end();
             ended = true;
             break;
           }
         }
-
         // always advance to next
         xmlStreamReader.next();
       }
-
       // Call the EventHandle End method in case </EPCISDocument> never explicitly fired above
       if (!ended) {
         eventHandler.end();
       }
-
     } catch (Exception e) {
       eventHandler.fail(e);
       throw new FormatConverterException("XML to JSON/JSON-LD conversion failed, " + e.getMessage(), e);

@@ -43,7 +43,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamWriter;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 
@@ -53,12 +52,9 @@ import org.eclipse.persistence.jaxb.MarshallerProperties;
  * JSON to XML converter for EPCIS events. Do not share an instance across threads. EventsConverter:
  * Public method that will be called by client during the conversions.
  */
-@Slf4j
 @RequestScoped
 public class JsonToXmlConverter extends JsonEventParser implements EventsConverter {
-
   private final JAXBContext jaxbContext;
-
   private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
   public JsonToXmlConverter(final JAXBContext jaxbContext, final ConversionNamespaceContext nsContext) {
@@ -70,24 +66,17 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
     this(jaxbContext, new ConversionNamespaceContext());
   }
 
-  private JsonToXmlConverter(
-      final JsonToXmlConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
+  private JsonToXmlConverter(final JsonToXmlConverter parent, BiFunction<Object, List<Object>, Object> epcisEventMapper) {
     this(parent.jaxbContext, parent.nsContext);
     this.epcisEventMapper = Optional.ofNullable(epcisEventMapper);
   }
 
   public JsonToXmlConverter() throws JAXBException {
-    this(
-        JAXBContext.newInstance(
-            "io.openepcis.model.epcis",
-            Thread.currentThread().getContextClassLoader(),
-            new HashMap<>() {
-              {
-                put(
-                    JAXBContextProperties.NAMESPACE_PREFIX_MAPPER,
-                    new EPCISNamespacePrefixMapper());
-              }
-            }));
+    this(JAXBContext.newInstance("io.openepcis.model.epcis", Thread.currentThread().getContextClassLoader(), new HashMap<>() {
+      {
+        put(JAXBContextProperties.NAMESPACE_PREFIX_MAPPER, new EPCISNamespacePrefixMapper());
+      }
+    }));
   }
 
   /**
@@ -101,9 +90,7 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(
-      InputStream jsonStream, EventHandler<? extends EPCISEventCollector> eventHandler)
-      throws IOException, JAXBException {
+  public void convert(InputStream jsonStream, EventHandler<? extends EPCISEventCollector> eventHandler) throws IOException, JAXBException {
     convert(jsonStream, eventHandler, this.jaxbContext);
   }
 
@@ -119,86 +106,56 @@ public class JsonToXmlConverter extends JsonEventParser implements EventsConvert
    * @throws IOException Method throws IOException when error occurred during the conversion.
    */
   @Override
-  public void convert(
-      InputStream jsonStream,
-      EventHandler<? extends EPCISEventCollector> eventHandler,
-      JAXBContext jaxbContext)
-      throws IOException, JAXBException {
-
+  public void convert(InputStream jsonStream, EventHandler<? extends EPCISEventCollector> eventHandler, JAXBContext jaxbContext) throws IOException, JAXBException {
     // Check if InputStream has some content if not then throw appropriate Exception
     validateJsonStream(jsonStream);
-
     // Clear the namespaces before reading the document
     nsContext.resetAllNamespaces();
-
     // Create a Marshaller instance to convert to XML
     final Marshaller marshaller = jaxbContext.createMarshaller();
     // Set Marshalling properties: print formatted XML, exclude <xml> version tag for every event,
     marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
-
     // Store the information from JSON header for creation of final XML
     final Map<String, String> contextValues = new HashMap<>();
-
     final AtomicInteger sequenceInEventList = new AtomicInteger(0);
-
     // Get the JSON Factory and parser Object
     try (JsonParser jsonParser = new JsonFactory().createParser(jsonStream)) {
-
       // To read the duplicate keys for User Extensions, ILMD and other elements in JSON-LD
       jsonParser.setCodec(objectMapper);
-
       // Check the first element is Object if not then invalid JSON throw error
       if (jsonParser.nextToken() != JsonToken.START_OBJECT) {
-        throw new FormatConverterException(
-            "Invalid JSON-LD file has been provided. JSON-LD file should start with the Object");
+        throw new FormatConverterException("Invalid JSON-LD file has been provided. JSON-LD file should start with the Object");
       }
-
       // Loop until type element to read the Context values and namespaces present in it
       collectNameSpaceAndContextValues(jsonParser, contextValues);
-
       try {
-
         EPCISEvent event = processSingleEvent(sequenceInEventList, jsonParser);
         // Set the namespaces for the marshaller
-        marshaller.setProperty(
-            MarshallerProperties.NAMESPACE_PREFIX_MAPPER,
-            nsContext.getAllNamespaces());
+        marshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, nsContext.getAllNamespaces());
         marshaller.setAdapter(CustomExtensionAdapter.class, new CustomExtensionAdapter(nsContext));
-
         // StringWriter to get the converted XML from marshaller
         final StringWriter singleXmlEvent = new StringWriter();
-
-        final XMLStreamWriter skipEPCISNamespaceWriter =
-            new NonEPCISNamespaceXMLStreamWriter(
-                new IndentingXMLStreamWriter(
-                    XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+        final XMLStreamWriter skipEPCISNamespaceWriter = new NonEPCISNamespaceXMLStreamWriter(new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
         // Marshaller properties: Add the custom namespaces instead of the ns1, ns2
         marshaller.marshal(event, skipEPCISNamespaceWriter);
-
         // Call the method to check if the event adheres to XSD or write into the OutputStream using
         // the EventHandler
         eventHandler.collectSingleEvent(singleXmlEvent);
       } catch (Exception e) {
         // Loop until the start of the EPCIS EventList array and prepare the XML header elements
         collectDocumentMetaData(contextValues, jsonParser, eventHandler);
-
         // Goto the next token
         jsonParser.nextToken();
-
         // this will prepare document header, epcisBody, eventList elements
         eventHandler.start(contextValues);
-
         // Call the method to loop until the end of the events file
         eventTraverser(jsonParser, objectMapper, marshaller, eventHandler, true);
-
         // Call the End method to close all the header and other tags for the XML file
         eventHandler.end();
-
         // Close the JSON Parser after completing the reading of all contents
         jsonParser.close();
       }
-
     } catch (Exception e) {
       eventHandler.fail(e);
       throw new FormatConverterException("Exception during the reading of JSON-LD file : " + e, e);

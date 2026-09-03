@@ -1,8 +1,14 @@
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Java CI with Maven](https://github.com/openepcis/openepcis-document-converter/actions/workflows/maven-cli.yml/badge.svg)](https://github.com/openepcis/openepcis-document-converter/actions/workflows/maven-cli.yml)
-# OpenEPCIS document format converter
+<p align="center">
+  <img src="https://openepcis.io/img/openepcis-logo.svg" alt="OpenEPCIS" width="30%">
+</p>
 
-An open-source application that transforms EPCIS documents from XML to JSON/JSON-LD format quickly and effortlessly. Visit [openepcis.io](https://openepcis.io) to find more usesul resources on EPCIS and EPCIS 2.0 Linked Data. Another documentation page is available from [https://openepcis.io/docs/format-converter/](https://openepcis.io/docs/format-converter/).
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/openepcis/openepcis-document-converter)](https://github.com/openepcis/openepcis-document-converter/releases)
+[![Stars](https://img.shields.io/github/stars/openepcis/openepcis-document-converter?style=social)](https://github.com/openepcis/openepcis-document-converter)
+
+<h1 align="center">OpenEPCIS Document Format Converter</h1>
+
+An open-source application that transforms EPCIS documents from XML to JSON/JSON-LD format quickly and effortlessly. Visit [openepcis.io](https://openepcis.io) to find more useful resources on EPCIS and EPCIS 2.0 Linked Data. Another documentation page is available from [https://openepcis.io/docs/format-converter/](https://openepcis.io/docs/format-converter/).
 
 ## Table of Contents
 
@@ -35,7 +41,10 @@ An open-source application that transforms EPCIS documents from XML to JSON/JSON
     - [Running with Tools UI Docker](#running-with-tools-ui-docker)
     - [Running with Tools UI Podman](#running-with-tools-ui-podman)
     - [Access Local OpenEPCIS Tools Application](#access-local-openepcis-tools-application)
+- [SPI based approach for building Default or Custom context/namespaces](#spi-based-approach-for-building-default-or-custom-contextnamespaces)
 - [How To Get In Contact and Contribute](#how-to-get-in-contact-and-contribute)
+- [Related](#related)
+- [License](#license)
 
 ## Introduction
 
@@ -63,7 +72,7 @@ By providing a robust and efficient EPCIS event format converter, we aim to supp
 
 ### Notes on Vocabulary and SBDH Headers and Custom EPCIS Extension
 The OpenEPCIS Document Converter focuses exclusively on converting EPCIS event data.
-It does not convert <EPCISMasterData> (Vocabulary) elements or SBDH (Standard Business Document Header) sections — these parts are intentionally skipped during conversion.
+It does not convert <EPCISMasterData> (Vocabulary) elements or SBDH (Standard Business Document Header) sections. These parts are intentionally skipped during conversion.
 
 In EPCIS 2.0:
 Master data should be provided externally via GS1 Digital Link (linkType=masterdata)
@@ -374,24 +383,26 @@ In order not to bloat up this README we have added a few more examples:
 
 ##### Converting XML to JSON Document
 
-If you have a EPCIS 2.0 XML document which you want to convert to JSON/JSON-LD then provide it as `InputStream` to convert method of [XmlToJsonConverter.class](src/main/java/io/openepcis/convert/xml/XmlToJsonConverter.java):
-```
-    final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
-    final EventJSONStreamCollector collector = new EventJSONStreamCollector(jsonOutput);
-    final EventHandler handler = new EventHandler(new EventValidator(), collector);
-    new XmlToJsonConverter().convert(xmlStream, handler);
-    System.out.println(jsonOutput.toString());
+If you have a EPCIS 2.0 XML document which you want to convert to JSON/JSON-LD then provide it as `InputStream` to convert method of [XmlToJsonConverter.class](core/src/main/java/io/openepcis/converter/xml/XmlToJsonConverter.java):
+
+```java
+final ByteArrayOutputStream jsonOutput = new ByteArrayOutputStream();
+final JsonEPCISEventCollector collector = new JsonEPCISEventCollector(jsonOutput);
+final EventHandler handler = new EventHandler(new EventValidator(), collector);
+new XmlToJsonConverter().convert(xmlStream, handler);
+System.out.println(jsonOutput);
 ```
 
 ##### Converting JSON to XML Document
 
-If you have a EPCIS 2.0 JSON/JSON-LD document which you want to convert to XML then provide it as `InputStream` to convert method of [JsonToXmlConverter.class](src/main/java/io/openepcis/convert/json/JsonToXmlConverter.java) :
-```
-    final ByteArrayOutputStream xmlOutput = new ByteArrayOutputStream();
-    final EventJSONStreamCollector collector = new EventJSONStreamCollector(xmlOutput);
-    final EventHandler handler = new EventHandler(new EventValidator(), collector);
-    new JsonToXmlConverter().convert(jsonStream, handler);
-    System.out.println(out.toString());
+If you have a EPCIS 2.0 JSON/JSON-LD document which you want to convert to XML then provide it as `InputStream` to convert method of [JsonToXmlConverter.class](core/src/main/java/io/openepcis/converter/json/JsonToXmlConverter.java):
+
+```java
+final ByteArrayOutputStream xmlOutput = new ByteArrayOutputStream();
+final XmlEPCISEventCollector collector = new XmlEPCISEventCollector(xmlOutput);
+final EventHandler handler = new EventHandler(new EventValidator(), collector);
+new JsonToXmlConverter().convert(jsonStream, handler);
+System.out.println(xmlOutput);
 ```
 
 ##### Reactive API (Recommended for High-Throughput)
@@ -477,7 +488,7 @@ For high-throughput scenarios, add `netty-buffer` as a dependency to enable zero
 ```
 
 ```java
-import io.openepcis.converter.reactive.NettyBufferSupport;
+import io.openepcis.reactive.util.NettyBufferSupport;
 
 if (NettyBufferSupport.isAvailable()) {
     Multi<io.netty.buffer.ByteBuf> nettyStream =
@@ -606,3 +617,17 @@ If you have any questions or need support, please contact us via email at [info@
     - Submit a pull request with a detailed description of your changes.
 
 Your input helps us improve and expand the OpenEPCIS Tools, ensuring they meet the needs of all users.
+
+## Related
+
+- [EPCIS Format Converter Web Application](https://tools.openepcis.io/ui/format-converter/) - Convert an EPCIS document in the browser, nothing to install
+- [OpenEPCIS Tools](https://tools.openepcis.io/) - open source EPCIS 2.0 tools and services
+- [Format Converter Documentation](https://openepcis.io/docs/format-converter/) - Documentation for this converter
+- [OpenEPCIS](https://openepcis.io/) - Read more about OpenEPCIS
+- [OpenEPCIS Test Resources](https://github.com/openepcis/openepcis-test-resources) - EPCIS documents used for testing
+- [benelog GmbH & Co. KG](https://www.benelog.com/) - Company behind the OpenEPCIS
+- [GS1 EPCIS Standard](https://www.gs1.org/standards/epcis) - Learn more about EPCIS
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).

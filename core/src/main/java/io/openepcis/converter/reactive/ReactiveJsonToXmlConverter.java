@@ -24,6 +24,7 @@ import io.openepcis.constants.EPCIS;
 import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
+import io.openepcis.converter.util.NamespaceUsageScanner;
 import io.openepcis.converter.util.NonEPCISNamespaceXMLStreamWriter;
 import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
@@ -340,6 +341,9 @@ public class ReactiveJsonToXmlConverter {
     event.getOpenEPCISExtension().setSequenceInEPCISDoc(sequence.incrementAndGet());
     event.getOpenEPCISExtension().setConversionNamespaceContext(eventScopedContext);
 
+    // Resolve the prefixes this event uses before the prefix mapper is built below
+    final Set<String> usedNamespaceUris = NamespaceUsageScanner.scan(eventNode, eventScopedContext);
+
     // Apply event mapper if present
     Map<String, String> swappedMap = eventScopedContext.getAllNamespaces().entrySet().stream()
         .collect(java.util.stream.Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
@@ -361,9 +365,8 @@ public class ReactiveJsonToXmlConverter {
     // Marshal to string
     StringWriter singleXmlEvent = new StringWriter();
     XMLStreamWriter skipEPCISNamespaceWriter =
-        new NonEPCISNamespaceXMLStreamWriter(
-            new IndentingXMLStreamWriter(
-                XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)));
+            new NonEPCISNamespaceXMLStreamWriter(
+                    new IndentingXMLStreamWriter(XML_OUTPUT_FACTORY.createXMLStreamWriter(singleXmlEvent)), Set.of(), usedNamespaceUris);
     marshaller.marshal(mappedEvent, skipEPCISNamespaceWriter);
     skipEPCISNamespaceWriter.flush();
 
@@ -379,6 +382,7 @@ public class ReactiveJsonToXmlConverter {
       xmlEventWriter.close();
     }
   }
+
 
   /**
    * Creates XML footer bytes.

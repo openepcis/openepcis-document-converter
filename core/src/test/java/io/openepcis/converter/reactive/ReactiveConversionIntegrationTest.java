@@ -348,9 +348,9 @@ class ReactiveConversionIntegrationTest {
     assertTrue(jsonResult.contains("\"eventList\""),
         "Should contain eventList");
 
-    // Verify createdAt is preserved (not creationDate)
-    assertTrue(jsonResult.contains("\"createdAt\""),
-        "Should preserve createdAt attribute");
+    // creationDate is the required document attribute, EPCIS has no createdAt
+    assertTrue(jsonResult.contains("\"creationDate\""),
+        "Should preserve creationDate attribute");
 
     // Verify valid JSON by checking matching braces
     assertTrue(jsonResult.trim().startsWith("{") && jsonResult.trim().endsWith("}"),

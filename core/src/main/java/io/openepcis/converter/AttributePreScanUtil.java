@@ -23,30 +23,58 @@ import java.util.regex.Pattern;
 
 public class AttributePreScanUtil {
 
-  private static final String SCHEMA_VERSION_REGEX =
-      "schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)[\"?'?]";
-  private static final Pattern SCHEMA_VERSION_PATTERN = Pattern.compile(SCHEMA_VERSION_REGEX);
-  private static final int READ_LIMIT = 1000000;
+    private static final String SCHEMA_VERSION_REGEX = "schemaVersion\"?'?\\s*[=:]\\s*([\"'])?([^\"']*)[\"?'?]";
+    private static final Pattern EPCIS_BODY_PATTERN = Pattern.compile("\"epcisBody\"\\s*:");
+    private static final Pattern SCHEMA_VERSION_PATTERN = Pattern.compile(SCHEMA_VERSION_REGEX);
+    private static final int READ_LIMIT = 1000000;
 
-  public static final String scanSchemaVersion(final BufferedInputStream input) throws IOException {
-    input.mark(READ_LIMIT);
-    try {
-      final StringBuilder sb = new StringBuilder();
-      final byte[] buffer = new byte[1024];
-      int len = -1;
-      int bytesReceived = 0;
-      Matcher matcher = SCHEMA_VERSION_PATTERN.matcher(sb.toString());
-      while (!matcher.find(0) && bytesReceived < READ_LIMIT && (len = input.read(buffer)) != -1) {
-        sb.append(new String(buffer, 0, len, StandardCharsets.UTF_8));
-        bytesReceived += len;
-        matcher = SCHEMA_VERSION_PATTERN.matcher(sb.toString());
-      }
-      if (matcher.find(0)) {
-        return matcher.group(2);
-      }
-      return "";
-    } finally {
-      input.reset();
+    /**
+     * Detect the schema version for the provided document by reading schemaVersion
+     **/
+    public static String scanSchemaVersion(final BufferedInputStream input) throws IOException {
+        input.mark(READ_LIMIT);
+        try {
+            final StringBuilder sb = new StringBuilder();
+            final byte[] buffer = new byte[1024];
+            int len = -1;
+            int bytesReceived = 0;
+            Matcher matcher = SCHEMA_VERSION_PATTERN.matcher(sb.toString());
+            while (!matcher.find(0) && bytesReceived < READ_LIMIT && (len = input.read(buffer)) != -1) {
+                sb.append(new String(buffer, 0, len, StandardCharsets.UTF_8));
+                bytesReceived += len;
+                matcher = SCHEMA_VERSION_PATTERN.matcher(sb.toString());
+            }
+            if (matcher.find(0)) {
+                return matcher.group(2);
+            }
+            return "";
+        } finally {
+            input.reset();
+        }
     }
-  }
+
+    /**
+     * Detect if the document is bare event or EPCIS document by checking if epcisBody is present.
+     * Used for converting the bare JSON EPCIS event to XML
+     */
+    public static boolean hasEpcisBody(final BufferedInputStream input) throws IOException {
+        input.mark(READ_LIMIT);
+        try {
+            final StringBuilder sb = new StringBuilder();
+            final byte[] buffer = new byte[1024];
+            int len;
+            int bytesReceived = 0;
+
+            while (bytesReceived < READ_LIMIT && (len = input.read(buffer)) != -1) {
+                sb.append(new String(buffer, 0, len, StandardCharsets.UTF_8));
+                bytesReceived += len;
+                if (EPCIS_BODY_PATTERN.matcher(sb).find()) {
+                    return true;
+                }
+            }
+            return false;
+        } finally {
+            input.reset();
+        }
+    }
 }

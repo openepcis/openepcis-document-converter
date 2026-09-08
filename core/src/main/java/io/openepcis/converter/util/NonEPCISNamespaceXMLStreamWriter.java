@@ -42,19 +42,32 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
     }
 
     private final Set<String> documentNamespaceUris;
+    private final Set<String> requiredNamespaceUris;
 
     public NonEPCISNamespaceXMLStreamWriter(XMLStreamWriter delegate) {
-        super(delegate);
-        this.documentNamespaceUris = Set.of();
+        this(delegate, Set.of(), Set.of());
     }
 
     public NonEPCISNamespaceXMLStreamWriter(XMLStreamWriter delegate, Set<String> documentNamespaceUris) {
+        this(delegate, documentNamespaceUris, Set.of());
+    }
+
+    public NonEPCISNamespaceXMLStreamWriter(final XMLStreamWriter delegate,
+                                            final Set<String> documentNamespaceUris,
+                                            final Set<String> requiredNamespaceUris) {
         super(delegate);
         this.documentNamespaceUris = documentNamespaceUris != null ? Set.copyOf(documentNamespaceUris) : Set.of();
+        this.requiredNamespaceUris = requiredNamespaceUris != null ? Set.copyOf(requiredNamespaceUris) : Set.of();
     }
 
     @Override
-    public void writeNamespace(String prefix, String uri) throws XMLStreamException {
+    public void writeNamespace(final String prefix, final String uri) throws XMLStreamException {
+        // A namespace this event really uses must be bound, even a well known one such as gs1
+        if(requiredNamespaceUris.contains(uri)){
+            delegate.writeNamespace(prefix, uri);
+            return;
+        }
+
         if (!SKIP_NAMESPACE_URIS.contains(uri) && !documentNamespaceUris.contains(uri)) {
             delegate.writeNamespace(prefix, uri);
         }

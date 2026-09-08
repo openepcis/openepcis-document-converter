@@ -17,11 +17,11 @@ package io.openepcis.converter;
 
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
+import io.openepcis.converter.collector.EventHandler;
+import io.openepcis.converter.collector.XmlEPCISEventCollector;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.json.JsonToXmlConverter;
-import io.openepcis.converter.reactive.ReactiveConversionSource;
 import io.openepcis.converter.reactive.ReactiveVersionTransformer;
-import io.openepcis.converter.util.ChannelUtil;
 import io.openepcis.converter.util.PublisherInputStream;
 import io.openepcis.converter.xml.XmlToJsonConverter;
 import io.openepcis.converter.xml.XmlVersionTransformer;
@@ -29,14 +29,15 @@ import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 import io.smallrye.mutiny.Multi;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
+
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
@@ -152,6 +153,15 @@ public class VersionTransformer {
             conversion.generateGS1CompliantDocument().orElse(null),
             conversion.onFailure().orElse(null)
         );
+
+    // For bare JSON event conversion to XML use this
+    if (EPCISFormat.JSON_LD.equals(conversion.fromMediaType())
+            && EPCISFormat.XML.equals(conversion.toMediaType())
+            && !AttributePreScanUtil.hasEpcisBody(inputDocument)){
+      // The reactive path streams through ObjectNodePublisher, which drops a body with no eventList
+      return convertBareJsonEventToXml(inputDocument);
+    }
+
     return performConversion(inputDocument, conversionToPerform);
   }
 
@@ -342,6 +352,20 @@ public class VersionTransformer {
     return epcisEventMapper.isPresent()
         ? result.mapWith(epcisEventMapper.get())
         : result;
+  }
+
+  /** Convert bare JSON event to XML directly instead of streaming it. */
+  private InputStream convertBareJsonEventToXml(final InputStream inputDocument) throws IOException {
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+    try (EventHandler handler = new EventHandler(new XmlEPCISEventCollector(out))) {
+      jsonToXmlConverter.convert(inputDocument, handler);
+    } catch (FormatConverterException e) {
+      throw e;                                             // keep the original message, it names the real problem
+    } catch (Exception e) {
+      throw new FormatConverterException("Failed to convert bare JSON event to XML", e);
+    }
+    return new ByteArrayInputStream(out.toByteArray());
   }
 
   // For API backward compatibility

@@ -564,6 +564,13 @@ public class ReactiveXmlToJsonConverter {
     ObjectWriter writer = objectMapper.writer();
     if (nsContext != null) {
       writer = writer.withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
+
+      // write to contextInfo which is @XmlTransient so namespaces are added to event level context for JSON, XML skipped
+      final Map<String, String> eventNamespaces = nsContext.getEventOnlyNamespacesForContext();
+      if(!eventNamespaces.isEmpty() && event instanceof EPCISEvent epcisEvent){
+        // Switch the @context property on by adding elements
+        epcisEvent.setContextInfo(List.of(eventNamespaces));
+      }
     }
 
     // Serialize event - CustomContextSerializer will generate proper @context

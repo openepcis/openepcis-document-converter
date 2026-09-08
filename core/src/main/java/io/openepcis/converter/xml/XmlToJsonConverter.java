@@ -25,6 +25,7 @@ import io.openepcis.converter.EventsConverter;
 import io.openepcis.converter.collector.EPCISEventCollector;
 import io.openepcis.converter.collector.EventHandler;
 import io.openepcis.converter.exception.FormatConverterException;
+import io.openepcis.model.epcis.EPCISEvent;
 import io.openepcis.model.epcis.modifier.CustomExtensionAdapter;
 import io.openepcis.model.epcis.util.ConversionNamespaceContext;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
@@ -143,12 +144,20 @@ public class XmlToJsonConverter extends XMLEventParser implements EventsConverte
             if (event != null) {
               // map event
               event = applyEventMapper(sequenceInEventList, event);
+
               // Create the JSON using Jackson ObjectMapper based on type of incoming event type and store
               // Pass namespace context to allow CustomContextSerializer to access namespaces
               ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
               if (nsContext != null) {
                 writer = writer.withAttribute(ConversionNamespaceContext.ATTR_KEY, nsContext);
+
+                // contextInfo is @XmlTransient, so it stays null after XML and the serializer never runs
+                final Map<String, String> eventOnly = nsContext.getEventOnlyNamespacesForContext();
+                if (!eventOnly.isEmpty() && event instanceof EPCISEvent epcisEvent) {
+                  epcisEvent.setContextInfo(List.of(eventOnly));
+                }
               }
+
               final String eventAsJson = writer.writeValueAsString(event);
               // If the provided XML is EPCIS document then add the converted event to Collectors List and proceed to next event
               if (isDocument) {

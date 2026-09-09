@@ -27,6 +27,7 @@ public class AttributePreScanUtil {
     private static final Pattern EPCIS_BODY_PATTERN = Pattern.compile("\"epcisBody\"\\s*:");
     private static final Pattern SCHEMA_VERSION_PATTERN = Pattern.compile(SCHEMA_VERSION_REGEX);
     private static final int READ_LIMIT = 1000000;
+    private static final int FORMAT_SNIFF_LIMIT = 64; // bytes to inspect for bare event for format/version detection
 
     /**
      * Detect the schema version for the provided document by reading schemaVersion
@@ -73,6 +74,25 @@ public class AttributePreScanUtil {
                 }
             }
             return false;
+        } finally {
+            input.reset();
+        }
+    }
+
+    /**
+     * Detect if the provided input is XML or JSON/JSON-LD by reading initial bytes of the input stream.
+     * Starts with '<' means xml and starts with '{' means JSON/JSON-LD
+     */
+    public static boolean isJson(final BufferedInputStream input) throws IOException {
+        input.mark(FORMAT_SNIFF_LIMIT);
+        try {
+            for (int i = 0; i < FORMAT_SNIFF_LIMIT; i++) {
+                final int b = input.read();
+                if (b == -1) return false; // empty body cannot detect anything
+                if (b == '{' || b == '[') return true; // JSON object or array of events
+                if (b == '<') return false;  // XML declaration
+            }
+            return false; // FORMAT_SNIFF_LIMIT reached nothing was able to detect
         } finally {
             input.reset();
         }

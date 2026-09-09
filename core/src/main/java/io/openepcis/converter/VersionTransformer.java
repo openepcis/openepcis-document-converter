@@ -181,14 +181,14 @@ public class VersionTransformer {
   /**
    * Method with autodetect EPCIS version from inputStream
    *
-   * @param epcisDocument EPCIS document in application/xml or application/json format as a
-   *     InputStream
+   * @param epcisDocument EPCIS document in application/xml or application/json format as a InputStream
    * @param conversion Conversion operation
    * @return returns the detected version with read prescan details for merging back again.
    * @throws IOException if unable to read the document
    */
-  public final EPCISVersion versionDetector(
-      final BufferedInputStream epcisDocument, final Conversion conversion) throws IOException {
+  public final EPCISVersion versionDetector(final BufferedInputStream epcisDocument,
+                                            final Conversion conversion) throws IOException {
+
     if (conversion.fromVersion() != null) {
       return conversion.fromVersion();
     }
@@ -196,17 +196,19 @@ public class VersionTransformer {
     final String preScanVersion = AttributePreScanUtil.scanSchemaVersion(epcisDocument);
 
     if (preScanVersion.isEmpty()) {
-      throw new FormatConverterException(
-          "Unable to detect EPCIS schemaVersion for given document, please check the document again");
+      // for bare JSON event the schemaVersion is not present, so we assume it is 2.0.0 (lowest JSON supported version)
+      if(AttributePreScanUtil.isJson(epcisDocument)){
+        return EPCISVersion.VERSION_2_0_0;
+      }
+
+      throw new FormatConverterException("Unable to detect EPCIS schemaVersion for given document, please check the document again");
     }
 
     return EPCISVersion.fromString(preScanVersion)
         .orElseThrow(
             () ->
                 new FormatConverterException(
-                    String.format(
-                        "Provided document contains unsupported EPCIS document version %s",
-                        preScanVersion)));
+                        String.format("Provided document contains unsupported EPCIS document version %s", preScanVersion)));
   }
 
   /**

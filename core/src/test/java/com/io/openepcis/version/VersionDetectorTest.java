@@ -52,6 +52,15 @@ public class VersionDetectorTest {
   }
 
   @Test
+  void testJSON_bare_event_without_schemaVersion() throws IOException {
+    final EPCISVersion version =
+            versionTransformer.versionDetector(
+                    new BufferedInputStream(
+                            Commons.getInputStream("2.0/EPCIS/JSON/Capture/Events/AggregationEvent.json")));
+    Assertions.assertEquals(EPCISVersion.VERSION_2_0_0, version);
+  }
+
+  @Test
   void testXML_1_2_0() throws IOException {
     final EPCISVersion version =
         versionTransformer.versionDetector(
@@ -59,6 +68,4 @@ public class VersionDetectorTest {
                 Commons.getInputStream("1.2/EPCIS/XML/Capture/Documents/ObjectEvent.xml")));
     Assertions.assertEquals(EPCISVersion.VERSION_1_2_0, version);
   }
-  // new
-  // String(Commons.getInputStream("2.0/EPCIS/JSON/Capture/Documents/Combination_of_different_event.json").readAllBytes(), StandardCharsets.UTF_8);
 }

@@ -562,23 +562,19 @@ public class DocumentConverterResource {
             description = "Bad Request: Input EPCIS document contains missing/invalid information.",
             content = @Content(schema = @Schema(implementation = ProblemResponseBody.class)))
       })
-  public Uni<RestResponse<Map<String, String>>> versionDetection(final InputStream epcisDocument)
-      throws IOException {
-    return Uni.createFrom()
-        .completionStage(
+  public Uni<RestResponse<Map<String, String>>> versionDetection(final InputStream epcisDocument) {
+    return Uni.createFrom().completionStage(
             managedExecutor.supplyAsync(
                 () -> {
                   try {
-                    return versionTransformer
-                        .versionDetector(new BufferedInputStream(epcisDocument, 8192))
-                        .getVersion();
+                    return versionTransformer.versionDetector(new BufferedInputStream(epcisDocument, 8192)).getVersion();
                   } catch (IOException e) {
                     throw new RuntimeException(e);
                   }
                 }))
         .map(version -> Map.of("version", version))
-        .map(response -> RestResponse.ok(response))
+        .map(RestResponse::ok)
         .onFailure()
-        .transform(t -> t.getCause());
+        .transform(t -> t.getCause() != null ? t.getCause() : t);
   }
 }

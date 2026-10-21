@@ -34,6 +34,10 @@
 			<xsl:when test="name() = 'epcis:EPCISDocument' and @schemaVersion = '2.0'">
 				<xsl:call-template name="convert-to-1.2" />
 			</xsl:when>
+			<!-- match EPCISQueryDocument version 2.0, as a query interface answers it -->
+			<xsl:when test="local-name() = 'EPCISQueryDocument' and namespace-uri() = 'urn:epcglobal:epcis-query:xsd:2' and @schemaVersion = '2.0'">
+				<xsl:call-template name="convert-query-document-to-1.2" />
+			</xsl:when>
 			<!-- simply copy otherwise -->
 			<xsl:otherwise>
 				<xsl:copy-of select="." />
@@ -55,49 +59,7 @@
 					<xsl:choose>
 						<!-- match EventList -->
 						<xsl:when test="name() = 'EventList'">
-							<EventList>
-								<!-- copy attributes to keep user user defined extension -->
-								<xsl:apply-templates mode="copy-nodes" select="@*"/>
-								<!-- loop through EventList child nodes-->
-								<xsl:for-each select="*">
-									<xsl:if test="name() = 'ObjectEvent'">
-										<ObjectEvent>
-											<xsl:apply-templates mode="copy-nodes" select="@*"/>
-											<xsl:call-template name="convert-ObjectEvent" />
-										</ObjectEvent>
-									</xsl:if>
-									<xsl:if test="name() = 'AggregationEvent'">
-										<AggregationEvent>
-											<xsl:apply-templates mode="copy-nodes" select="@*"/>
-											<xsl:call-template name="convert-AggregationEvent" />
-										</AggregationEvent>
-									</xsl:if>
-									<xsl:if test="name() = 'TransformationEvent'">
-										<extension>
-											<TransformationEvent>
-												<xsl:apply-templates mode="copy-nodes" select="@*"/>
-												<xsl:call-template name="convert-TransformationEvent" />
-											</TransformationEvent>
-										</extension>
-									</xsl:if>
-									<xsl:if test="name() = 'TransactionEvent'">
-										<TransactionEvent>
-											<xsl:apply-templates mode="copy-nodes" select="@*"/>
-											<xsl:call-template name="convert-TransactionEvent" />
-										</TransactionEvent>
-									</xsl:if>
-									<xsl:if test="name() = 'AssociationEvent' and $includeAssociationEvent = 'yes'">
-										<extension>
-											<extension>
-												<AssociationEvent>
-													<xsl:apply-templates mode="copy-nodes" select="@*"/>
-													<xsl:call-template name="convert-AssociationEvent" />
-												</AssociationEvent>
-											</extension>
-										</extension>
-									</xsl:if>
-								</xsl:for-each>
-							</EventList>
+							<xsl:call-template name="convert-EventList" />
 						</xsl:when>
 						<!-- simply copy otherwise -->
 						<xsl:otherwise>
@@ -107,6 +69,100 @@
 				</xsl:for-each>
 			</EPCISBody>
 		</epcis:EPCISDocument>
+	</xsl:template>
+
+	<!-- convert an EventList of version 2.0 to 1.2; the context node is the EventList -->
+	<xsl:template name="convert-EventList">
+		<EventList>
+			<!-- copy attributes to keep user user defined extension -->
+			<xsl:apply-templates mode="copy-nodes" select="@*"/>
+			<!-- loop through EventList child nodes-->
+			<xsl:for-each select="*">
+				<xsl:if test="name() = 'ObjectEvent'">
+					<ObjectEvent>
+						<xsl:apply-templates mode="copy-nodes" select="@*"/>
+						<xsl:call-template name="convert-ObjectEvent" />
+					</ObjectEvent>
+				</xsl:if>
+				<xsl:if test="name() = 'AggregationEvent'">
+					<AggregationEvent>
+						<xsl:apply-templates mode="copy-nodes" select="@*"/>
+						<xsl:call-template name="convert-AggregationEvent" />
+					</AggregationEvent>
+				</xsl:if>
+				<xsl:if test="name() = 'TransformationEvent'">
+					<extension>
+						<TransformationEvent>
+							<xsl:apply-templates mode="copy-nodes" select="@*"/>
+							<xsl:call-template name="convert-TransformationEvent" />
+						</TransformationEvent>
+					</extension>
+				</xsl:if>
+				<xsl:if test="name() = 'TransactionEvent'">
+					<TransactionEvent>
+						<xsl:apply-templates mode="copy-nodes" select="@*"/>
+						<xsl:call-template name="convert-TransactionEvent" />
+					</TransactionEvent>
+				</xsl:if>
+				<xsl:if test="name() = 'AssociationEvent' and $includeAssociationEvent = 'yes'">
+					<extension>
+						<extension>
+							<AssociationEvent>
+								<xsl:apply-templates mode="copy-nodes" select="@*"/>
+								<xsl:call-template name="convert-AssociationEvent" />
+							</AssociationEvent>
+						</extension>
+					</extension>
+				</xsl:if>
+			</xsl:for-each>
+		</EventList>
+	</xsl:template>
+
+	<!-- convert EPCISQueryDocument version 2.0 to 1.2 -->
+	<xsl:template name="convert-query-document-to-1.2">
+		<epcisq:EPCISQueryDocument
+				xmlns:epcisq="urn:epcglobal:epcis-query:xsd:1"
+				xmlns:epcis="urn:epcglobal:epcis:xsd:1" schemaVersion="1.2">
+			<xsl:attribute name="creationDate">
+				<xsl:value-of select="@creationDate" />
+			</xsl:attribute>
+			<EPCISBody>
+				<xsl:apply-templates mode="copy-nodes" select="EPCISBody/@*"/>
+				<xsl:for-each select="EPCISBody/*">
+					<xsl:choose>
+						<!-- match QueryResults, whichever prefix the document binds -->
+						<xsl:when test="local-name() = 'QueryResults'">
+							<epcisq:QueryResults xmlns:epcisq="urn:epcglobal:epcis-query:xsd:1">
+								<xsl:apply-templates mode="copy-nodes" select="@*"/>
+								<xsl:apply-templates mode="copy-nodes" select="*[local-name() = 'subscriptionID']"/>
+								<xsl:apply-templates mode="copy-nodes" select="*[local-name() = 'queryName']"/>
+								<xsl:for-each select="*[local-name() = 'resultsBody']">
+									<resultsBody>
+										<xsl:apply-templates mode="copy-nodes" select="@*"/>
+										<xsl:for-each select="*">
+											<xsl:choose>
+												<xsl:when test="local-name() = 'EventList'">
+													<xsl:call-template name="convert-EventList" />
+												</xsl:when>
+												<!-- simply copy otherwise (VocabularyList and the like) -->
+												<xsl:otherwise>
+													<xsl:apply-templates mode="copy-nodes" select="." />
+												</xsl:otherwise>
+											</xsl:choose>
+										</xsl:for-each>
+									</resultsBody>
+								</xsl:for-each>
+								<xsl:apply-templates mode="copy-nodes" select="*[local-name() = 'extension']"/>
+							</epcisq:QueryResults>
+						</xsl:when>
+						<!-- simply copy otherwise -->
+						<xsl:otherwise>
+							<xsl:apply-templates mode="copy-nodes" select="." />
+						</xsl:otherwise>
+					</xsl:choose>
+				</xsl:for-each>
+			</EPCISBody>
+		</epcisq:EPCISQueryDocument>
 	</xsl:template>
 
 	<!-- no-op for any well-known EPCIS elements in copy-nodes mode -->

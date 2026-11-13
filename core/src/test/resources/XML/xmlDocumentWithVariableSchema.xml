@@ -1,0 +1,14 @@
+<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:%s" schemaVersion="%s" creationDate="2023-01-01T00:00:00Z">
+    <EPCISBody>
+        <EventList>
+            <ObjectEvent>
+                <eventTime>2023-01-01T00:00:00Z</eventTime>
+                <eventTimeZoneOffset>+00:00</eventTimeZoneOffset>
+                <epcList>
+                    <epc>urn:epc:id:sgtin:0614141.107346.2017</epc>
+                </epcList>
+                <action>OBSERVE</action>
+            </ObjectEvent>
+        </EventList>
+    </EPCISBody>
+</epcis:EPCISDocument>

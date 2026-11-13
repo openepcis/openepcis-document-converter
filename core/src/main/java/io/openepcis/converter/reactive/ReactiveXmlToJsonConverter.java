@@ -514,10 +514,10 @@ public class ReactiveXmlToJsonConverter {
     generator.writeEndArray();
 
     // Write type (conditional on document type)
-    generator.writeStringField("type", isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
+    generator.writeStringField(EPCIS.TYPE, isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
 
-    // Write schemaVersion
-    String schemaVersion = contextAttributes.getOrDefault(EPCIS.SCHEMA_VERSION, "2.0");
+    // Write schemaVersion: JSON output is 2.0.1 (current latest) whatever the XML said (1.2, 2.0)
+    String schemaVersion = EPCISVersion.VERSION_2_0_1.getSchemaVersion();
     generator.writeStringField(EPCIS.SCHEMA_VERSION, schemaVersion);
 
     // Write creationDate or createdAt (EPCISQueryDocument may use createdAt)
@@ -528,7 +528,7 @@ public class ReactiveXmlToJsonConverter {
     }
 
     // Start epcisBody
-    generator.writeObjectFieldStart("epcisBody");
+    generator.writeObjectFieldStart(EPCIS.EPCIS_BODY_IN_CAMEL_CASE);
 
     // For EPCISQueryDocument: add queryResults → resultsBody wrapper
     if (!isEPCISDocument) {
@@ -543,7 +543,7 @@ public class ReactiveXmlToJsonConverter {
     }
 
     // Start eventList
-    generator.writeArrayFieldStart("eventList");
+    generator.writeArrayFieldStart(EPCIS.EVENT_LIST_IN_CAMEL_CASE);
 
     generator.flush();
     return baos.toByteArray();

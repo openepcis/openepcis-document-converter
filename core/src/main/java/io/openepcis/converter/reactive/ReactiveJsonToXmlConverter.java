@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.openepcis.constants.EPCIS;
+import io.openepcis.constants.EPCISVersion;
 import io.openepcis.converter.collector.context.ContextProcessor;
 import io.openepcis.converter.exception.FormatConverterException;
 import io.openepcis.converter.util.IndentingXMLStreamWriter;
@@ -259,7 +260,7 @@ public class ReactiveJsonToXmlConverter {
       // Add EPCIS namespace
       xmlEventWriter.add(
           isEPCISDocument
-              ? events.createNamespace(EPCIS.EPCIS, EPCIS.EPCIS_2_0_XMLNS)
+              ? events.createNamespace(EPCIS.EPCIS_NAMESPACE_PREFIX, EPCIS.EPCIS_2_0_XMLNS)
               : events.createNamespace(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS));
 
       // Add XSI namespace
@@ -267,7 +268,7 @@ public class ReactiveJsonToXmlConverter {
 
       // Add CBV MDA namespace only if it's used in the @context
       if (hasCbvmdaInContext(headerNode)) {
-        xmlEventWriter.add(events.createNamespace("cbvmda", "urn:epcglobal:cbv:mda"));
+        xmlEventWriter.add(events.createNamespace(EPCIS.CBV_MDA, "urn:epcglobal:cbv:mda"));
       }
 
       // Add custom namespaces from document context only
@@ -280,15 +281,12 @@ public class ReactiveJsonToXmlConverter {
       }
 
       // Add schemaVersion attribute
-      String schemaVersion = "2.0";
-      if (headerNode != null && headerNode.has("schemaVersion")) {
-        schemaVersion = headerNode.get("schemaVersion").asText();
-      }
-      xmlEventWriter.add(events.createAttribute("schemaVersion", schemaVersion));
+      // writer always produces XML 2.0; the 1.2 route converts it afterward as XSD schemaVersion is Decimal not like JSON 2.0.1
+      xmlEventWriter.add(events.createAttribute(EPCIS.SCHEMA_VERSION, EPCISVersion.VERSION_2_0_0.getSchemaVersion()));
 
       // Add creationDate attribute
-      if (headerNode != null && headerNode.has("creationDate")) {
-        xmlEventWriter.add(events.createAttribute("creationDate", headerNode.get("creationDate").asText()));
+      if (headerNode != null && headerNode.has(EPCIS.CREATION_DATE)) {
+        xmlEventWriter.add(events.createAttribute(EPCIS.CREATION_DATE, headerNode.get(EPCIS.CREATION_DATE).asText()));
       }
 
       // Start EPCISBody

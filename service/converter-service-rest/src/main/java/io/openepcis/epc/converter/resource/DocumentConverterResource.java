@@ -30,14 +30,14 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.smallrye.context.api.NamedInstance;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.*;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
@@ -52,6 +52,13 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestHeader;
 import org.jboss.resteasy.reactive.RestResponse;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 
 @RegisterForReflection
 @Path("/api")
@@ -485,7 +492,7 @@ public class DocumentConverterResource {
 
     // Build conversion spec
     final Conversion conversion = Conversion.builder()
-        .generateGS1CompliantDocument(gs1Compliant != null ? Boolean.valueOf(gs1Compliant) : null)
+        .generateGS1CompliantDocument(!isStrictEpcis12(gs1Compliant)) // flag that keeps the 2.0 only content as extensions
         .fromMediaType(GS1FormatSupport.getEPCISFormat(mediaType))
         .toMediaType(EPCISFormat.XML)
         .toVersion(EPCISVersion.VERSION_1_2_0)
@@ -576,5 +583,10 @@ public class DocumentConverterResource {
         .map(RestResponse::ok)
         .onFailure()
         .transform(t -> t.getCause() != null ? t.getCause() : t);
+  }
+
+  // Only an explicit false keeps the 2.0 only content, no header or any other value is strict EPCIS 1.2
+  private static boolean isStrictEpcis12(final String value) {
+    return value == null || !"false".equalsIgnoreCase(value.trim());
   }
 }

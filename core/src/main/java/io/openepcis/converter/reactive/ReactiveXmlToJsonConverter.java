@@ -516,8 +516,8 @@ public class ReactiveXmlToJsonConverter {
     // Write type (conditional on document type)
     generator.writeStringField(EPCIS.TYPE, isEPCISDocument ? EPCIS.EPCIS_DOCUMENT : EPCIS.EPCIS_QUERY_DOCUMENT);
 
-    // Write schemaVersion: JSON output is 2.0.1 (current latest) whatever the XML said (1.2, 2.0)
-    String schemaVersion = EPCISVersion.VERSION_2_0_1.getSchemaVersion();
+    // Write schemaVersion: JSON output is 2.0 (documents carry major.minor only) whatever the XML said (1.2, 2.0)
+    final String schemaVersion = EPCISVersion.VERSION_2_0_0.getSchemaVersion();
     generator.writeStringField(EPCIS.SCHEMA_VERSION, schemaVersion);
 
     // Write creationDate or createdAt (EPCISQueryDocument may use createdAt)

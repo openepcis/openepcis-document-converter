@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// The converted schemaVersion depends only on the target: XML 2.0 "2.0", XML 1.2 "1.2", JSON "2.0.1"
+// The converted schemaVersion depends only on the target: XML 2.0 "2.0", XML 1.2 "1.2", JSON "2.0"
 class SchemaVersionHeaderTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Pattern XML_SCHEMA_VERSION = Pattern.compile("schemaVersion=\"([^\"]*)\"");
@@ -72,7 +72,7 @@ class SchemaVersionHeaderTest {
     void xmlToJsonWritesLatestSchemaVersion(final String xmlSchemaVersion) throws Exception {
         final String namespaceVersion = "2.0".equals(xmlSchemaVersion) ? "2" : "1";
         final String json = convert(EPCIS_DOCUMENT_XML.formatted(namespaceVersion, xmlSchemaVersion), EPCISFormat.XML, EPCISFormat.JSON_LD, EPCISVersion.VERSION_2_0_0);
-        assertEquals("2.0.1", MAPPER.readTree(json).get(EPCIS.SCHEMA_VERSION).asText());
+        assertEquals("2.0", MAPPER.readTree(json).get(EPCIS.SCHEMA_VERSION).asText());
     }
 
     // A bare JSON event has no header, converting it to XML must still work

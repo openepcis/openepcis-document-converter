@@ -126,8 +126,8 @@ public class JsonEPCISEventCollector implements EPCISEventCollector<OutputStream
           (key, value) -> {
             try {
               if (key.equalsIgnoreCase(SCHEMA_VERSION)) {
-                // Write schemaVersion: JSON output is 2.0.1 (current latest) whatever the XML said (1.2, 2.0)
-                String schemaVersion = EPCISVersion.VERSION_2_0_1.getSchemaVersion();
+                // Write schemaVersion: JSON output is 2.0 (documents carry major.minor only) whatever the XML said (1.2, 2.0)
+                final String schemaVersion = EPCISVersion.VERSION_2_0_0.getSchemaVersion();
                 jsonGenerator.writeStringField(key, schemaVersion);
               } else {
                 jsonGenerator.writeStringField(key, value);

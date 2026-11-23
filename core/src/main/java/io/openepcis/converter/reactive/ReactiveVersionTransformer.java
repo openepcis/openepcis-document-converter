@@ -1171,7 +1171,18 @@ public class ReactiveVersionTransformer {
           }
         })
         .onCompletion().continueWith(() -> {
-          // Emit footer
+          if (!headerEmitted.getAndSet(true)) {
+            // Not a single event: the document still needs its root, so the header is written now
+            // and the footer closes it. An empty query answer is a complete document, not a footer.
+            try {
+              return List.of(
+                  createXmlHeaderInternal(documentNsContext, documentAttributes),
+                  createXmlFooterInternal(documentAttributes));
+            } catch (XMLStreamException e) {
+              throw new FormatConverterException(
+                  "Failed to write the header of an empty document: " + e.getMessage(), e);
+            }
+          }
           return List.of(createXmlFooterInternal(documentAttributes));
         });
   }

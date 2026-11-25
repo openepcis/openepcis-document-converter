@@ -91,6 +91,46 @@ class QueryDocumentVersion12Test {
     assertFalse(xml.contains("ObjectEvent"), xml);
   }
 
+  @Test
+  @DisplayName("a JSON EPCISQueryDocument keeps queryName and subscriptionID converted to XML 1.2")
+  void jsonQueryDocumentKeepsQueryNameIn12() throws Exception {
+    final String xml = convertJson("queryDocument.json", EPCISVersion.VERSION_1_2_0);
+    assertTrue(xml.contains("urn:epcglobal:epcis-query:xsd:1"), xml);
+    assertTrue(xml.contains("<queryName>SimpleEventQuery</queryName>"), xml);
+    assertTrue(
+        xml.contains("<subscriptionID>32d2aec1-a6d2-46d9-900a-24124288cce1</subscriptionID>"), xml);
+  }
+
+  @Test
+  @DisplayName("a JSON EPCISQueryDocument keeps queryName and subscriptionID converted to XML 2.0")
+  void jsonQueryDocumentKeepsQueryNameIn20() throws Exception {
+    final String xml = convertJson("queryDocument.json", EPCISVersion.VERSION_2_0_0);
+    assertTrue(xml.contains("urn:epcglobal:epcis-query:xsd:2"), xml);
+    assertTrue(xml.contains("<queryName>SimpleEventQuery</queryName>"), xml);
+    assertTrue(
+        xml.contains("<subscriptionID>32d2aec1-a6d2-46d9-900a-24124288cce1</subscriptionID>"), xml);
+  }
+
+  // A reference query document from openepcis-test-resources, JSON-LD 2.0 to XML.
+  private static String convertJson(final String name, final EPCISVersion toVersion)
+      throws Exception {
+    try (InputStream in =
+            QueryDocumentVersion12Test.class
+                .getClassLoader()
+                .getResourceAsStream("2.0/EPCIS/JSON/Query/" + name);
+        InputStream converted =
+            new VersionTransformer()
+                .convert(
+                    in,
+                    Conversion.of(
+                        EPCISFormat.JSON_LD,
+                        EPCISVersion.VERSION_2_0_0,
+                        EPCISFormat.XML,
+                        toVersion))) {
+      return new String(converted.readAllBytes(), StandardCharsets.UTF_8);
+    }
+  }
+
   private static String convertTo12(final String document) throws Exception {
     final VersionTransformer transformer = new VersionTransformer();
     try (InputStream converted =

@@ -186,9 +186,10 @@ public class ReactiveJsonToXmlConverter {
               String type = node.has("type") ? node.get("type").asText() : "";
               isEPCISDocument.set(!type.contains("QueryDocument"));
 
-              // Extract query document metadata
-              String subscriptionID = node.has("subscriptionID") ? node.get("subscriptionID").asText() : null;
-              String queryName = node.has("queryName") ? node.get("queryName").asText() : null;
+              // Extract query document metadata: the publisher hands it on as
+              // epcisBody.queryResults of the header, where the document has it
+              String subscriptionID = queryResultsField(node, EPCIS.SUBSCRIPTION_ID);
+              String queryName = queryResultsField(node, EPCIS.QUERY_NAME);
 
               try {
                 byte[] headerBytes = createXmlHeader(node, documentNsContext, isEPCISDocument.get(), subscriptionID, queryName);
@@ -230,6 +231,16 @@ public class ReactiveJsonToXmlConverter {
       return Multi.createFrom().failure(
           new FormatConverterException("Failed to initialize JSON parser: " + e.getMessage(), e));
     }
+  }
+
+  // A queryResults field (queryName, subscriptionID) of the header node: under epcisBody.queryResults,
+  // or at the top level of the header.
+  private static String queryResultsField(ObjectNode headerNode, String field) {
+    JsonNode value = headerNode.path(EPCIS.EPCIS_BODY_IN_CAMEL_CASE).path(EPCIS.QUERY_RESULTS_IN_CAMEL_CASE).path(field);
+    if (!value.isTextual()) {
+      value = headerNode.path(field);
+    }
+    return value.isTextual() ? value.asText() : null;
   }
 
   /**
@@ -294,18 +305,20 @@ public class ReactiveJsonToXmlConverter {
 
       // Add additional wrapper tags for EPCISQueryDocument
       if (!isEPCISDocument) {
-        xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
+        // a global element of the query schema, so qualified: epcisq:QueryResults
+        xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, EPCIS.QUERY_RESULTS));
+
+        // The query schema orders QueryResults as queryName, subscriptionID, resultsBody
+        if (queryName != null && !queryName.isBlank()) {
+          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
+          xmlEventWriter.add(events.createCharacters(queryName));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
+        }
 
         if (subscriptionID != null && !subscriptionID.isBlank()) {
           xmlEventWriter.add(events.createStartElement(new QName(EPCIS.SUBSCRIPTION_ID), null, null));
           xmlEventWriter.add(events.createCharacters(subscriptionID));
           xmlEventWriter.add(events.createEndElement(new QName(EPCIS.SUBSCRIPTION_ID), null));
-        }
-
-        if (queryName != null && !queryName.isBlank()) {
-          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
-          xmlEventWriter.add(events.createCharacters(queryName));
-          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
         }
 
         xmlEventWriter.add(events.createStartElement(new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null, null));
@@ -391,7 +404,7 @@ public class ReactiveJsonToXmlConverter {
 
     if (!isEPCISDocument) {
       footer.append("</resultsBody>\n");
-      footer.append("</QueryResults>\n");
+      footer.append("</" + EPCIS.EPCIS_QUERY + ":QueryResults>\n");
     }
 
     footer.append("</EPCISBody>\n");

@@ -1318,20 +1318,21 @@ public class ReactiveVersionTransformer {
 
       // For query document: add QueryResults wrapper with subscriptionID/queryName
       if (isQueryDocument) {
-        xmlEventWriter.add(events.createStartElement("", "", EPCIS.QUERY_RESULTS));
-        String subId = documentAttributes.get(EPCIS.SUBSCRIPTION_ID);
-
-        if (subId != null && !subId.isBlank()) {
-          xmlEventWriter.add(events.createStartElement("", "", EPCIS.SUBSCRIPTION_ID));
-          xmlEventWriter.add(events.createCharacters(subId));
-          xmlEventWriter.add(events.createEndElement("", "", EPCIS.SUBSCRIPTION_ID));
-        }
-
+        // a global element of the query schema, so qualified: epcisq:QueryResults
+        xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, EPCIS.QUERY_RESULTS));
+        // The query schema orders QueryResults as queryName, subscriptionID, resultsBody
         String qName = documentAttributes.get(EPCIS.QUERY_NAME);
         if (qName != null && !qName.isBlank()) {
           xmlEventWriter.add(events.createStartElement("", "", EPCIS.QUERY_NAME));
           xmlEventWriter.add(events.createCharacters(qName));
           xmlEventWriter.add(events.createEndElement("", "", EPCIS.QUERY_NAME));
+        }
+
+        String subId = documentAttributes.get(EPCIS.SUBSCRIPTION_ID);
+        if (subId != null && !subId.isBlank()) {
+          xmlEventWriter.add(events.createStartElement("", "", EPCIS.SUBSCRIPTION_ID));
+          xmlEventWriter.add(events.createCharacters(subId));
+          xmlEventWriter.add(events.createEndElement("", "", EPCIS.SUBSCRIPTION_ID));
         }
         xmlEventWriter.add(events.createStartElement("", "", "resultsBody"));
       }
@@ -1354,7 +1355,7 @@ public class ReactiveVersionTransformer {
   private byte[] createXmlFooterInternal(Map<String, String> documentAttributes) {
     boolean isQueryDocument = EPCIS.EPCIS_QUERY_DOCUMENT.equals(documentAttributes.get("_documentType"));
     if (isQueryDocument) {
-      return ("\n</EventList>\n</resultsBody>\n</QueryResults>\n</EPCISBody>\n</"
+      return ("\n</EventList>\n</resultsBody>\n</" + EPCIS.EPCIS_QUERY + ":QueryResults>\n</EPCISBody>\n</"
           + EPCIS.EPCIS_QUERY + ":EPCISQueryDocument>").getBytes(StandardCharsets.UTF_8);
     }
     return "\n</EventList>\n</EPCISBody>\n</epcis:EPCISDocument>".getBytes(StandardCharsets.UTF_8);

@@ -58,8 +58,11 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
     private final Set<String> documentNamespaceUris;
     private final Set<String> requiredNamespaceUris;
 
-    // prefix -> uri declarations written per open element, innermost first
+    // prefix -> uri declarations written per open element, innermost first ("" is the default namespace)
     private final Deque<Map<String, String>> scopes = new ArrayDeque<>();
+    // uri -> prefix of the declarations skipped per open element, innermost first, so an attribute
+    // written by namespace URI alone gets the prefix the caller meant
+    private final Deque<Map<String, String>> skippedScopes = new ArrayDeque<>();
     // an empty element's start tag is open until the next structural call
     private boolean emptyElementOpen;
 
@@ -81,17 +84,27 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
 
     @Override
     public void writeNamespace(final String prefix, final String uri) throws XMLStreamException {
+        // StAX: a null, empty or "xmlns" prefix declares the default namespace
+        final String p = prefix == null || "xmlns".equals(prefix) ? "" : prefix;
+
         // A namespace this event really uses must be bound, even a well known one such as gs1
         if(requiredNamespaceUris.contains(uri)){
-            writeAndRecordNamespace(prefix, uri);
+            writeAndRecordNamespace(p, uri);
             return;
         }
 
-        // A skipped declaration is not recorded: should the fragment use the prefix after all,
-        // the element or attribute using it declares it (see bindIfUnbound)
+        // A skipped declaration is not recorded as bound: should the fragment use the prefix after
+        // all, the element or attribute using it declares it (see bindIfUnbound)
         if (!SKIP_NAMESPACE_URIS.contains(uri) && !documentNamespaceUris.contains(uri)) {
-            writeAndRecordNamespace(prefix, uri);
+            writeAndRecordNamespace(p, uri);
+        } else if (!p.isEmpty() && uri != null && !skippedScopes.isEmpty()) {
+            skippedScopes.peek().putIfAbsent(uri, p);
         }
+    }
+
+    @Override
+    public void writeDefaultNamespace(final String uri) throws XMLStreamException {
+        writeNamespace("", uri);
     }
 
     // ---------------------------------------------------------------- binding bookkeeping
@@ -99,6 +112,7 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
     private void openElement(final boolean empty) {
         closeEmptyElement();
         scopes.push(new HashMap<>());
+        skippedScopes.push(new HashMap<>());
         emptyElementOpen = empty;
     }
 
@@ -106,6 +120,7 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
         if (emptyElementOpen) {
             emptyElementOpen = false;
             scopes.pop();
+            skippedScopes.pop();
         }
     }
 
@@ -130,9 +145,50 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
         }
     }
 
+    // An element in a default namespace (writeStartElement("", local, uri)) declares it unless it is
+    // bound already; a non-repairing writer would otherwise write the element in no namespace.
+    private void bindDefaultIfUnbound(final String prefix, final String uri) throws XMLStreamException {
+        if ((prefix == null || prefix.isEmpty()) && uri != null && !uri.isEmpty()
+                && !scopes.isEmpty() && !isBound("", uri)) {
+            delegate.writeDefaultNamespace(uri);
+            scopes.peek().put("", uri);
+        }
+    }
+
+    // The prefix for an attribute written by namespace URI alone: a binding written in the
+    // fragment, a declaration the caller made but this writer skipped, the delegate's context, or
+    // the well-known EPCIS prefix of the URI.
+    private String prefixFor(final String uri) throws XMLStreamException {
+        for (final Map<String, String> scope : scopes) {
+            for (final Map.Entry<String, String> binding : scope.entrySet()) {
+                if (!binding.getKey().isEmpty() && uri.equals(binding.getValue())
+                        && isBound(binding.getKey(), uri)) {
+                    return binding.getKey();
+                }
+            }
+        }
+        for (final Map<String, String> skipped : skippedScopes) {
+            if (skipped.containsKey(uri)) {
+                return skipped.get(uri);
+            }
+        }
+        final String known = delegate.getPrefix(uri);
+        if (known != null && !known.isEmpty()) {
+            return known;
+        }
+        return EPCISNamespacePrefixMapper.EPCIS_NAMESPACE_MAP.get(uri);
+    }
+
     private void writeAndRecordNamespace(final String prefix, final String uri) throws XMLStreamException {
         // the element itself or one of its attributes may have bound it already
         if (!scopes.isEmpty() && uri != null && uri.equals(scopes.peek().get(prefix))) {
+            return;
+        }
+        if (prefix.isEmpty()) {
+            delegate.writeDefaultNamespace(uri);
+            if (!scopes.isEmpty()) {
+                scopes.peek().put("", uri);
+            }
             return;
         }
         delegate.writeNamespace(prefix, uri);
@@ -148,6 +204,7 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
         openElement(false);
         delegate.writeStartElement(prefix, local, uri);
         bindIfUnbound(prefix, uri);
+        bindDefaultIfUnbound(prefix, uri);
     }
 
     @Override
@@ -167,6 +224,7 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
         openElement(true);
         delegate.writeEmptyElement(prefix, local, uri);
         bindIfUnbound(prefix, uri);
+        bindDefaultIfUnbound(prefix, uri);
     }
 
     @Override
@@ -187,6 +245,7 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
         delegate.writeEndElement();
         if (!scopes.isEmpty()) {
             scopes.pop();
+            skippedScopes.pop();
         }
     }
 
@@ -195,6 +254,17 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
             throws XMLStreamException {
         delegate.writeAttribute(prefix, uri, local, value);
         bindIfUnbound(prefix, uri);
+    }
+
+    @Override
+    public void writeAttribute(final String uri, final String local, final String value) throws XMLStreamException {
+        final String prefix = uri == null || uri.isEmpty() ? null : prefixFor(uri);
+        if (prefix == null || prefix.isEmpty()) {
+            delegate.writeAttribute(uri, local, value);
+            return;
+        }
+        // with the prefix known, the 4-argument variant binds it where needed
+        writeAttribute(prefix, uri, local, value);
     }
 
     // ---------------------------------------------------------------- content closes an empty element

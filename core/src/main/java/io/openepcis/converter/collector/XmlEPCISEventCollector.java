@@ -135,19 +135,19 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
       if (!isEPCISDocument) {
         xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, EPCIS.QUERY_RESULTS));
 
+        // Schema order of QueryResults: queryName, subscriptionID, resultsBody
+        if (!StringUtils.isBlank(queryName)) {
+          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
+          xmlEventWriter.add(events.createSpace(queryName));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
+        }
+
         // For EPCISQueryDocument add subscriptionID if present
         if (!StringUtils.isBlank(subscriptionID)) {
           xmlEventWriter.add(
               events.createStartElement(new QName(EPCIS.SUBSCRIPTION_ID), null, null));
           xmlEventWriter.add(events.createSpace(subscriptionID));
           xmlEventWriter.add(events.createEndElement(new QName(EPCIS.SUBSCRIPTION_ID), null));
-        }
-
-        // For EPCISQueryDocument add QueryName if present
-        if (!StringUtils.isBlank(queryName)) {
-          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
-          xmlEventWriter.add(events.createSpace(queryName));
-          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
         }
 
         xmlEventWriter.add(

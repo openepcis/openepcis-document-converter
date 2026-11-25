@@ -778,4 +778,85 @@ class ReactiveVersionTransformerTest {
     // XML 1.2 has different namespace
     assertTrue(xmlResult.contains("schemaVersion") || xmlResult.contains("ObjectEvent"), "Should contain valid XML elements");
   }
+
+  // ==================== gs1:masterDataAvailableFor (well-known namespace in an extension) ====================
+
+  /**
+   * The Community Edition answers a 1.2 query by marshalling the 2.0 document and converting it
+   * XML 2.0 to XML 1.2. An extension in a well-known namespace (gs1) has to keep its namespace
+   * declaration on the way, otherwise the event fragment is not well-formed and the conversion
+   * fails with "Failed to marshal event".
+   */
+  @Test
+  void shouldConvertXml20WithMasterDataExtensionToXml12() throws Exception {
+    String xml = convertToString(resource("/XML/masterDataAvailableForExtension.xml"),
+        EPCISFormat.XML, EPCISVersion.VERSION_1_2_0);
+    assertMasterDataKept(xml, "urn:epc:id:sgtin:9521234.000001.BAT2024-001");
+  }
+
+  @Test
+  void shouldConvertXml20WithMasterDataExtensionDeclaredOnEventToXml12() throws Exception {
+    String document = new String(resource("/XML/masterDataAvailableForExtension.xml"), StandardCharsets.UTF_8)
+        .replace(" xmlns:gs1=\"https://ref.gs1.org/voc/\"", "")
+        .replace("<ObjectEvent>", "<ObjectEvent xmlns:gs1=\"https://ref.gs1.org/voc/\">");
+    String xml = convertToString(document.getBytes(StandardCharsets.UTF_8),
+        EPCISFormat.XML, EPCISVersion.VERSION_1_2_0);
+    assertMasterDataKept(xml, "urn:epc:id:sgtin:9521234.000001.BAT2024-001");
+  }
+
+  @Test
+  void shouldConvertXml20WithMasterDataExtensionToXml20() throws Exception {
+    String xml = convertToString(resource("/XML/masterDataAvailableForExtension.xml"),
+        EPCISFormat.XML, EPCISVersion.VERSION_2_0_0);
+    assertMasterDataKept(xml, "https://id.gs1.org/01/09521234000013/21/BAT2024-001");
+  }
+
+  @Test
+  void shouldConvertJsonLdWithMasterDataExtensionToXml12() throws Exception {
+    String xml = convertToString(resource("/JSON/masterDataAvailableForExtension.json"),
+        EPCISFormat.JSON_LD, EPCISVersion.VERSION_1_2_0);
+    assertMasterDataKept(xml, "urn:epc:id:sgtin:9521234.000001.BAT2024-001");
+  }
+
+  private byte[] resource(String name) throws Exception {
+    try (InputStream in = getClass().getResourceAsStream(name)) {
+      assertNotNull(in, "test resource missing: " + name);
+      return in.readAllBytes();
+    }
+  }
+
+  private String convertToString(byte[] document, EPCISFormat fromFormat, EPCISVersion toVersion) {
+    Conversion conversion = Conversion.builder()
+        .fromMediaType(fromFormat)
+        .fromVersion(EPCISVersion.VERSION_2_0_0)
+        .toMediaType(EPCISFormat.XML)
+        .toVersion(toVersion)
+        .build();
+    List<byte[]> chunks = transformer.convert(document, conversion)
+        .collect().asList()
+        .await().atMost(java.time.Duration.ofSeconds(30));
+    ByteArrayOutputStream result = new ByteArrayOutputStream();
+    chunks.forEach(result::writeBytes);
+    return result.toString(StandardCharsets.UTF_8);
+  }
+
+  /** Well-formed, one ObjectEvent, and the master data in the gs1 namespace with its content. */
+  static void assertMasterDataKept(String xml, String productId) {
+    javax.xml.parsers.DocumentBuilderFactory dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+    dbf.setNamespaceAware(true);
+    org.w3c.dom.Document doc = assertDoesNotThrow(
+        () -> dbf.newDocumentBuilder().parse(new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))),
+        () -> "output must be well-formed XML:\n" + xml);
+    assertEquals(1, doc.getElementsByTagName("ObjectEvent").getLength(), xml);
+    org.w3c.dom.NodeList masterData =
+        doc.getElementsByTagNameNS("https://ref.gs1.org/voc/", "masterDataAvailableFor");
+    assertEquals(1, masterData.getLength(), "master data must be kept:\n" + xml);
+    String content = masterData.item(0).getTextContent();
+    assertTrue(content.contains(productId), xml);
+    assertTrue(content.contains("Product"), xml);
+    assertTrue(content.contains("DE"), xml);
+    assertTrue(content.contains("RegulatoryInformation"), xml);
+    assertTrue(content.contains("gs1:RegulationTypeCode-BATTERY_DIRECTIVE"), xml);
+    assertTrue(content.contains("EU 2023/1542"), xml);
+  }
 }

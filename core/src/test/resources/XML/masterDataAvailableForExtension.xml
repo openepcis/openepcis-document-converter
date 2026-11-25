@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:2" xmlns:gs1="https://ref.gs1.org/voc/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="2.0" creationDate="2024-03-15T14:30:00.000Z">
+  <EPCISBody>
+    <EventList>
+      <ObjectEvent>
+        <eventTime>2024-03-15T14:30:00Z</eventTime>
+        <eventTimeZoneOffset>+01:00</eventTimeZoneOffset>
+        <eventID>urn:uuid:00000000-0000-4000-8000-222222222222</eventID>
+        <epcList>
+          <epc>https://id.gs1.org/01/09521234000013/21/BAT2024-001</epc>
+        </epcList>
+        <action>ADD</action>
+        <bizStep>https://ref.gs1.org/cbv/BizStep-commissioning</bizStep>
+        <disposition>https://ref.gs1.org/cbv/Disp-active</disposition>
+        <readPoint>
+          <id>https://id.gs1.org/414/9521234000013</id>
+        </readPoint>
+        <bizLocation>
+          <id>https://id.gs1.org/414/9521234000013</id>
+        </bizLocation>
+        <bizTransactionList>
+          <bizTransaction type="https://ref.gs1.org/cbv/BTT-prodorder">https://ecocell-batteries.example.com/orders/PO-2024-00142</bizTransaction>
+        </bizTransactionList>
+        <sourceList>
+          <source type="https://ref.gs1.org/cbv/SDT-owning_party">https://id.gs1.org/417/9521234000006</source>
+        </sourceList>
+        <destinationList>
+          <destination type="https://ref.gs1.org/cbv/SDT-owning_party">https://id.gs1.org/417/9521234000006</destination>
+        </destinationList>
+        <gs1:masterDataAvailableFor>
+          <id>https://id.gs1.org/01/09521234000013/21/BAT2024-001</id>
+          <type>Product</type>
+          <countryOfOrigin>
+            <countryCode>DE</countryCode>
+          </countryOfOrigin>
+          <regulatoryInformation>
+            <type>RegulatoryInformation</type>
+            <regulationType>
+              <id>gs1:RegulationTypeCode-BATTERY_DIRECTIVE</id>
+            </regulationType>
+            <regulatoryAct>EU 2023/1542</regulatoryAct>
+          </regulatoryInformation>
+        </gs1:masterDataAvailableFor>
+      </ObjectEvent>
+    </EventList>
+  </EPCISBody>
+</epcis:EPCISDocument>

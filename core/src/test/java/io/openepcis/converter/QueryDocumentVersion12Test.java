@@ -25,6 +25,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * A query interface answers with an EPCISQueryDocument, and a client asking for EPCIS 1.2 expects
@@ -109,6 +111,45 @@ class QueryDocumentVersion12Test {
     assertTrue(xml.contains("<queryName>SimpleEventQuery</queryName>"), xml);
     assertTrue(
         xml.contains("<subscriptionID>32d2aec1-a6d2-46d9-900a-24124288cce1</subscriptionID>"), xml);
+  }
+
+  @ParameterizedTest(name = "{0} {1} to XML {2}")
+  @CsvSource({
+    "JSON_LD, queryDocument.json, 1.2",
+    "JSON_LD, queryDocument.json, 2.0",
+    "XML, queryDocument.xml, 1.2",
+    "XML, queryDocument.xml, 2.0"
+  })
+  @DisplayName("QueryResults children come in schema order: queryName, subscriptionID, resultsBody")
+  void queryResultsChildrenInSchemaOrder(
+      final String fromFormat, final String name, final String toVersion) throws Exception {
+    final EPCISFormat from = EPCISFormat.valueOf(fromFormat);
+    final String folder = from == EPCISFormat.XML ? "XML" : "JSON";
+    final String xml;
+    try (InputStream in =
+            QueryDocumentVersion12Test.class
+                .getClassLoader()
+                .getResourceAsStream("2.0/EPCIS/" + folder + "/Query/" + name);
+        InputStream converted =
+            new VersionTransformer()
+                .convert(
+                    in,
+                    Conversion.of(
+                        from,
+                        EPCISVersion.VERSION_2_0_0,
+                        EPCISFormat.XML,
+                        "1.2".equals(toVersion)
+                            ? EPCISVersion.VERSION_1_2_0
+                            : EPCISVersion.VERSION_2_0_0))) {
+      xml = new String(converted.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    final int queryName = xml.indexOf("<queryName>SimpleEventQuery</queryName>");
+    final int subscriptionID =
+        xml.indexOf("<subscriptionID>32d2aec1-a6d2-46d9-900a-24124288cce1</subscriptionID>");
+    final int resultsBody = xml.indexOf("<resultsBody>");
+    assertTrue(queryName >= 0 && subscriptionID >= 0 && resultsBody >= 0, xml);
+    assertTrue(queryName < subscriptionID, xml);
+    assertTrue(subscriptionID < resultsBody, xml);
   }
 
   // A reference query document from openepcis-test-resources, JSON-LD 2.0 to XML.

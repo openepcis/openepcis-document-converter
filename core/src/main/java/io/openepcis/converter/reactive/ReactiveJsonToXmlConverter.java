@@ -307,16 +307,17 @@ public class ReactiveJsonToXmlConverter {
       if (!isEPCISDocument) {
         xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
 
-        if (subscriptionID != null && !subscriptionID.isBlank()) {
-          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.SUBSCRIPTION_ID), null, null));
-          xmlEventWriter.add(events.createCharacters(subscriptionID));
-          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.SUBSCRIPTION_ID), null));
-        }
-
+        // The query schema orders QueryResults as queryName, subscriptionID, resultsBody
         if (queryName != null && !queryName.isBlank()) {
           xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_NAME), null, null));
           xmlEventWriter.add(events.createCharacters(queryName));
           xmlEventWriter.add(events.createEndElement(new QName(EPCIS.QUERY_NAME), null));
+        }
+
+        if (subscriptionID != null && !subscriptionID.isBlank()) {
+          xmlEventWriter.add(events.createStartElement(new QName(EPCIS.SUBSCRIPTION_ID), null, null));
+          xmlEventWriter.add(events.createCharacters(subscriptionID));
+          xmlEventWriter.add(events.createEndElement(new QName(EPCIS.SUBSCRIPTION_ID), null));
         }
 
         xmlEventWriter.add(events.createStartElement(new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null, null));

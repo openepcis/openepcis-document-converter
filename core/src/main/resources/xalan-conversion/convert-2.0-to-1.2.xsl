@@ -134,8 +134,9 @@
 						<xsl:when test="local-name() = 'QueryResults'">
 							<epcisq:QueryResults xmlns:epcisq="urn:epcglobal:epcis-query:xsd:1">
 								<xsl:apply-templates mode="copy-nodes" select="@*"/>
-								<xsl:apply-templates mode="copy-nodes" select="*[local-name() = 'subscriptionID']"/>
+								<!-- the query schema orders them queryName, subscriptionID, resultsBody -->
 								<xsl:apply-templates mode="copy-nodes" select="*[local-name() = 'queryName']"/>
+								<xsl:apply-templates mode="copy-nodes" select="*[local-name() = 'subscriptionID']"/>
 								<xsl:for-each select="*[local-name() = 'resultsBody']">
 									<resultsBody>
 										<xsl:apply-templates mode="copy-nodes" select="@*"/>

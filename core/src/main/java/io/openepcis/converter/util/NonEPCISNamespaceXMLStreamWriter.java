@@ -18,11 +18,25 @@ package io.openepcis.converter.util;
 import io.openepcis.constants.EPCIS;
 import io.openepcis.model.epcis.util.EPCISNamespacePrefixMapper;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+/**
+ * Writes an event fragment without repeating the namespace declarations that belong on the
+ * document root (EPCIS, CBV, GS1 and similar well-known namespaces).
+ *
+ * <p>Skipping a declaration is only safe while no element or attribute of the fragment uses its
+ * prefix: the document root a fragment ends up in does not necessarily declare every well-known
+ * namespace (the reactive XML-to-XML path writes its own header with only epcis and xsi). So the
+ * writer tracks the bindings it has actually written and declares a prefix on the element or
+ * attribute that uses it whenever it is not yet bound inside the fragment.
+ */
 public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter {
 
     // Namespaces to skip at event level - includes EPCIS namespaces plus well-known ontology namespaces
@@ -44,6 +58,14 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
     private final Set<String> documentNamespaceUris;
     private final Set<String> requiredNamespaceUris;
 
+    // prefix -> uri declarations written per open element, innermost first ("" is the default namespace)
+    private final Deque<Map<String, String>> scopes = new ArrayDeque<>();
+    // uri -> prefix of the declarations skipped per open element, innermost first, so an attribute
+    // written by namespace URI alone gets the prefix the caller meant
+    private final Deque<Map<String, String>> skippedScopes = new ArrayDeque<>();
+    // an empty element's start tag is open until the next structural call
+    private boolean emptyElementOpen;
+
     public NonEPCISNamespaceXMLStreamWriter(XMLStreamWriter delegate) {
         this(delegate, Set.of(), Set.of());
     }
@@ -62,14 +84,236 @@ public class NonEPCISNamespaceXMLStreamWriter extends DelegatingXMLStreamWriter 
 
     @Override
     public void writeNamespace(final String prefix, final String uri) throws XMLStreamException {
+        // StAX: a null, empty or "xmlns" prefix declares the default namespace
+        final String p = prefix == null || "xmlns".equals(prefix) ? "" : prefix;
+
         // A namespace this event really uses must be bound, even a well known one such as gs1
         if(requiredNamespaceUris.contains(uri)){
-            delegate.writeNamespace(prefix, uri);
+            writeAndRecordNamespace(p, uri);
             return;
         }
 
+        // A skipped declaration is not recorded as bound: should the fragment use the prefix after
+        // all, the element or attribute using it declares it (see bindIfUnbound)
         if (!SKIP_NAMESPACE_URIS.contains(uri) && !documentNamespaceUris.contains(uri)) {
-            delegate.writeNamespace(prefix, uri);
+            writeAndRecordNamespace(p, uri);
+        } else if (!p.isEmpty() && uri != null && !skippedScopes.isEmpty()) {
+            skippedScopes.peek().putIfAbsent(uri, p);
         }
+    }
+
+    @Override
+    public void writeDefaultNamespace(final String uri) throws XMLStreamException {
+        writeNamespace("", uri);
+    }
+
+    // ---------------------------------------------------------------- binding bookkeeping
+
+    private void openElement(final boolean empty) {
+        closeEmptyElement();
+        scopes.push(new HashMap<>());
+        skippedScopes.push(new HashMap<>());
+        emptyElementOpen = empty;
+    }
+
+    private void closeEmptyElement() {
+        if (emptyElementOpen) {
+            emptyElementOpen = false;
+            scopes.pop();
+            skippedScopes.pop();
+        }
+    }
+
+    private boolean isBound(final String prefix, final String uri) {
+        for (final Map<String, String> scope : scopes) {
+            final String bound = scope.get(prefix);
+            if (bound != null) {
+                return bound.equals(uri);
+            }
+        }
+        return false;
+    }
+
+    private void bindIfUnbound(final String prefix, final String uri) throws XMLStreamException {
+        if (prefix == null || prefix.isEmpty() || uri == null || uri.isEmpty()
+                || "xml".equals(prefix) || "xmlns".equals(prefix) || scopes.isEmpty()) {
+            return;
+        }
+        if (!isBound(prefix, uri)) {
+            delegate.writeNamespace(prefix, uri);
+            scopes.peek().put(prefix, uri);
+        }
+    }
+
+    // An element in a default namespace (writeStartElement("", local, uri)) declares it unless it is
+    // bound already; a non-repairing writer would otherwise write the element in no namespace.
+    private void bindDefaultIfUnbound(final String prefix, final String uri) throws XMLStreamException {
+        if ((prefix == null || prefix.isEmpty()) && uri != null && !uri.isEmpty()
+                && !scopes.isEmpty() && !isBound("", uri)) {
+            delegate.writeDefaultNamespace(uri);
+            scopes.peek().put("", uri);
+        }
+    }
+
+    // The prefix for an attribute written by namespace URI alone: a binding written in the
+    // fragment, a declaration the caller made but this writer skipped, the delegate's context, or
+    // the well-known EPCIS prefix of the URI.
+    private String prefixFor(final String uri) throws XMLStreamException {
+        for (final Map<String, String> scope : scopes) {
+            for (final Map.Entry<String, String> binding : scope.entrySet()) {
+                if (!binding.getKey().isEmpty() && uri.equals(binding.getValue())
+                        && isBound(binding.getKey(), uri)) {
+                    return binding.getKey();
+                }
+            }
+        }
+        for (final Map<String, String> skipped : skippedScopes) {
+            if (skipped.containsKey(uri)) {
+                return skipped.get(uri);
+            }
+        }
+        final String known = delegate.getPrefix(uri);
+        if (known != null && !known.isEmpty()) {
+            return known;
+        }
+        return EPCISNamespacePrefixMapper.EPCIS_NAMESPACE_MAP.get(uri);
+    }
+
+    private void writeAndRecordNamespace(final String prefix, final String uri) throws XMLStreamException {
+        // the element itself or one of its attributes may have bound it already
+        if (!scopes.isEmpty() && uri != null && uri.equals(scopes.peek().get(prefix))) {
+            return;
+        }
+        if (prefix.isEmpty()) {
+            delegate.writeDefaultNamespace(uri);
+            if (!scopes.isEmpty()) {
+                scopes.peek().put("", uri);
+            }
+            return;
+        }
+        delegate.writeNamespace(prefix, uri);
+        if (!scopes.isEmpty() && prefix != null) {
+            scopes.peek().put(prefix, uri);
+        }
+    }
+
+    // ---------------------------------------------------------------- elements and attributes
+
+    @Override
+    public void writeStartElement(final String prefix, final String local, final String uri) throws XMLStreamException {
+        openElement(false);
+        delegate.writeStartElement(prefix, local, uri);
+        bindIfUnbound(prefix, uri);
+        bindDefaultIfUnbound(prefix, uri);
+    }
+
+    @Override
+    public void writeStartElement(final String uri, final String local) throws XMLStreamException {
+        openElement(false);
+        delegate.writeStartElement(uri, local);
+    }
+
+    @Override
+    public void writeStartElement(final String local) throws XMLStreamException {
+        openElement(false);
+        delegate.writeStartElement(local);
+    }
+
+    @Override
+    public void writeEmptyElement(final String prefix, final String local, final String uri) throws XMLStreamException {
+        openElement(true);
+        delegate.writeEmptyElement(prefix, local, uri);
+        bindIfUnbound(prefix, uri);
+        bindDefaultIfUnbound(prefix, uri);
+    }
+
+    @Override
+    public void writeEmptyElement(final String uri, final String local) throws XMLStreamException {
+        openElement(true);
+        delegate.writeEmptyElement(uri, local);
+    }
+
+    @Override
+    public void writeEmptyElement(final String local) throws XMLStreamException {
+        openElement(true);
+        delegate.writeEmptyElement(local);
+    }
+
+    @Override
+    public void writeEndElement() throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeEndElement();
+        if (!scopes.isEmpty()) {
+            scopes.pop();
+            skippedScopes.pop();
+        }
+    }
+
+    @Override
+    public void writeAttribute(final String prefix, final String uri, final String local, final String value)
+            throws XMLStreamException {
+        delegate.writeAttribute(prefix, uri, local, value);
+        bindIfUnbound(prefix, uri);
+    }
+
+    @Override
+    public void writeAttribute(final String uri, final String local, final String value) throws XMLStreamException {
+        final String prefix = uri == null || uri.isEmpty() ? null : prefixFor(uri);
+        if (prefix == null || prefix.isEmpty()) {
+            delegate.writeAttribute(uri, local, value);
+            return;
+        }
+        // with the prefix known, the 4-argument variant binds it where needed
+        writeAttribute(prefix, uri, local, value);
+    }
+
+    // ---------------------------------------------------------------- content closes an empty element
+
+    @Override
+    public void writeCharacters(final String text) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeCharacters(text);
+    }
+
+    @Override
+    public void writeCharacters(final char[] text, final int start, final int len) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeCharacters(text, start, len);
+    }
+
+    @Override
+    public void writeCData(final String data) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeCData(data);
+    }
+
+    @Override
+    public void writeComment(final String data) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeComment(data);
+    }
+
+    @Override
+    public void writeProcessingInstruction(final String target) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeProcessingInstruction(target);
+    }
+
+    @Override
+    public void writeProcessingInstruction(final String target, final String data) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeProcessingInstruction(target, data);
+    }
+
+    @Override
+    public void writeEntityRef(final String name) throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeEntityRef(name);
+    }
+
+    @Override
+    public void writeEndDocument() throws XMLStreamException {
+        closeEmptyElement();
+        delegate.writeEndDocument();
     }
 }

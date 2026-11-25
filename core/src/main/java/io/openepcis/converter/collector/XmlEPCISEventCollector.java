@@ -133,7 +133,7 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
 
       // Add additional wrapper tags for EPCISQueryDocument
       if (!isEPCISDocument) {
-        xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
+        xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, EPCIS.QUERY_RESULTS));
 
         // For EPCISQueryDocument add subscriptionID if present
         if (!StringUtils.isBlank(subscriptionID)) {
@@ -176,7 +176,7 @@ public class XmlEPCISEventCollector implements EPCISEventCollector<OutputStream>
             events.createEndElement(
                 new QName(EPCIS.RESULTS_BODY_IN_CAMEL_CASE), null)); // end resultsBody
         xmlEventWriter.add(
-            events.createEndElement(new QName(EPCIS.QUERY_RESULTS), null)); // end QueryResults
+            events.createEndElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, EPCIS.QUERY_RESULTS)); // end QueryResults
       }
 
       xmlEventWriter.add(events.createEndElement(new QName(EPCIS.EPCIS_BODY), null));

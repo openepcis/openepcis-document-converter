@@ -150,6 +150,25 @@ class QueryDocumentVersion12Test {
     assertTrue(queryName >= 0 && subscriptionID >= 0 && resultsBody >= 0, xml);
     assertTrue(queryName < subscriptionID, xml);
     assertTrue(subscriptionID < resultsBody, xml);
+    // QueryResults is a global element of the query schema: epcisq:QueryResults in the query
+    // namespace of the target version, never unqualified
+    final org.w3c.dom.Document dom = parseNamespaceAware(xml);
+    final org.w3c.dom.Element results =
+        (org.w3c.dom.Element) dom.getElementsByTagNameNS("*", "QueryResults").item(0);
+    assertTrue(results != null, xml);
+    org.junit.jupiter.api.Assertions.assertEquals(
+        "1.2".equals(toVersion) ? "urn:epcglobal:epcis-query:xsd:1" : "urn:epcglobal:epcis-query:xsd:2",
+        results.getNamespaceURI(),
+        xml);
+  }
+
+  private static org.w3c.dom.Document parseNamespaceAware(final String xml) throws Exception {
+    final javax.xml.parsers.DocumentBuilderFactory factory =
+        javax.xml.parsers.DocumentBuilderFactory.newInstance();
+    factory.setNamespaceAware(true);
+    return factory
+        .newDocumentBuilder()
+        .parse(new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
   }
 
   // A reference query document from openepcis-test-resources, JSON-LD 2.0 to XML.

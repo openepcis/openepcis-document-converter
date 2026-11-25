@@ -305,7 +305,8 @@ public class ReactiveJsonToXmlConverter {
 
       // Add additional wrapper tags for EPCISQueryDocument
       if (!isEPCISDocument) {
-        xmlEventWriter.add(events.createStartElement(new QName(EPCIS.QUERY_RESULTS), null, null));
+        // a global element of the query schema, so qualified: epcisq:QueryResults
+        xmlEventWriter.add(events.createStartElement(EPCIS.EPCIS_QUERY, EPCIS.EPCIS_QUERY_2_0_XMLNS, EPCIS.QUERY_RESULTS));
 
         // The query schema orders QueryResults as queryName, subscriptionID, resultsBody
         if (queryName != null && !queryName.isBlank()) {
@@ -403,7 +404,7 @@ public class ReactiveJsonToXmlConverter {
 
     if (!isEPCISDocument) {
       footer.append("</resultsBody>\n");
-      footer.append("</QueryResults>\n");
+      footer.append("</" + EPCIS.EPCIS_QUERY + ":QueryResults>\n");
     }
 
     footer.append("</EPCISBody>\n");

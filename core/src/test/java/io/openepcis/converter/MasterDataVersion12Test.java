@@ -15,21 +15,15 @@
  */
 package io.openepcis.converter;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openepcis.constants.EPCISFormat;
 import io.openepcis.constants.EPCISVersion;
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
 
 /**
  * The blocking {@link VersionTransformer} is what a REST service calls to turn its marshalled 2.0
@@ -57,21 +51,8 @@ class MasterDataVersion12Test {
       }
     }
 
-    final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    dbf.setNamespaceAware(true);
-    final Document doc =
-        assertDoesNotThrow(
-            () ->
-                dbf.newDocumentBuilder()
-                    .parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))),
-            () -> "output must be well-formed XML:\n" + xml);
     assertTrue(xml.contains("urn:epcglobal:epcis:xsd:1"), xml);
-    final NodeList masterData =
-        doc.getElementsByTagNameNS("https://ref.gs1.org/voc/", "masterDataAvailableFor");
-    assertEquals(1, masterData.getLength(), xml);
-    final String content = masterData.item(0).getTextContent();
-    assertTrue(content.contains("urn:epc:id:sgtin:9521234.000001.BAT2024-001"), xml);
-    assertTrue(content.contains("EU 2023/1542"), xml);
-    assertTrue(content.contains("DE"), xml);
+    MasterDataAssertions.assertMasterDataKept(
+        xml, "urn:epc:id:sgtin:9521234.000001.BAT2024-001");
   }
 }

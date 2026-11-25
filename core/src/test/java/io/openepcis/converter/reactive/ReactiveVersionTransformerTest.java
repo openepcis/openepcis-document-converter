@@ -15,6 +15,8 @@
  */
 package io.openepcis.converter.reactive;
 
+import static io.openepcis.converter.MasterDataAssertions.assertMasterDataKept;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.openepcis.constants.EPCISFormat;
@@ -838,25 +840,5 @@ class ReactiveVersionTransformerTest {
     ByteArrayOutputStream result = new ByteArrayOutputStream();
     chunks.forEach(result::writeBytes);
     return result.toString(StandardCharsets.UTF_8);
-  }
-
-  /** Well-formed, one ObjectEvent, and the master data in the gs1 namespace with its content. */
-  static void assertMasterDataKept(String xml, String productId) {
-    javax.xml.parsers.DocumentBuilderFactory dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-    dbf.setNamespaceAware(true);
-    org.w3c.dom.Document doc = assertDoesNotThrow(
-        () -> dbf.newDocumentBuilder().parse(new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))),
-        () -> "output must be well-formed XML:\n" + xml);
-    assertEquals(1, doc.getElementsByTagName("ObjectEvent").getLength(), xml);
-    org.w3c.dom.NodeList masterData =
-        doc.getElementsByTagNameNS("https://ref.gs1.org/voc/", "masterDataAvailableFor");
-    assertEquals(1, masterData.getLength(), "master data must be kept:\n" + xml);
-    String content = masterData.item(0).getTextContent();
-    assertTrue(content.contains(productId), xml);
-    assertTrue(content.contains("Product"), xml);
-    assertTrue(content.contains("DE"), xml);
-    assertTrue(content.contains("RegulatoryInformation"), xml);
-    assertTrue(content.contains("gs1:RegulationTypeCode-BATTERY_DIRECTIVE"), xml);
-    assertTrue(content.contains("EU 2023/1542"), xml);
   }
 }

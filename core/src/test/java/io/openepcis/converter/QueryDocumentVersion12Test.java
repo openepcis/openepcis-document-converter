@@ -86,6 +86,8 @@ class QueryDocumentVersion12Test {
     assertEquals("SimpleEventQuery", text(dom, "queryName"), xml);
     assertEquals("urn:epc:id:sgtin:0614141.107346.2017", text(dom, "epc"), xml);
     assertFalse(xml.contains("xsd:2"), xml);
+    // the stylesheet's xalan prefix only configures the output, it is not part of the document
+    assertFalse(xml.contains("http://xml.apache.org/xslt"), xml);
     // persistentDisposition is an EPCIS 2.0 element; the 1.2 document carries it inside extension
     final Node persistentDisposition = dom.getElementsByTagNameNS("*", "persistentDisposition").item(0);
     assertTrue(persistentDisposition != null, xml);
